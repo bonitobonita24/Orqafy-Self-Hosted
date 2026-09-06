@@ -9,17 +9,15 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 - 🔴 **Run the Planning Assistant interview** — load `Powerbyte-AIEF/specdrivenprompt/Planning_Assistant.md`
   in a session opened in this folder; seed it with `docs/SEED_BRIEF.md` so settled items aren't re-asked.
   Done: `docs/PRODUCT.md` exists with all 12 sections, owner-approved. `<source: owner 2026-09-06>`
-- 🔴 **R-1 remote-access overlay survey** — Headscale · NetBird · Netmaker · Nebula · Pangolin, evaluated
-  on self-hostable control plane, licence, NAT traversal, mobile clients, non-technical setup, Traefik +
-  real-domain fit. Done: `docs/planning/R1_REMOTE_ACCESS.md` with a recommendation. `<source: owner 2026-09-06>`
-- 🔴 **R-2 NAS storage access (UGREEN NASync DH2300)** — which protocols the model actually exposes
-  (SMB/NFS/WebDAV, Docker on UGOS Pro?), and how assets are written to it behind our storage abstraction
-  with a local-disk fallback. Done: `docs/planning/R2_NAS_STORAGE.md`. `<source: owner 2026-09-06>`
-- 🔴 **R-3 file-sync engine** — Syncthing vs alternatives; how a per-user desktop agent maps to
-  project-scoped shortcuts + revisioning. Done: `docs/planning/R3_FILE_SYNC.md`. `<source: owner 2026-09-06>`
-- 🔴 **R-4 Kaneo teardown** — schema + UI structure read for domain ideas and interaction patterns worth
-  carrying (MIT; attribution required if code is lifted). Done: `docs/planning/R4_KANEO_TEARDOWN.md`.
-  `<source: owner 2026-09-06>`
+- 🔴 **Real-device geofence-over-tunnel test** (iOS + Android) before Phase 3 — R-1 found **no source**
+  proving a VPN blocks geofence *triggering*; the open risk is notification *delivery* within the OS wake
+  budget over an idle WireGuard tunnel. Decides whether the reverse-tunnel choice (Pangolin `newt`) is
+  merely preferred or actually required. Done: measured trigger→delivery latency on both platforms,
+  recorded in `docs/planning/R1_REMOTE_ACCESS.md`. `<source: agent-found 2026-09-06>`
+- 🔴 **Nextcloud resource-cost sanity check** — R-3 picks Nextcloud over Syncthing, but it is far heavier
+  and D-3 puts it on a desktop-as-server box already running Postgres + Valkey + MinIO (+ tunnel agent).
+  Measure idle and sync-load RAM/CPU before the choice is locked. Done: figures recorded in
+  `docs/planning/R3_FILE_SYNC.md`. `<source: agent-found 2026-09-06>`
 - 🔴 **Verify Expo background-geofencing capability via context7** before Phase 3 — confirm current
   `expo-location`/`expo-task-manager` background geofence support + iOS permission requirements.
   Done: findings recorded in the PRODUCT.md mobile section. `<source: agent-found 2026-09-06>`
@@ -31,5 +29,18 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 ## ✅ Done recently
 
+- ✅ **R-1 remote-access overlay survey** → `docs/planning/R1_REMOTE_ACCESS.md`. Pangolin CE (AGPL-3.0)
+  reverse tunnel primary, plain Traefik + port-forward fallback. Cloudflare Tunnel disqualified on ToS
+  (self-hosted large-file/video restrictions); Netmaker ruled out (paid CGNAT relay + `pro/` licence
+  claims modification ownership) (2026-09-06).
+- ✅ **R-2 NAS storage access (DH2300)** → `docs/planning/R2_NAS_STORAGE.md`. **No Docker, no S3 on this
+  model** (verified per-model). MinIO runs on the Linux host over an NFS mount of a Btrfs RAID-1 share;
+  no-NAS fallback is the identical code path on local disk (2026-09-06).
+- ✅ **R-3 file-sync engine** → `docs/planning/R3_FILE_SYNC.md`. **Nextcloud** (Team folder per project),
+  Seafile CE fallback; **Syncthing rejected** — no user model, would force us to hand-write the whole
+  server-authoritative access-control layer. Overturns the seed brief's Syncthing prior (2026-09-06).
+- ✅ **R-4 Kaneo teardown** → `docs/planning/R4_KANEO_TEARDOWN.md`. Verdict: shortens ~10% of the build
+  (~600–900 liftable lines + ~2 weeks of UI/UX and schema decisions), **0% of what makes the product ours**
+  — geofencing, clients, revisions, evidence photos, inventory are all net-new (2026-09-06).
 - ✅ **Project seeded** — folder created, git initialised, seed brief + decisions + backlog written
   (2026-09-06).

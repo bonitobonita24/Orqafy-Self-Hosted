@@ -4,6 +4,56 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-06 — Resume session: two decisions locked, R-1…R-4 research delivered
+
+**In your words:** resume the session — then, of the two decidable open questions and the research
+backlog, you chose single-company tenancy, sideload-only mobile, and running R-1…R-4 in parallel.
+
+✅ **Done & verified**
+- **D-5 locked — single-company install.** No tenant model, no `tenant_id`. Two consequences recorded
+  because they are places a fleet standard would otherwise apply by default and must not: the 3-tier
+  tenant-RBAC standard does not govern this app, and the **universal login credentials must never be
+  seeded here** — it is a public AGPL product installed by third parties, so first-run setup creates
+  the operator's own admin account.
+- **D-6 locked — sideload / self-build mobile only.** No store listing under Powerbyte, so the
+  background-location justification stays unconstrained by store review. Android APK is the primary
+  surface; **iOS needs TestFlight or the user's own Apple developer account** — recorded as a stated
+  README limitation rather than glossed as parity.
+- **`docs/DECISIONS_LOG.md` created** — referenced since founding but never actually written.
+- **All four research docs delivered** to `docs/planning/`, each with cited sources and an explicit
+  unverified section.
+- Branch drift fixed: `master` → `main` (docs and memory both already assumed `main`).
+
+🔨 **Research findings — three of the four changed something**
+- **R-2 (NAS):** the DH2300 runs **no Docker and exposes no S3** — verified per-model, not inferred
+  from the higher-tier DXP units. MinIO therefore runs on the Linux host over an NFS mount of a Btrfs
+  RAID-1 share; the no-NAS fallback is the *identical* code path on local disk, so the storage choice
+  never leaks into application code.
+- **R-1 (remote access):** Pangolin CE reverse tunnel primary — it keeps any VPN **off the field
+  phones**, so geofencing never depends on a sleeping tunnel. **Cloudflare Tunnel disqualified** by its
+  late-2025 ToS restrictions on self-hosted large files and video — a live trap for a file-and-photo
+  product. Netmaker ruled out (paid CGNAT relay; `pro/` licence claims ownership of your changes).
+- **R-3 (file sync):** **overturns the seed brief's Syncthing prior.** Syncthing has no user model, so
+  our server-authoritative per-user project scoping would be entirely hand-written — the "don't build a
+  sync engine" rule violated through the back door. Nextcloud recommended, Seafile CE fallback.
+- **R-4 (Kaneo):** honest verdict — shortens roughly **10%** of the build (~600–900 liftable lines plus
+  ~2 weeks of UI/UX and schema decisions) and **0% of what makes the product ours**.
+
+💬 **Decisions / notes**
+- Open `[WHAT]`s went 3 → 1, then back to **3** — the research surfaced two new owner-level questions
+  rather than settling them unilaterally: **accept Nextcloud over Syncthing** (it contradicts the
+  founding brief, so it is your call, not a research doc's), and **is a small VPS an acceptable
+  requirement** for remote access given the "runs on your own desktop" pitch.
+- Two agent-found risks queued rather than assumed away: **geofence delivery over an idle tunnel** is
+  unproven either way and needs a real-device test, and **Nextcloud's resource cost** on a box already
+  running Postgres + Valkey + MinIO needs measuring before it is locked.
+
+⏳ **Next**
+- Resolve the three open `[WHAT]`s, then the Planning Assistant interview → `docs/PRODUCT.md`.
+- Un-gated and unblocked: the public-repo asset guard (pre-commit hook).
+
+⛔ **Hold:** local only, no remote, no deploy. Nothing scaffolded until PRODUCT.md is approved.
+
 ## 2026-09-06 — Project founded (spec seeded from the AIEF seat)
 
 **In your words:** you wanted a new project in `1_COMPANY_DEV/` called **Orqafy-Self-Hosted** — the
