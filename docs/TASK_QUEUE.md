@@ -24,6 +24,14 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
   ~180 Mbit/s only with **Newt ≥1.16.0 + `USE_NATIVE_MAIN_INTERFACE=true` + host networking**. Those
   settings are mandatory in our bundle. Done: measured real throughput for a large photo upload over
   the tunnel, recorded in `docs/planning/R1a_PANGOLIN_SIZING.md`. `<source: agent-found 2026-09-06>`
+- 🔴 **Verify headless Nextcloud continuous-sync approach (D-14 caveat)** — the headless/CLI client is
+  understood to be one-shot, not a daemon. Confirm how continuous background sync is driven (scheduler,
+  fs-watch, or a supervising loop) from the Tauri Rust sidecar. Done: a working continuous-sync PoC, or
+  a documented switch to the WebDAV-in-our-client fallback. `<source: agent-found 2026-09-06>`
+- 🔴 **Offline-first mobile design (D-15)** — cached task list, LOCAL geofence evaluation with no server
+  contact, outbound queue for photo uploads + task updates, conflict handling on reconnect. A v1 design
+  commitment, not a later retrofit. Done: reflected in PRODUCT.md mobile section + DESIGN.md.
+  `<source: agent-found 2026-09-06>`
 - 🔴 **Desktop packaging workstream** — Tauri chosen (D-11). Remaining: code signing + notarisation +
   auto-update per platform, and documenting the Rust sidecar-supervision surface as the sole
   non-TypeScript code. Done: recorded in DESIGN.md. `<source: agent-found 2026-09-06>`

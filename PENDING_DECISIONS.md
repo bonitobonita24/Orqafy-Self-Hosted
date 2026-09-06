@@ -30,35 +30,14 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       PRODUCT.md §12 (Out of Scope) can be finalised. Gate: the Planning Assistant interview — this
       one genuinely needs the interview's back-and-forth, not a single answer.
 
-- [ ] **[WHAT] Desktop sync client — how does our Tauri app actually sync?** Opened by D-10: we chose
-      Nextcloud, but D-7 says we ship our own client, so Nextcloud's mature desktop client is not
-      automatically ours. Pick one: **(a)** bundle the official Nextcloud desktop client (GPL-2.0,
-      least work, but two apps for the user), **(b)** implement WebDAV sync inside our Tauri client
-      (one app, all TypeScript, real work, still delta-less), **(c)** no desktop folder sync — our app
-      browses and does on-demand upload/download. **Blocks specifying the desktop client.**
-      Evidence: `docs/planning/R3b_FILE_SYNC_REVISED.md`, `docs/DECISIONS_LOG.md` D-10a.
 
-- [ ] **[WHAT] Is remote access a v1 requirement or an optional add-on?** D-9 settled *where* Pangolin
-      runs (dedicated VPS) but not *whether every install must have one*. A VPS requirement sits
-      awkwardly against the "free, runs on your own desktop" pitch, and the no-VPS fallback (Traefik +
-      Let's Encrypt + port-forward) only works where the site has a routable IP — many will not.
-      Decide: LAN-only as the supported default with remote access as a documented add-on, or remote
-      access in the v1 bar. Evidence: `docs/planning/R1_REMOTE_ACCESS.md`, `R1a_PANGOLIN_SIZING.md`.
+## ✅ Resolved (2026-09-06, v1-scope resolution)
 
-- [ ] **[WHAT] Document-AI feature — in scope, and in which phase?** Owner asked for drag-and-drop
-      OCR + auto-organisation into Client > Project > category. This is a **new module**, not covered
-      by D-4's v1 scope (PM + files + geofence + mobile). Decide: v1 bar, a v1.x follow-on, or v2
-      alongside the finance modules. Note it has a natural dependency — auto-filing invoices/POs/
-      expenses is most valuable once those finance modules exist (v2 per D-4), though filing into
-      Client > Project folders works with v1 alone. Gate: `docs/planning/R5_DOCUMENT_AI.md` for the
-      **Costs now known (R-5):** thin slice ≈ **3–4 weeks** (drop folder → OCR → full-text search →
-      exact-ID auto-file → review tray, no LLM); full v1 ≈ **3–3.5 months**. **Design constraint
-      agreed:** confidence-gated with human confirmation and a review tray — never silent auto-filing
-      of financial documents.
-
-- [ ] **[WHAT] Local-AI hosting model.** If the document-AI ships: local-only (free, modest quality,
-      privacy preserved) as the default, with an opt-in bring-your-own-API-key escape hatch for firms
-      wanting better accuracy? We can never ship our own API keys in a public AGPL repo, and routing a
-      firm's invoices and payroll through a third-party API contradicts the self-hosted promise.
-      Confirm the default is local-only and BYO-key is off by default. Evidence: R-5.
-
+- [x] **Document-AI phasing** → **D-13**: thin slice (no LLM) in v1 ~3–4 wks; full version later.
+- [x] **Desktop sync client (was D-10a)** → **D-14**: headless Nextcloud client sidecar'd behind our
+      Tauri UI, one app. Caveat: headless one-shot behaviour → verify continuous-sync approach
+      (queued); fallback is WebDAV-in-our-client.
+- [x] **Remote access v1 vs add-on** → **D-15**: add-on, not the v1 bar. v1 is LAN-first; mobile is
+      offline-first so geofencing works with no server contact.
+- [x] **Local-AI hosting model** → **D-16**: local-only default; bring-your-own-key opt-in, off by
+      default, warned.

@@ -186,3 +186,55 @@ review tray, no LLM). Full v1 ≈ **3–3.5 months**.
 **Top risks:** the accuracy ceiling is informational, not technical — it is bounded by what the
 documents actually contain; **one silent payroll misfile destroys trust permanently**, which is why
 the confidence-gated review tray is non-negotiable; and RAM/CPU cost on a small firm's box.
+
+---
+
+## 2026-09-06 — v1 scope resolution (four decisions)
+
+### D-13 · Document AI — thin slice in v1, full version later
+**Decision:** the **thin slice ships in v1** (~3–4 weeks): drop folder → OCR → full-text search →
+exact-ID auto-file → review tray. **No LLM.** The LLM layer and per-supplier template learning follow
+once the v2 finance modules give richer targets to file into.
+**Why:** delivers the drag-and-drop experience and searchable OCR'd documents immediately, at low risk,
+while the highest-value auto-filing (invoices/POs/expenses) naturally waits for the modules that own
+those records. Refines D-4 without moving its other v1 commitments.
+**Consequence:** v1 depends only on the licence-clean OCR lane (RapidOCR/Tesseract); Ollama + the local
+model are a v1.x/v2 addition, so v1's footprint stays small.
+
+### D-14 · Desktop sync — headless Nextcloud client sidecar'd behind our UI
+**Decision:** bundle **Nextcloud's headless/command-line sync client** and supervise it from the Tauri
+shell (this is precisely what D-11's Rust sidecar-supervision surface exists for). The user sees **one
+app**; we write no sync engine. Resolves D-10a.
+**Why:** single-app experience without building or maintaining sync ourselves. GPL-2.0 headless client
+is compatible with our AGPL-3.0.
+**OPEN CAVEAT — must be verified before this is load-bearing:** the headless client is understood to be
+**one-shot rather than a continuous daemon**, so continuous sync may require us to drive it on a
+schedule or a filesystem watch. Queued as a feasibility check in `docs/TASK_QUEUE.md`. **If continuous
+background sync proves impractical this way, the fallback is D-10a option (b)** — WebDAV sync in our
+own client. Not a reopening of Nextcloud vs Syncthing; only *how* our client talks to Nextcloud.
+
+### D-15 · Remote access — an add-on, not the v1 bar; mobile is offline-first
+**Decision:** v1 targets a **LAN install with no VPS required.** Remote access (Pangolin on a dedicated
+VPS per D-9) is a **documented, optional add-on.** The **mobile app is offline-first.**
+**Why:** preserves the "free, runs on your own desktop" promise for the common case. Crucially,
+**geofencing does not need remote access** — the phone caches its task list, evaluates the geofence
+locally, and fires the notification with no server contact; photo uploads and task updates queue
+offline and flush on WiFi. So the differentiator works LAN-only.
+**Consequences:**
+- **Offline-first is now a v1 design commitment, from the start** — cached tasks, local geofence
+  evaluation, an outbound queue with conflict handling on reconnect. Retrofitting this later is
+  expensive, which is exactly why it is committed now rather than deferred.
+- Remote access, when a firm opts in, still carries the D-9 dedicated-VPS rule and the mandatory
+  Pangolin throughput tuning.
+- The no-VPS remote fallback (Traefik + Let's Encrypt + port-forward, where a routable IP exists)
+  stays documented for the technically-capable.
+
+### D-16 · Local-AI hosting — local-only default, bring-your-own-key opt-in
+**Decision:** the document AI ships **local-only by default** — CPU models, free, private, no account,
+no keys in our repo. A firm may supply **their own API key** in settings to raise accuracy; it is
+**off by default** and gated behind a clear warning that documents then leave their server.
+**Why:** the only model consistent with a public AGPL product and the self-hosted privacy promise. We
+can never ship our own keys, and financial documents must not leave a firm's server without an
+explicit, informed opt-in.
+**Consequence:** BYO-key is a settings toggle, not a setup-time prompt — we do not nudge users toward
+sending payroll and invoices off-site.

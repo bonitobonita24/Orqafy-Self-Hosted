@@ -52,6 +52,33 @@ backlog, you chose single-company tenancy, sideload-only mobile, and running R-1
 - Resolve the open `[WHAT]`s, then the Planning Assistant interview → `docs/PRODUCT.md`.
 - Un-gated and unblocked: the public-repo asset guard (pre-commit hook).
 
+### Later the same day — v1 scope resolved (four decisions)
+
+**In your words:** "yes, do your suggestion" — settle the decidable open questions before the interview.
+
+✅ **Four decisions locked, open [WHAT]s down to one**
+- **D-13** document AI → **thin slice in v1** (~3–4 wks, no LLM), full version later.
+- **D-14** desktop sync → **headless Nextcloud client sidecar'd behind our Tauri UI** — one app, no
+  sync engine of our own. Carries a caveat (below).
+- **D-15** remote access → **an add-on, not the v1 bar.** v1 is LAN-first; mobile is offline-first.
+- **D-16** local AI → **local-only default**, bring-your-own-key opt-in, off by default and warned.
+
+💬 **The insight that unlocked D-15**
+- Geofencing does **not** need remote access. The phone caches its tasks, evaluates the geofence
+  locally, and fires the notification with zero server contact; uploads and updates queue offline and
+  flush on WiFi. So the differentiator works on a LAN-only install — which let remote access become
+  genuinely optional rather than secretly mandatory, keeping the "free, runs on your own desktop" pitch.
+- The cost, accepted deliberately: **offline-first mobile is now a v1 commitment**, not a retrofit.
+
+⚠️ **One caveat queued honestly, not assumed away (D-14)**
+- Nextcloud's headless client is understood to be **one-shot, not a daemon**, so continuous background
+  sync may need a scheduler or filesystem watch driven from the Tauri sidecar. Queued as a feasibility
+  check; if it proves impractical, the fallback is WebDAV sync in our own client — without reopening the
+  Nextcloud-vs-Syncthing decision.
+
+⏳ **Next:** the last open [WHAT] — feature boundary vs commercial Orqafy — is genuine interview
+material. Ready to run the Planning Assistant interview → docs/PRODUCT.md.
+
 ### Later the same day — sync engine settled, document AI proven feasible
 
 **In your words:** could we add a free AI that OCRs, understands and auto-organises a whole PC's worth
