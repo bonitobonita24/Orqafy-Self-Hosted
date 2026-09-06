@@ -123,3 +123,66 @@ process**. At $4–6/mo for a dedicated box, that blast radius is not worth taki
 - **Never ship or reference the `ee-*` image** — the FCL licence forbids redistributing it. CE only.
 - Known CE gap: **all audit/access logging is Enterprise-only.** If we need an access audit trail, it
   is ours to build at the application layer.
+
+---
+
+## 2026-09-06 — Sync engine, desktop shell, document AI
+
+### D-10 · File sync — Nextcloud, driven by a hard read-only requirement
+**Decision:** **Nextcloud**, because **per-user read-only file access is a hard product requirement.**
+Some users must be able to view drawings, permits and contracts without being able to modify or
+delete them, enforced server-side.
+**Why:** this is the one capability Syncthing cannot provide. R-3b established that Syncthing's
+folder authorisation IS a real server-side boundary (`lib/model/model.go:1982` — a modified client
+cannot pull an unshared folder), correcting R-3's wrong claim that it had none. But sharing is
+all-or-nothing per device: **there is no per-device read-only enforcement.** Given read-only is
+required, Syncthing is out regardless of its other advantages.
+**Costs accepted — recorded honestly, not glossed:**
+- **No delta sync.** Nextcloud still has none. An edited 50 MB CAD file re-uploads in full. Over the
+  relayed tunnel this is the expensive case, which makes the **Pangolin throughput tuning task
+  (Newt ≥1.16.0 + `USE_NATIVE_MAIN_INTERFACE=true` + host networking) load-bearing, not optional.**
+  On-site LAN use talks to the server directly and is unaffected.
+- **~530 MB plus a second database** on the server, versus ~18 MB for the alternative.
+- **PHP.** Acceptable only as a black-box sidecar wrapped through its API (D-8 permits this). If we
+  ever find ourselves needing to *modify* Nextcloud, that is a signal to revisit this decision.
+- **Superseded:** `docs/SEED_BRIEF.md` §4.4's Syncthing prior is formally retired.
+
+### D-10a · OPEN CONSEQUENCE — the desktop sync client is now unresolved `[HOW→WHAT]`
+R-3's original case for Nextcloud rested substantially on its **mature desktop client**. D-7 says we
+ship our OWN Tauri client, so that asset is not automatically available. Three paths, none yet chosen:
+- **(a) Bundle the official Nextcloud desktop client** alongside our app. GPL-2.0, compatible with our
+  AGPL-3.0, least engineering — but the user installs and sees two applications.
+- **(b) Implement WebDAV sync inside our Tauri client.** One app, full control, all TypeScript. Real
+  work, and still delta-less because the limitation is Nextcloud's, not the client's.
+- **(c) No desktop folder sync.** Our app is a project/file browser doing on-demand upload/download;
+  users wanting a synced folder install the Nextcloud client themselves.
+**Tracked in `PENDING_DECISIONS.md`. Must be settled before the desktop client is specified.**
+
+### D-11 · Desktop shell — Tauri
+**Decision:** **Tauri**, accepting roughly 50–300 lines of Rust confined to sidecar supervision.
+**Why:** ~17 MB installer versus ~112 MB for Electron, and materially lower RAM per running client —
+which matters for firms on poor rural connections and modest office hardware.
+**Consequence:** a deliberate, contained exception to D-8. The Rust surface is boilerplate, written
+once, and must be **documented as the sole non-TypeScript code in the product**. All UI and
+application logic stay TypeScript. If the Rust surface ever grows beyond sidecar supervision, that is
+a signal to revisit.
+
+### D-12 · Document AI — feasible, and the licence-clean toolchain is now fixed
+**Status:** feasibility settled (`docs/planning/R5_DOCUMENT_AI.md`); **phasing still an open `[WHAT]`.**
+**Verdict:** **qualified yes** — free, self-hosted, CPU-only, licence-clean, and TypeScript-only in our
+own code, **but only as a DB-matching-first pipeline.** An LLM-first design is not feasible on the
+hardware these firms own.
+**Key finding:** **L0 heuristics + L2 matching against our own records carry ~55–80% of the job with no
+LLM at all.** Per-supplier template learning from a single human correction beats a small LLM on repeat
+suppliers — and belongs in **v1, not v2**.
+**Licence blockers found (these would have bitten us at ship time):**
+- **Surya** — weights are OpenRAIL-M, free only under $5M revenue. **Not shippable** in our product.
+- **Gemma** — pass-through use restrictions, and its HF repo is gated, so auto-download is impossible.
+- **Llama** — Community License adds non-free terms for no benefit here.
+- **Clean lane:** RapidOCR / Tesseract (Apache-2.0) + Ollama (MIT) + Qwen3-4B / Phi-4-mini
+  (Apache-2.0 / MIT).
+**Cost:** thin slice ≈ **3–4 weeks** (drop folder → OCR → full-text search → exact-ID auto-file →
+review tray, no LLM). Full v1 ≈ **3–3.5 months**.
+**Top risks:** the accuracy ceiling is informational, not technical — it is bounded by what the
+documents actually contain; **one silent payroll misfile destroys trust permanently**, which is why
+the confidence-gated review tray is non-negotiable; and RAM/CPU cost on a small firm's box.

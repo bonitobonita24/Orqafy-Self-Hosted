@@ -30,12 +30,13 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       PRODUCT.md §12 (Out of Scope) can be finalised. Gate: the Planning Assistant interview — this
       one genuinely needs the interview's back-and-forth, not a single answer.
 
-- [ ] **[WHAT] File-sync engine — final pick.** ⏳ **Awaiting R-3b.** R-3 picked Nextcloud, but that
-      predates D-7 (desktop client apps) and D-8 (TypeScript-only). Re-comparison in flight:
-      Nextcloud vs Syncthing vs sync-against-our-own-API, judged on bundling into a desktop installer,
-      language discipline, server-authoritative access control, and behaviour over a throughput-limited
-      relay tunnel. Owner decides once `docs/planning/R3b_FILE_SYNC_REVISED.md` lands. This choice
-      **overturns or confirms a prior in `docs/SEED_BRIEF.md`** (Syncthing), so it is the owner's call.
+- [ ] **[WHAT] Desktop sync client — how does our Tauri app actually sync?** Opened by D-10: we chose
+      Nextcloud, but D-7 says we ship our own client, so Nextcloud's mature desktop client is not
+      automatically ours. Pick one: **(a)** bundle the official Nextcloud desktop client (GPL-2.0,
+      least work, but two apps for the user), **(b)** implement WebDAV sync inside our Tauri client
+      (one app, all TypeScript, real work, still delta-less), **(c)** no desktop folder sync — our app
+      browses and does on-demand upload/download. **Blocks specifying the desktop client.**
+      Evidence: `docs/planning/R3b_FILE_SYNC_REVISED.md`, `docs/DECISIONS_LOG.md` D-10a.
 
 - [ ] **[WHAT] Is remote access a v1 requirement or an optional add-on?** D-9 settled *where* Pangolin
       runs (dedicated VPS) but not *whether every install must have one*. A VPS requirement sits
@@ -50,8 +51,10 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       alongside the finance modules. Note it has a natural dependency — auto-filing invoices/POs/
       expenses is most valuable once those finance modules exist (v2 per D-4), though filing into
       Client > Project folders works with v1 alone. Gate: `docs/planning/R5_DOCUMENT_AI.md` for the
-      real build cost before committing. **Design constraint already agreed:** confidence-gated with
-      human confirmation and a review tray — never silent auto-filing of financial documents.
+      **Costs now known (R-5):** thin slice ≈ **3–4 weeks** (drop folder → OCR → full-text search →
+      exact-ID auto-file → review tray, no LLM); full v1 ≈ **3–3.5 months**. **Design constraint
+      agreed:** confidence-gated with human confirmation and a review tray — never silent auto-filing
+      of financial documents.
 
 - [ ] **[WHAT] Local-AI hosting model.** If the document-AI ships: local-only (free, modest quality,
       privacy preserved) as the default, with an opt-in bring-your-own-API-key escape hatch for firms

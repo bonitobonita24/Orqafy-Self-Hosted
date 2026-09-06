@@ -14,17 +14,8 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
   budget over an idle WireGuard tunnel. Decides whether the reverse-tunnel choice (Pangolin `newt`) is
   merely preferred or actually required. Done: measured trigger→delivery latency on both platforms,
   recorded in `docs/planning/R1_REMOTE_ACCESS.md`. `<source: agent-found 2026-09-06>`
-- 🟡 **R-5 document-AI feasibility** — IN FLIGHT. Drag-and-drop a messy folder tree; OCR + understand +
-  auto-file into Client > Project > category (invoice/PO/expense/receipt/payroll/drawing/permit/photo).
-  Must be FREE and work in a self-hosted install shipped to third parties. Evaluating a layered
-  pipeline (L0 heuristics → L1 OCR → L2 deterministic match against OUR OWN DB → L3 small local LLM
-  for the residue only → L4 human confirmation), OCR engine + local-model licences (bundling/
-  redistribution rights matter under AGPL), where it runs (server, not per-PC), and the D-8 language
-  collision (black-box sidecar OK, Python we maintain not OK). Done:
-  `docs/planning/R5_DOCUMENT_AI.md` + owner decides scope/phasing. `<source: owner 2026-09-06>`
-- 🟡 **R-3b file-sync re-comparison** — IN FLIGHT. Nextcloud vs Syncthing vs sync-against-our-own-API,
-  re-judged against D-7 (desktop client apps) + D-8 (TypeScript-only), which postdate R-3. Done:
-  `docs/planning/R3b_FILE_SYNC_REVISED.md` + owner picks. `<source: owner 2026-09-06>`
+
+
 - 🔴 **Sync-engine resource-cost check** — whichever engine wins, measure idle and sync-load RAM/CPU on
   a desktop-as-server box already running Postgres + Valkey + MinIO before the choice is locked.
   Done: figures recorded in the winning engine's decision doc. `<source: agent-found 2026-09-06>`
@@ -33,9 +24,9 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
   ~180 Mbit/s only with **Newt ≥1.16.0 + `USE_NATIVE_MAIN_INTERFACE=true` + host networking**. Those
   settings are mandatory in our bundle. Done: measured real throughput for a large photo upload over
   the tunnel, recorded in `docs/planning/R1a_PANGOLIN_SIZING.md`. `<source: agent-found 2026-09-06>`
-- 🔴 **Desktop client shell decision (`[HOW]`)** — Electron-family (TypeScript end to end) vs Tauri
-  (Rust toolchain beyond the webview), weighed against D-8. Also covers code signing and auto-update
-  per platform. Done: recorded in DESIGN.md. `<source: agent-found 2026-09-06>`
+- 🔴 **Desktop packaging workstream** — Tauri chosen (D-11). Remaining: code signing + notarisation +
+  auto-update per platform, and documenting the Rust sidecar-supervision surface as the sole
+  non-TypeScript code. Done: recorded in DESIGN.md. `<source: agent-found 2026-09-06>`
 - 🔴 **Verify Expo background-geofencing capability via context7** before Phase 3 — confirm current
   `expo-location`/`expo-task-manager` background geofence support + iOS permission requirements.
   Done: findings recorded in the PRODUCT.md mobile section. `<source: agent-found 2026-09-06>`
@@ -46,6 +37,16 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
   typeface IBM Plex Sans + JetBrains Mono. Done: mockup rendered and owner-approved. `<source: owner 2026-09-06>`
 
 ## ✅ Done recently
+
+- ✅ **R-3b file-sync re-comparison** → `docs/planning/R3b_FILE_SYNC_REVISED.md`. Corrected R-3's wrong
+  claim that Syncthing has no access-control boundary (it does — server-side, `lib/model/model.go:1982`).
+  Owner's hard per-user read-only requirement decided it: **Nextcloud** (D-10), since Syncthing has no
+  per-device read-only. Own-build priced honestly at 4–7 months (2026-09-06).
+- ✅ **R-5 document-AI feasibility** → `docs/planning/R5_DOCUMENT_AI.md`. **Qualified yes** — free,
+  CPU-only, licence-clean, TypeScript-only, but DB-matching-first; LLM-first is not feasible on this
+  hardware. L0+L2 carry ~55–80% with no LLM. Licence blockers found: Surya weights (OpenRAIL-M revenue
+  cap), Gemma (gated + use restrictions), Llama (non-free terms). Clean lane: RapidOCR/Tesseract +
+  Ollama + Qwen3-4B/Phi-4-mini. Thin slice 3–4 weeks, full v1 3–3.5 months (2026-09-06).
 
 - ✅ **R-1 remote-access overlay survey** → `docs/planning/R1_REMOTE_ACCESS.md`. Pangolin CE (AGPL-3.0)
   reverse tunnel primary, plain Traefik + port-forward fallback. Cloudflare Tunnel disqualified on ToS

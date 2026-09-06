@@ -52,6 +52,49 @@ backlog, you chose single-company tenancy, sideload-only mobile, and running R-1
 - Resolve the open `[WHAT]`s, then the Planning Assistant interview → `docs/PRODUCT.md`.
 - Un-gated and unblocked: the public-repo asset guard (pre-commit hook).
 
+### Later the same day — sync engine settled, document AI proven feasible
+
+**In your words:** could we add a free AI that OCRs, understands and auto-organises a whole PC's worth
+of files dragged into the app — Client > Project > invoices, expenses/POs, receipts, payrolls?
+
+✅ **Three more decisions locked**
+- **D-10 Nextcloud for file sync** — decided by your hard **per-user read-only** requirement.
+- **D-11 Tauri** for the desktop shell — ~17 MB vs ~112 MB, at the cost of ~50–300 lines of Rust for
+  sidecar supervision, documented as the only non-TypeScript code in the product.
+- **D-12 document AI is feasible** — free, self-hosted, CPU-only, licence-clean.
+
+💬 **A wrong finding corrected**
+- R-3 rejected Syncthing because it "has no user model". **That was factually wrong**, and R-3b proved
+  it with a code citation — Syncthing's folder check runs server-side in a config only our backend
+  writes, so a modified client cannot pull an unshared folder. Syncthing still lost, but on the *real*
+  reason: it has no **per-device read-only**, which you require. Worth recording that the first answer
+  was wrong for the wrong reason.
+
+⚠️ **A consequence of choosing Nextcloud, opened not buried (D-10a)**
+- R-3's case for Nextcloud leaned on its mature desktop client — but D-7 says we ship our own Tauri
+  app, so that asset isn't automatically ours. Three paths now open: bundle the official Nextcloud
+  client (GPL-2.0, least work, two apps), implement WebDAV sync in our client (one app, real work), or
+  drop desktop folder sync entirely. **Blocks specifying the desktop client.**
+- Also accepted knowingly: **Nextcloud has no delta sync**, so an edited 50 MB CAD file re-uploads in
+  full. That makes the Pangolin throughput tuning **load-bearing rather than optional**. On-site LAN
+  use talks to the server directly and is unaffected.
+
+🔨 **Document AI — the answer is a qualified yes**
+- **The reframe that makes it work:** your app already holds the ground truth (client names, project
+  codes, PO and invoice numbers, suppliers, dates), so this is mostly **matching, not guessing**.
+  L0 heuristics + L2 matching against your own records carry **~55–80% of the job with no LLM at all.**
+- **Per-supplier template learning** — after one human correction, repeat documents from the same
+  supplier file themselves. Beats a small LLM, and belongs in v1.
+- **Licence traps found before we built on them:** Surya's weights are OpenRAIL-M (free only under $5M
+  revenue — not shippable), Gemma is gated and carries pass-through use restrictions, Llama adds
+  non-free terms for no benefit. Clean lane: RapidOCR/Tesseract + Ollama + Qwen3-4B/Phi-4-mini.
+- **Cost:** thin slice **3–4 weeks**, full v1 **3–3.5 months**. Phasing is yours to decide.
+- **Non-negotiable design point:** one silent payroll misfile destroys trust permanently, so nothing
+  financial auto-files without a confidence gate and a review tray.
+
+⏳ **Next:** phasing call on the document AI, the D-10a desktop-sync path, then the Planning Assistant
+interview.
+
 ### Later the same day — client platforms, and the VPS question answered
 
 **In your words:** Nextcloud is fine as long as we can modify it how we want; Windows/Mac need an
