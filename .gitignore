@@ -1,0 +1,29 @@
+# ---------------------------------------------------------------------------
+# PUBLIC-REPO ASSET GUARD (decision D-2: AGPL-3.0, public)
+# This repo is built WITH the AIEF framework but must ship WITHOUT it.
+# Never commit framework IP or the paid AdminCN template slice.
+# ---------------------------------------------------------------------------
+.ai_prompt/
+AI/
+starter/admincn/
+CLAUDE.md
+.claude/
+.sessions/
+
+# Secrets — canonical home is the Server-Setups repo (SOPS+age). Never here.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Artifacts
+node_modules/
+.next/
+dist/
+build/
+coverage/
+screenshots/
+test-artifacts/
+*.log
+.DS_Store
