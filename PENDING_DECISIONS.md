@@ -11,15 +11,21 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
 - [x] **D-4 v1 scope** → Phased: PM + file management + geofenced notifications + mobile in v1;
       invoicing / POs / inventory / expenses in v2.
 
+## ✅ Resolved (2026-09-06, resume session)
+
+- [x] **D-5 Multi-tenancy shape** → **Single-company install.** One org per install; clients and
+      projects are first-class records under it. No `tenant_id`, no tenant model. The fleet 3-tier
+      tenant-RBAC standard and the universal login credentials **do not apply to this app** — it is a
+      public AGPL product installed by third parties, so first-run setup creates the owner's own
+      admin account. Rationale + full consequences: `docs/DECISIONS_LOG.md` D-5.
+- [x] **D-6 Mobile distribution** → **Sideload / self-build only**, no store listing under Powerbyte.
+      Android APK is the primary mobile surface; **iOS needs TestFlight or the user's own Apple dev
+      account — a known limitation to state plainly in the README.** Keeps the background-location
+      justification unconstrained by store review. Rationale: `docs/DECISIONS_LOG.md` D-6.
+
 ## 🔴 Open
 
 - [ ] **[WHAT] Feature boundary vs commercial Orqafy.** Which commercial features are deliberately
       absent from the self-hosted edition, and which are intentionally *better* here? Needed before
-      PRODUCT.md §12 (Out of Scope) can be finalised. Gate: the Planning Assistant interview.
-- [ ] **[WHAT] Multi-tenancy shape.** Is a self-hosted install single-company (one org, many clients
-      and projects) or does it keep the tenant model? Drives the whole schema + RBAC design.
-      Recommendation to put to the owner: **single-company install, clients as first-class records** —
-      simpler for a construction firm, and tenancy can be added later if a hosted edition appears.
-- [ ] **[WHAT] Mobile distribution.** Play Store / App Store listing under Powerbyte, or sideload +
-      self-hosted build only? Affects Expo config, signing, and whether store review constrains the
-      background-location justification.
+      PRODUCT.md §12 (Out of Scope) can be finalised. Gate: the Planning Assistant interview — this
+      one genuinely needs the interview's back-and-forth, not a single answer.
