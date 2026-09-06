@@ -43,3 +43,19 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       Let's Encrypt + port-forward) only works where the site has a routable IP — many will not.
       Decide: LAN-only as the supported default with remote access as a documented add-on, or remote
       access in the v1 bar. Evidence: `docs/planning/R1_REMOTE_ACCESS.md`, `R1a_PANGOLIN_SIZING.md`.
+
+- [ ] **[WHAT] Document-AI feature — in scope, and in which phase?** Owner asked for drag-and-drop
+      OCR + auto-organisation into Client > Project > category. This is a **new module**, not covered
+      by D-4's v1 scope (PM + files + geofence + mobile). Decide: v1 bar, a v1.x follow-on, or v2
+      alongside the finance modules. Note it has a natural dependency — auto-filing invoices/POs/
+      expenses is most valuable once those finance modules exist (v2 per D-4), though filing into
+      Client > Project folders works with v1 alone. Gate: `docs/planning/R5_DOCUMENT_AI.md` for the
+      real build cost before committing. **Design constraint already agreed:** confidence-gated with
+      human confirmation and a review tray — never silent auto-filing of financial documents.
+
+- [ ] **[WHAT] Local-AI hosting model.** If the document-AI ships: local-only (free, modest quality,
+      privacy preserved) as the default, with an opt-in bring-your-own-API-key escape hatch for firms
+      wanting better accuracy? We can never ship our own API keys in a public AGPL repo, and routing a
+      firm's invoices and payroll through a third-party API contradicts the self-hosted promise.
+      Confirm the default is local-only and BYO-key is off by default. Evidence: R-5.
+

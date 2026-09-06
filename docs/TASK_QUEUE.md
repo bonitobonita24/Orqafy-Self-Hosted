@@ -14,6 +14,14 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
   budget over an idle WireGuard tunnel. Decides whether the reverse-tunnel choice (Pangolin `newt`) is
   merely preferred or actually required. Done: measured trigger→delivery latency on both platforms,
   recorded in `docs/planning/R1_REMOTE_ACCESS.md`. `<source: agent-found 2026-09-06>`
+- 🟡 **R-5 document-AI feasibility** — IN FLIGHT. Drag-and-drop a messy folder tree; OCR + understand +
+  auto-file into Client > Project > category (invoice/PO/expense/receipt/payroll/drawing/permit/photo).
+  Must be FREE and work in a self-hosted install shipped to third parties. Evaluating a layered
+  pipeline (L0 heuristics → L1 OCR → L2 deterministic match against OUR OWN DB → L3 small local LLM
+  for the residue only → L4 human confirmation), OCR engine + local-model licences (bundling/
+  redistribution rights matter under AGPL), where it runs (server, not per-PC), and the D-8 language
+  collision (black-box sidecar OK, Python we maintain not OK). Done:
+  `docs/planning/R5_DOCUMENT_AI.md` + owner decides scope/phasing. `<source: owner 2026-09-06>`
 - 🟡 **R-3b file-sync re-comparison** — IN FLIGHT. Nextcloud vs Syncthing vs sync-against-our-own-API,
   re-judged against D-7 (desktop client apps) + D-8 (TypeScript-only), which postdate R-3. Done:
   `docs/planning/R3b_FILE_SYNC_REVISED.md` + owner picks. `<source: owner 2026-09-06>`
