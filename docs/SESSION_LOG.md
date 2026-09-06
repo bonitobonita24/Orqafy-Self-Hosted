@@ -52,6 +52,34 @@ backlog, you chose single-company tenancy, sideload-only mobile, and running R-1
 - Resolve the open `[WHAT]`s, then the Planning Assistant interview → `docs/PRODUCT.md`.
 - Un-gated and unblocked: the public-repo asset guard (pre-commit hook).
 
+### Later the same day — Planning Assistant interview → PRODUCT.md written
+
+**In your words:** run the Planning Assistant interview. Along the way you added leave management
+(staff apply for leave), a schedule/start-date for geofenced alerts, and asked the design be simple,
+user-friendly and modern.
+
+✅ **`docs/PRODUCT.md` written** — the full spec, seeded so you were only asked what was genuinely open.
+All product decisions resolved; open `[WHAT]`s are now zero.
+
+💬 **What the interview settled (D-17…D-23)**
+- **Roles/RBAC** — architect + engineer share one PM role; predefined roles + **custom groups +
+  per-user overrides** (finance visibility is a permission, not a role). A permission builder is a v1
+  item.
+- **Client portal** — v2, read-only + milestone sign-off.
+- **Geofence** — 3-min dwell, re-alert every re-entry, grouped "N things here", assigned worker only,
+  **plus a start-date schedule** so it only arms when relevant. On-device, offline, presence-only.
+- **Data/DPA** — payroll docs kept as **SPI**; **retention + export/delete + access audit log in v1**;
+  no worker tracking. Installing firm is the data controller; we ship the mechanisms.
+- **Leave management** — **v1**, leave-only, `approve_leave` permission. (Narrowly reopens the brief's
+  "HR out of scope".)
+- **Realtime web / offline mobile · Leaflet maps · dashboard · mobile push** = foreground+on-device in
+  v1, background push v1.x (no Google/Apple dependency).
+- **Design** — simple, uncluttered, modern; Kaneo reference; shadcn/ui + Kibo UI; IBM Plex Sans +
+  JetBrains Mono.
+
+⏳ **Next:** your approval of `docs/PRODUCT.md`, then Phase 2.8 mockup + `docs/DESIGN.md`. Nothing
+scaffolds until you approve.
+
 ### Later the same day — v1 scope resolved (four decisions)
 
 **In your words:** "yes, do your suggestion" — settle the decidable open questions before the interview.

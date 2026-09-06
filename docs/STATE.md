@@ -1,19 +1,17 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-06 · resume session (D-5 + D-6 locked; R-1…R-4 research dispatched)
+**Last updated:** 2026-09-06 · Planning Assistant interview complete — `docs/PRODUCT.md` written, awaiting owner approval
 
 ## ⏳ COLD-START CHECKLIST (read first)
 
 1. **Read `docs/SEED_BRIEF.md` in full.** It is the founding authority — the owner's complete brief
    plus 4 confirmed decisions. Do not re-ask what it already settles.
 2. **Nothing is built.** No scaffold, no `package.json`, no schema. The project is at pre-Phase-0.
-3. **First real task:** run the **Planning Assistant** interview → `docs/PRODUCT.md` (12 sections).
-   Seed it with the brief so the owner is only asked what is genuinely open.
-4. **Open `[WHAT]`s** in `PENDING_DECISIONS.md` (**1**): feature boundary vs commercial Orqafy —
-   an interview input, needs back-and-forth. Multi-tenancy (D-5) and mobile distribution (D-6) are
-   now **answered**; see `docs/DECISIONS_LOG.md`.
-5. **Backlog:** `docs/TASK_QUEUE.md` — 8 open 🔴 (interview, R-1…R-4 research, Expo geofence check,
-   public-repo asset guard, DESIGN.md + MOCKUP.jsx).
+3. **`docs/PRODUCT.md` EXISTS** (written 2026-09-06 from the interview) — read it; it is the spec the
+   build follows. **Awaiting owner approval.** Next after approval: Phase 2.8 mockup + `docs/DESIGN.md`.
+4. **Open `[WHAT]`s** in `PENDING_DECISIONS.md`: **0** — all product decisions resolved (D-1…D-23).
+5. **Backlog:** `docs/TASK_QUEUE.md` — open items are now build/verify tasks (DESIGN.md + MOCKUP.jsx,
+   public-repo asset guard, and the queued verification tasks). Interview + R-1…R-4 are ✅.
 
 ## Where things stand
 
@@ -47,5 +45,9 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 
 ## Next un-gated work
 
-Planning Assistant interview → `docs/PRODUCT.md`. R-1…R-4 research is in flight (agents dispatched
-2026-09-06); fold each `docs/planning/R*.md` into the interview as it lands.
+1. **Owner approval of `docs/PRODUCT.md`** — the gate before anything scaffolds.
+2. After approval: **Phase 2.8 mockup** (`docs/MOCKUP.jsx`) + **`docs/DESIGN.md`** (Kaneo reference,
+   shadcn/ui, IBM Plex Sans + JetBrains Mono, "simple modern" per D-23).
+3. Then Phase 0 scaffold. Public-repo asset guard should be wired before/with first scaffold.
+4. Verification tasks queued in `docs/TASK_QUEUE.md` (geofence-over-tunnel, headless-sync feasibility,
+   Pangolin throughput, offline-first mobile, Nextcloud resource cost) — resolve before their phase.

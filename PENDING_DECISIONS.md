@@ -25,10 +25,12 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
 
 ## 🔴 Open
 
-- [ ] **[WHAT] Feature boundary vs commercial Orqafy.** Which commercial features are deliberately
-      absent from the self-hosted edition, and which are intentionally *better* here? Needed before
-      PRODUCT.md §12 (Out of Scope) can be finalised. Gate: the Planning Assistant interview — this
-      one genuinely needs the interview's back-and-forth, not a single answer.
+- [x] **[WHAT] Feature boundary vs commercial Orqafy** → RESOLVED in the interview. The
+      self-hosted edition's line: **includes** PM + files + geofence + mobile + leave management +
+      document-AI (thin slice v1, full v2) + the v2 finance modules + a v2 client portal. **Excludes**
+      attendance/timekeeping, payroll processing, full accounting ledger, BIM/CAD viewing, tenancy,
+      worker location history, and parity with commercial Orqafy. See `docs/PRODUCT.md` Out of Scope
+      and D-17…D-23.
 
 
 ## ✅ Resolved (2026-09-06, v1-scope resolution)

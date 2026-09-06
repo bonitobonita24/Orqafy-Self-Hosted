@@ -6,9 +6,7 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 ## 🔴 / 🟡 Open
 
-- 🔴 **Run the Planning Assistant interview** — load `Powerbyte-AIEF/specdrivenprompt/Planning_Assistant.md`
-  in a session opened in this folder; seed it with `docs/SEED_BRIEF.md` so settled items aren't re-asked.
-  Done: `docs/PRODUCT.md` exists with all 12 sections, owner-approved. `<source: owner 2026-09-06>`
+
 - 🔴 **Real-device geofence-over-tunnel test** (iOS + Android) before Phase 3 — R-1 found **no source**
   proving a VPN blocks geofence *triggering*; the open risk is notification *delivery* within the OS wake
   budget over an idle WireGuard tunnel. Decides whether the reverse-tunnel choice (Pangolin `newt`) is
@@ -45,6 +43,10 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
   typeface IBM Plex Sans + JetBrains Mono. Done: mockup rendered and owner-approved. `<source: owner 2026-09-06>`
 
 ## ✅ Done recently
+
+- ✅ **Planning Assistant interview** → `docs/PRODUCT.md` written (12 required sections + conditional +
+  Design Identity + Out of Scope). Interview produced D-17…D-23. Feature-boundary [WHAT] resolved.
+  **Awaiting owner approval before Phase 2.8 mockup / DESIGN.md** (2026-09-06).
 
 - ✅ **R-3b file-sync re-comparison** → `docs/planning/R3b_FILE_SYNC_REVISED.md`. Corrected R-3's wrong
   claim that Syncthing has no access-control boundary (it does — server-side, `lib/model/model.go:1982`).

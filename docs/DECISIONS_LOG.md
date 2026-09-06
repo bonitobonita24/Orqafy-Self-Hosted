@@ -238,3 +238,53 @@ can never ship our own keys, and financial documents must not leave a firm's ser
 explicit, informed opt-in.
 **Consequence:** BYO-key is a settings toggle, not a setup-time prompt — we do not nudge users toward
 sending payroll and invoices off-site.
+
+---
+
+## 2026-09-06 — Planning Assistant interview (PRODUCT.md written)
+
+### D-17 · Roles & RBAC shape
+Architect and Engineer collapse into one **Project Manager** role (shared permissions). RBAC is
+**predefined roles + custom permission-groups + per-user overrides** — finance visibility and the like
+are permissions, not role-hardwired. A **permission builder is a v1 build item.** Single-org (no tenant
+dimension, per D-5).
+
+### D-18 · Client portal — v2, read-only + milestone sign-off
+External clients get accounts in **v2**: read-only view of their own project (progress, milestones,
+milestone photos, their invoices) plus **milestone sign-off/reject** (the one write action, notifies
+the PM). Cannot see internal tasks, costs, other clients, or unshared files.
+
+### D-19 · Geofence behaviour
+**~3-minute dwell** inside the radius triggers; **re-alerts on every re-entry** (no quiet-hours in v1);
+multiple tasks in one radius fire **one grouped** "N things to do here"; fires **only for the assigned
+worker**. Tasks carry a **schedule**: required **active-from** date (arms the geofence) + optional
+**active-until**. Evaluated **on-device, offline**. **Presence-only — no location history.**
+
+### D-20 · Data sensitivity & DPA posture
+**Payroll documents kept** as an AI filing category, treated as **SPI** (encrypted at rest,
+finance-permission-gated, excluded from broad search); the app computes no payroll. **DPA mechanisms in
+v1:** retention config, export/delete data-subject actions, access audit log (built at the app layer —
+the sync/tunnel tools' own audit logging is enterprise-only). **Worker location is presence-only.**
+Installing firm is the data controller; product provides the mechanisms. `gov_lgu_flag: false`; WCAG
+2.2 AA a build target regardless.
+
+### D-21 · Leave management — v1, scoped
+**Leave management only** (apply / approve / balances / leave calendar) enters **v1**. Approver is
+anyone granted the **`approve_leave`** permission (custom-group model). Attendance, timekeeping and
+payroll processing stay **out of scope**. Reopens SEED_BRIEF §6's "Payroll/HR out of scope" narrowly —
+leave only. Sick-leave reason optional, no required health detail (SPI care).
+
+### D-22 · Realtime, maps, dashboard, mobile push
+- **Realtime:** web is real-time (websocket board + notifications); mobile is offline-first,
+  sync-on-reconnect.
+- **Maps:** **Leaflet + OpenStreetMap** (no API keys, self-hostable) for task location+radius and site
+  views. Kanban/Gantt/dropzone from **Kibo UI**; dashboard charts from **shadcn Chart (Recharts)**.
+- **Home dashboard:** active projects %, my tasks due/overdue, recent site photos, unsorted-docs count,
+  pending leave approvals, v2 finance strip.
+- **Mobile push:** v1 = **foreground/websocket + on-device geofence/reminders** (no FCM/APNs
+  dependency — stays self-hosted). Background push (UnifiedPush Android / APNs iOS) is **v1.x**.
+
+### D-23 · Design identity
+**Simple, uncluttered, user-friendly, common modern interface** (owner's explicit steer). Kaneo as
+visual reference; shadcn/ui + Kibo UI; IBM Plex Sans + JetBrains Mono; neutral base + one accent.
+Field pages Mobile First, admin/ops pages Mobile Ready.
