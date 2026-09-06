@@ -30,17 +30,16 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       PRODUCT.md §12 (Out of Scope) can be finalised. Gate: the Planning Assistant interview — this
       one genuinely needs the interview's back-and-forth, not a single answer.
 
-- [ ] **[WHAT] Accept Nextcloud over Syncthing for file sync?** R-3 recommends **Nextcloud** (Team
-      folder per project) and **rejects Syncthing** — it has no user model, so server-authoritative
-      per-user project-scoped access would have to be hand-written by us. The argument is sound, but
-      this **overturns a prior stated in `docs/SEED_BRIEF.md`** (the founding authority), so it is the
-      owner's call, not a research doc's. Open sub-risk: Nextcloud is far heavier than Syncthing on a
-      desktop-as-server box already running Postgres + Valkey + MinIO — resource sanity check is queued
-      in `docs/TASK_QUEUE.md`. Evidence: `docs/planning/R3_FILE_SYNC.md`.
+- [ ] **[WHAT] File-sync engine — final pick.** ⏳ **Awaiting R-3b.** R-3 picked Nextcloud, but that
+      predates D-7 (desktop client apps) and D-8 (TypeScript-only). Re-comparison in flight:
+      Nextcloud vs Syncthing vs sync-against-our-own-API, judged on bundling into a desktop installer,
+      language discipline, server-authoritative access control, and behaviour over a throughput-limited
+      relay tunnel. Owner decides once `docs/planning/R3b_FILE_SYNC_REVISED.md` lands. This choice
+      **overturns or confirms a prior in `docs/SEED_BRIEF.md`** (Syncthing), so it is the owner's call.
 
-- [ ] **[WHAT] Is a small VPS an acceptable requirement for remote access?** R-1's primary
-      recommendation (Pangolin CE reverse tunnel) needs a cheap VPS, which sits awkwardly against the
-      product's "free, self-hosted, runs on your own desktop" pitch. The no-VPS fallback (Traefik +
+- [ ] **[WHAT] Is remote access a v1 requirement or an optional add-on?** D-9 settled *where* Pangolin
+      runs (dedicated VPS) but not *whether every install must have one*. A VPS requirement sits
+      awkwardly against the "free, runs on your own desktop" pitch, and the no-VPS fallback (Traefik +
       Let's Encrypt + port-forward) only works where the site has a routable IP — many will not.
-      Decide what we are willing to require of a non-technical operator, and whether remote access is
-      a v1 requirement or an optional add-on. Evidence: `docs/planning/R1_REMOTE_ACCESS.md`.
+      Decide: LAN-only as the supported default with remote access as a documented add-on, or remote
+      access in the v1 bar. Evidence: `docs/planning/R1_REMOTE_ACCESS.md`, `R1a_PANGOLIN_SIZING.md`.

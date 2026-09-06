@@ -49,8 +49,52 @@ backlog, you chose single-company tenancy, sideload-only mobile, and running R-1
   running Postgres + Valkey + MinIO needs measuring before it is locked.
 
 ⏳ **Next**
-- Resolve the three open `[WHAT]`s, then the Planning Assistant interview → `docs/PRODUCT.md`.
+- Resolve the open `[WHAT]`s, then the Planning Assistant interview → `docs/PRODUCT.md`.
 - Un-gated and unblocked: the public-repo asset guard (pre-commit hook).
+
+### Later the same day — client platforms, and the VPS question answered
+
+**In your words:** Nextcloud is fine as long as we can modify it how we want; Windows/Mac need an
+installable app like FennecNotes and Android/iOS both need apps; one programming language per the
+Spec-Driven policy, though frameworks can differ per platform. And: can Pangolin run on the existing
+Powerbyte-Hostinger VPS, is it free for unlimited users, and would a few users make it struggle?
+
+✅ **Three more decisions locked**
+- **D-7 client platforms** — Windows + macOS installable clients, Android + iOS apps, alongside web.
+  You confirmed the desktop app is a **client only**, so **D-3 (server via Compose) stands**. Bundling
+  a database into a desktop installer stays out of scope.
+- **D-8 one language** — TypeScript everywhere, frameworks free to differ per platform. The teeth in
+  this: dependencies that force another language into *our* codebase are disfavoured.
+- **D-9 dedicated VPS** — Pangolin gets its own ~$4–6/mo box. **Not** the production VPS.
+
+💬 **Answers to your two questions**
+- **Free for unlimited users? Yes.** Self-hosted CE is AGPL-3.0 with no cap on users, sites, resources
+  or orgs. The "5 users" figure quoted all over the internet is Pangolin **Cloud** Basic — a different
+  product. Real CE gap is that audit/access logging is Enterprise-only.
+- **Would a few users make the VPS struggle? Not on CPU or RAM** — about 700 MB and under 10% of
+  2 vCPU; the vendor's own recommendation is 2 vCPU/2 GB, so your 8 GB box would be mostly wasted on
+  it. **The real constraint is throughput**, and it is worse than expected — see the risk below.
+- **Can it share the existing VPS? No — and this one matters.** Pangolin publishes host 80/443 and
+  UDP 51820 and runs its own Traefik inside Gerbil's network namespace. Your production Traefik is
+  already on those ports. The only vendor-shaped sharing path couples **every unrelated production
+  app's uptime to the WireGuard process**. Not worth the blast radius at $4–6/mo for a separate box.
+
+🔨 **Re-opened deliberately**
+- **R-3's Nextcloud pick is back under review.** It was researched before D-7 and D-8 existed, and
+  both undercut it: Nextcloud means a PHP runtime, web server, database and cron to bundle, and deep
+  modification means writing PHP. R-3b is comparing Nextcloud vs Syncthing vs syncing against our own
+  API. Your "as long as we can modify it" is the point — under the original plan we would *not* have
+  been modifying it, only wrapping its API.
+
+⛔ **New blocking risk found**
+- **Pangolin throughput.** Newt/Gerbil has maintainer-acknowledged sequential packet processing —
+  historically **~1–6 MB/s single-stream**, which would be crippling for a photo-and-file product.
+  It reaches ~180 Mbit/s only with Newt ≥1.16.0, `USE_NATIVE_MAIN_INTERFACE=true` and host networking.
+  Those are now mandatory in our bundle, and a real throughput test is queued as blocking before any
+  customer install.
+- Also noted: **all remote file traffic relays through the VPS** (no peer-to-peer path), projected at
+  roughly 300–600 GB/month against a typical 1–2 TB quota. And **never ship the `ee-*` image** — its
+  licence forbids redistribution.
 
 ⛔ **Hold:** local only, no remote, no deploy. Nothing scaffolded until PRODUCT.md is approved.
 

@@ -14,10 +14,20 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
   budget over an idle WireGuard tunnel. Decides whether the reverse-tunnel choice (Pangolin `newt`) is
   merely preferred or actually required. Done: measured trigger→delivery latency on both platforms,
   recorded in `docs/planning/R1_REMOTE_ACCESS.md`. `<source: agent-found 2026-09-06>`
-- 🔴 **Nextcloud resource-cost sanity check** — R-3 picks Nextcloud over Syncthing, but it is far heavier
-  and D-3 puts it on a desktop-as-server box already running Postgres + Valkey + MinIO (+ tunnel agent).
-  Measure idle and sync-load RAM/CPU before the choice is locked. Done: figures recorded in
-  `docs/planning/R3_FILE_SYNC.md`. `<source: agent-found 2026-09-06>`
+- 🟡 **R-3b file-sync re-comparison** — IN FLIGHT. Nextcloud vs Syncthing vs sync-against-our-own-API,
+  re-judged against D-7 (desktop client apps) + D-8 (TypeScript-only), which postdate R-3. Done:
+  `docs/planning/R3b_FILE_SYNC_REVISED.md` + owner picks. `<source: owner 2026-09-06>`
+- 🔴 **Sync-engine resource-cost check** — whichever engine wins, measure idle and sync-load RAM/CPU on
+  a desktop-as-server box already running Postgres + Valkey + MinIO before the choice is locked.
+  Done: figures recorded in the winning engine's decision doc. `<source: agent-found 2026-09-06>`
+- 🔴 **Pangolin throughput test — BLOCKING before any customer install** — Newt/Gerbil has
+  maintainer-acknowledged sequential-packet processing: historically ~1–6 MB/s single-stream, reaching
+  ~180 Mbit/s only with **Newt ≥1.16.0 + `USE_NATIVE_MAIN_INTERFACE=true` + host networking**. Those
+  settings are mandatory in our bundle. Done: measured real throughput for a large photo upload over
+  the tunnel, recorded in `docs/planning/R1a_PANGOLIN_SIZING.md`. `<source: agent-found 2026-09-06>`
+- 🔴 **Desktop client shell decision (`[HOW]`)** — Electron-family (TypeScript end to end) vs Tauri
+  (Rust toolchain beyond the webview), weighed against D-8. Also covers code signing and auto-update
+  per platform. Done: recorded in DESIGN.md. `<source: agent-found 2026-09-06>`
 - 🔴 **Verify Expo background-geofencing capability via context7** before Phase 3 — confirm current
   `expo-location`/`expo-task-manager` background geofence support + iOS permission requirements.
   Done: findings recorded in the PRODUCT.md mobile section. `<source: agent-found 2026-09-06>`

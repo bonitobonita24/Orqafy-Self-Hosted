@@ -71,3 +71,55 @@ server is a known rejection risk. Self-build keeps the capability unconstrained 
   users need TestFlight or their own Apple developer account. There is no free, unlimited sideload
   path on iOS. Document it as a known limitation rather than implying parity.
 - Revisit only if a hosted edition appears, which would change the review calculus.
+
+---
+
+## 2026-09-06 — Client platforms and remote-access hosting
+
+### D-7 · Client platforms — desktop and mobile apps are in scope
+**Decision:** Ship **installable client apps for Windows and macOS** (FennecNotes-style) **and mobile
+apps for both Android and iOS**, alongside the web UI.
+**Critically: the desktop app is a CLIENT ONLY.** The server is still installed via Docker Compose —
+**D-3 stands and is not superseded.** The desktop app connects to a server; it does not bundle or
+become one.
+**Why:** site staff and office staff both need a first-class native surface. Geofencing already forced
+a native mobile app (D-6); the desktop client makes file sync and project work feel like a real
+application rather than a browser tab.
+**Consequences:**
+- Four client targets to build and keep in step: web, Windows, macOS, Android, iOS.
+- Packaging, code signing and auto-update become real workstreams per desktop platform.
+- Bundling a database or object store into the desktop app is explicitly **out of scope** — that was
+  the "server as installer" option, and it was rejected.
+
+### D-8 · One language, many frameworks
+**Decision:** **TypeScript across the whole product.** Frameworks may differ per platform — Next.js
+for web, an Expo/React Native app for mobile, a TypeScript desktop shell for Windows/macOS — but the
+language is one.
+**Why:** matches the Spec-Driven policy and keeps every developer able to work on every surface.
+Shared types, shared validation, and shared domain logic across web, desktop and mobile.
+**Consequences:**
+- **Dependencies that force another language into OUR codebase are disfavoured.** Wrapping a
+  third-party service through its API is fine (it is a black box); having to write PHP, Go or Python
+  to extend it is not. This is what put R-3's Nextcloud pick back under review — deep modification of
+  Nextcloud means PHP.
+- Desktop shell choice must weigh this: an Electron-family shell stays TypeScript end to end, whereas
+  Tauri brings a Rust toolchain for anything beyond the webview. Not yet decided — a `[HOW]` to settle
+  when the desktop client is specified.
+
+### D-9 · Remote access runs on a DEDICATED VPS, never the production box
+**Decision:** Pangolin runs on its **own small VPS** (~2 vCPU / 2 GB, ~$4–6/mo). **Do not install it
+on `Powerbyte-Hostinger`**, which already fronts production apps with its own Traefik.
+**Why (evidence: `docs/planning/R1a_PANGOLIN_SIZING.md`):** Pangolin publishes host 80/443 and UDP
+51820 and runs its own Traefik inside Gerbil's network namespace under a config provider it owns. The
+only vendor-shaped way to share a host couples **every unrelated app's uptime to the WireGuard
+process**. At $4–6/mo for a dedicated box, that blast radius is not worth taking.
+**Consequences:**
+- The existing 8 GB production VPS is **not** the target and stays untouched by this project.
+- Two distinct questions must not be conflated: how *we* host our own install (a dedicated VPS), and
+  what *third-party self-hosters* are told to do (their own VPS — ours can never serve them).
+- **Mandatory in our bundle:** Newt ≥ 1.16.0 with `USE_NATIVE_MAIN_INTERFACE=true` and host
+  networking. Without it, throughput has historically been ~1–6 MB/s single-stream, which would be
+  crippling for a photo-and-file product. Must be throughput-tested before any customer install.
+- **Never ship or reference the `ee-*` image** — the FCL licence forbids redistributing it. CE only.
+- Known CE gap: **all audit/access logging is Enterprise-only.** If we need an access audit trail, it
+  is ours to build at the application layer.
