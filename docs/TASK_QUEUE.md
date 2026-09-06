@@ -39,10 +39,15 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 - 🔴 **Public-repo asset guard** — `.gitignore` + a pre-push check asserting no framework files
   (`.ai_prompt/`, `AI/`) and no AdminCN slice (`starter/admincn/`) can be committed. Done: a test commit
   containing those paths is refused. `<source: agent-found 2026-09-06>`
-- 🔴 **DESIGN.md + MOCKUP.jsx** — after PRODUCT.md; Kaneo as visual reference, shadcn/ui, fleet default
-  typeface IBM Plex Sans + JetBrains Mono. Done: mockup rendered and owner-approved. `<source: owner 2026-09-06>`
+- 🟡 **MOCKUP.jsx** — IN FLIGHT (design worker). Clickable shadcn-styled mockup, realistic PH
+  construction data, all declared screens. Done: rendered and owner-approved. `<source: owner 2026-09-06>`
 
 ## ✅ Done recently
+
+- ✅ **PRODUCT.md owner-approved** (2026-09-06).
+- ✅ **DESIGN.md** → `docs/DESIGN.md`. Tokens (slate base + blueprint-blue primary + geofence-amber
+  accent), IBM Plex Sans + JetBrains Mono, component conventions, the geofence assertive treatment, and
+  the per-page Mobile First/Ready table (2026-09-06).
 
 - ✅ **Planning Assistant interview** → `docs/PRODUCT.md` written (12 required sections + conditional +
   Design Identity + Out of Scope). Interview produced D-17…D-23. Feature-boundary [WHAT] resolved.
