@@ -52,6 +52,27 @@ backlog, you chose single-company tenancy, sideload-only mobile, and running R-1
 - Resolve the open `[WHAT]`s, then the Planning Assistant interview → `docs/PRODUCT.md`.
 - Un-gated and unblocked: the public-repo asset guard (pre-commit hook).
 
+### 2026-09-06/07 — PRODUCT.md approved, DESIGN.md + mockup built, session saved
+
+**In your words:** approve; then "save session, stop reboot loop."
+
+✅ **Done & verified**
+- **PRODUCT.md approved** and stamped.
+- **DESIGN.md** written — token set (slate + blueprint-blue + geofence-amber), IBM Plex Sans / JetBrains
+  Mono, component conventions, the one assertive geofence treatment, per-page Mobile First/Ready table.
+- **MOCKUP.jsx** built (design worker) — 9 screens, realistic Calapan/Oriental Mindoro data; rendered
+  in a headless browser with no runtime errors; a clickable preview was sent to you for review.
+
+💬 **Notes**
+- Design worker invented specific firm/staff/coordinate literals (docs specify style, not names) — fine
+  for a mockup; real values come at build time.
+- Mockup is ephemeral visual-verification; nothing is built off it.
+
+⏳ **Next (loop stopped at your request):** your mockup confirmation → public-repo asset guard → Phase 0
+scaffold. Full ordered TODO in `.sessions/slot-14/next-session`.
+
+⛔ **Hold:** local only, no remote, pre-scaffold. Loop stopped 2026-09-07 (owner-rest, not completion).
+
 ### Later the same day — Planning Assistant interview → PRODUCT.md written
 
 **In your words:** run the Planning Assistant interview. Along the way you added leave management
