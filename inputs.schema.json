@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://orqafy.local/inputs.schema.json",
+  "title": "Orqafy Self-Hosted inputs.yml",
+  "description": "Locked project configuration derived from DECISIONS_LOG (D-1..D-24) + PRODUCT.md. phases.md Phase 3 §5c shape.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["app", "tenancy", "rbac", "docker", "deployment", "apps", "stack", "environments", "ports"],
+  "properties": {
+    "app": {
+      "type": "object",
+      "required": ["name", "slug", "namespace", "license", "repo_visibility"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+        "namespace": { "type": "string", "pattern": "^@[a-z][a-z0-9-]*$" },
+        "description": { "type": "string" },
+        "license": { "const": "AGPL-3.0" },
+        "repo_visibility": { "enum": ["public", "private"] }
+      }
+    },
+    "tenancy": {
+      "type": "object",
+      "required": ["multi_tenant", "model"],
+      "properties": {
+        "multi_tenant": { "type": "boolean" },
+        "model": { "enum": ["single", "multi"] }
+      }
+    },
+    "rbac": {
+      "type": "object",
+      "required": ["standard", "first_admin"],
+      "properties": {
+        "standard": { "type": "string" },
+        "first_admin": { "enum": ["interactive_first_run", "seeded"] }
+      }
+    },
+    "docker": {
+      "type": "object",
+      "required": ["publish", "dev_build"],
+      "properties": {
+        "publish": { "type": "boolean" },
+        "dev_build": { "type": "boolean" }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "required": ["manager"],
+      "properties": { "manager": { "type": "string" } }
+    },
+    "payment": {
+      "type": "object",
+      "properties": { "gateway": { "type": "string" } }
+    },
+    "context7": {
+      "type": "object",
+      "properties": { "enabled": { "type": "boolean" } }
+    },
+    "accessibility": {
+      "type": "object",
+      "properties": { "level": { "type": "string" } }
+    },
+    "privacy": {
+      "type": "object",
+      "properties": {
+        "gov_lgu_flag": { "type": "boolean" },
+        "regime": { "type": "string" }
+      }
+    },
+    "apps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "framework"],
+        "properties": {
+          "id": { "type": "string" },
+          "framework": { "type": "string" }
+        }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "required": ["db", "language"],
+      "properties": {
+        "db": { "type": "string" },
+        "cache": { "type": "string" },
+        "queue": { "type": "string" },
+        "storage": { "type": "string" },
+        "ui": { "type": "string" },
+        "language": { "const": "typescript" }
+      }
+    },
+    "entities_v1": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "environments": {
+      "type": "object",
+      "required": ["active"],
+      "properties": {
+        "active": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      }
+    },
+    "ports": {
+      "type": "object",
+      "required": ["dev"],
+      "properties": {
+        "dev": {
+          "type": "object",
+          "required": ["base"],
+          "properties": {
+            "base": {
+              "type": ["integer", "null"],
+              "minimum": 1024,
+              "maximum": 65000
+            }
+          }
+        }
+      }
+    }
+  }
+}

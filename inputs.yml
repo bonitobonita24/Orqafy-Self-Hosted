@@ -1,0 +1,90 @@
+# inputs.yml — locked project configuration for Orqafy Self-Hosted
+# Derived from docs/DECISIONS_LOG.md (D-1…D-24) + docs/PRODUCT.md. Every later Phase-4
+# Part reads this; nothing is hardcoded downstream (phases.md Phase 3). Schema: inputs.schema.json.
+# HARD HOLD — local dev only. Public repo (AGPL-3.0); framework files shipped-without.
+
+app:
+  name: "Orqafy Self-Hosted"
+  slug: orqafy                        # → COMPOSE_PROJECT_NAME=orqafy_dev, DB orqafy_dev, package scope
+  namespace: "@orqafy"               # pnpm workspace package namespace → @orqafy/db, @orqafy/shared, …
+  description: "Free, self-hosted construction PM + file sync + geofenced site tasks."
+  license: AGPL-3.0                    # D-2 (public repo; framework files shipped-without)
+  repo_visibility: public             # D-2
+
+tenancy:
+  multi_tenant: false                 # D-5 — single-company install, schema carries NO tenant_id
+  model: single                       # fleet 3-tier tenant RBAC + universal creds DO NOT apply (D-5)
+
+rbac:
+  standard: app_local                 # role + custom permission-group + per-user override (D-17)
+  # NOT the fleet tenant-rbac-standard.md — see PRODUCT "User Roles & Access Control"
+  first_admin: interactive_first_run  # D-5 — operator creates own admin; NO Powerbyte universal creds
+
+docker:
+  publish: false                      # OWNER-CONFIRMED 2026-09-08 + D-3 — Phase 4 Part 8 SKIPS
+                                      # docker-publish.yml entirely (phases.md Phase 3 §5c)
+  # registry / hub_repo / image_name / platforms / build_on_push_to — OMITTED (publish:false)
+  dev_build: true                     # dev compose always rebuilds from source
+
+deployment:
+  manager: none                       # no Komodo, no CI auto-deploy (ships as a Compose bundle, D-3)
+
+payment:
+  gateway: none                       # no Xendit (no billing in this product)
+
+context7:
+  enabled: true                       # Rule 30 — live library docs during Phase 4
+
+accessibility:
+  level: wcag_aa                      # D-20 — WCAG 2.2 AA is a build target; gov_lgu_flag: false
+
+privacy:
+  gov_lgu_flag: false                 # D-20 — generic product; installing firm is data controller
+  regime: ph_dpa                      # RA 10173 baseline; SPI = payroll docs + sick-leave context
+
+apps:
+  - id: web
+    framework: nextjs                 # D-1, D-8 — Next.js + tRPC + Auth.js v5
+    realtime: websocket               # D-22 — live kanban + notifications
+  - id: mobile
+    framework: expo                   # D-6, D-8 — Expo/React Native, sideload/self-build, offline-first
+    offline_first: true               # D-15
+    geofencing: true                  # D-19, R6 — native build only, on-device, iOS 20-region cap
+    distribution: self_build          # D-6 — no store listing
+  - id: desktop
+    framework: tauri                  # D-7, D-11 — client-only thin shell (server stays Compose)
+    non_ts_surface: rust_sidecar      # D-11 — sole non-TS code; sidecar supervision only
+
+stack:                                # D-1 locked AIEF stack (informational; framework already assumes it)
+  db: postgres
+  cache: valkey
+  queue: bullmq
+  storage: minio                      # → S3-compatible; NAS/NFS or local-disk, same code path (R-2)
+  ui: shadcn                          # + Kibo UI (kanban/Gantt/dropzone) + Leaflet/OSM (D-22, D-23)
+  language: typescript                # D-8
+
+entities_v1:                          # PRODUCT "Core Entities" — schema finalised at Phase 4 Part 3
+  - Organization
+  - User
+  - PermissionGroup
+  - Client
+  - Project
+  - Task            # carries location{lat,lng,radiusMeters} + geofenceActiveFrom/Until (D-19)
+  - Milestone
+  - Document        # storageKey, category, ocrText, ocrStatus, isSPI, revisionHistory[]
+  - DocumentReview  # unsorted/review tray (D-13 thin-slice)
+  - Photo
+  - Notification
+  - LeaveType
+  - LeaveBalance
+  - LeaveRequest    # D-21
+  - AuditLog        # D-20 — app-layer DPA access trail
+
+environments:
+  active: [dev]                       # PRODUCT "Environments Needed" — dev only, HARD HOLD
+  # ships as a Compose bundle to installing firms; NO Powerbyte staging/prod (D-3, D-15)
+
+ports:
+  dev:                                # Rule-22 non-standard, GENERATED at Phase 3 P0.5 (§6) — do not hardcode
+    base: null                        # <generated at P0.5> — random per-project base (e.g. 43xxx)
+    # app / db / pgbouncer / redis / minio / minio_console / pgadmin / smtp / smtp_ui derived from base
