@@ -6,29 +6,28 @@
 
 1. **Read `docs/SEED_BRIEF.md` in full.** It is the founding authority — the owner's complete brief
    plus 4 confirmed decisions. Do not re-ask what it already settles.
-2. **Nothing is built.** No scaffold, no `package.json`, no schema. The project is at pre-Phase-0.
-3. **`docs/PRODUCT.md` is APPROVED** (owner-approved 2026-09-07). `docs/DESIGN.md` + `docs/MOCKUP.jsx`
-   (9 screens) are written; `mockup-dashboard.png` (Dashboard screen only) rendered and **delivered to
-   the owner 2026-09-08 for confirmation.** ⚠ **Owner has NOT yet explicitly confirmed the mockup** —
-   that confirm is the gate before Phase 0. Only the Dashboard is captured as a PNG; the other 8 screens
-   live in MOCKUP.jsx (render them if the owner wants to review those too).
-4. **Open `[WHAT]`s** in `PENDING_DECISIONS.md`: **0** — all product decisions resolved (D-1…D-23).
-   (Mockup confirm is a build-gate acknowledgement, not a tracked `[WHAT]` decision.)
+2. **Phase 0 ✅ + Phase 4 Parts 1–4 ✅ done. NEXT = Phase 4 Part 5 (`apps/web`).** Monorepo built:
+   `@orqafy/{shared,api-client,db,ui,storage,jobs,sync,geofence}` scaffolded, typecheck/lint/test green.
+   Framework brain seeded LOCAL-ONLY (gitignored + asset-guard verified).
+3. **`docs/PRODUCT.md` APPROVED; mockup APPROVED (2026-09-08)** — design gate cleared. `docs/DESIGN.md`
+   (+ §8 offline-first, §9 desktop packaging) + `docs/MOCKUP.jsx`.
+4. **Open `[WHAT]`s** in `PENDING_DECISIONS.md`: **0**. **27 decisions locked (D-1…D-27).** FULL AUTO MODE
+   engaged 2026-09-08 (no approval questions; defer `[WHAT]`; HARD HOLD stays hard).
 5. **Backlog:** `docs/TASK_QUEUE.md` — open items are build/verify tasks (public-repo asset guard +
    the queued verification tasks: geofence-over-tunnel, headless-sync, Pangolin throughput,
    offline-first mobile, sync resource-cost, Expo background-geofence). Interview + R-1…R-5 are ✅.
 
 ## Where things stand
 
-- Repo created, `git init`, first commit. **No remote** — local only, HARD HOLD.
-- Branch `master` renamed to **`main`** (docs already assumed `main`; drift corrected).
-- **R-1…R-4 research dispatched** as parallel agents → each writes a decision doc to
-  `docs/planning/`. Un-gated; results fold into the interview.
-- Planning artifacts only: `SEED_BRIEF.md`, `PENDING_DECISIONS.md`, `TASK_QUEUE.md`, `README.md`,
-  `.gitignore` (with the public-repo asset guard).
-- Framework files (`.ai_prompt/`, `AI/`) are **not** deployed here yet. When Phase 0 runs, they are
-  used but **must stay gitignored** — this repo is AGPL-public and cannot carry framework IP or the
-  paid AdminCN slice.
+- **Phase 0 scaffold + Phase 4 Parts 1–4 complete + verified.** Monorepo with 8 `@orqafy/*` packages
+  (shared · api-client · db · ui · storage · jobs · sync · geofence): root config, Prisma schema +
+  migration + seed (no tenant_id, R-4 seed override), runtime packages — all typecheck/lint/test green.
+  Next runnable milestone = Part 5 (`apps/web` boots).
+- **No remote — local only, HARD HOLD** (nothing pushed/deployed). Feature-branch chain off `main`
+  (main = init only); current tip `feat/phase4-part4`.
+- Framework files (`.ai_prompt/`, `AI/`, AdminCN slice) seeded **LOCAL-ONLY**, gitignored +
+  asset-guard-enforced — this AGPL-public repo carries NO framework IP / paid slice (independently
+  verified after every Part).
 
 ## Decisions already locked (do not reopen without the owner)
 
@@ -50,16 +49,15 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 
 ## Next un-gated work
 
-1. ~~Owner confirm of the mockup~~ + ~~Phase 0 scaffold~~ ✅ **DONE 2026-09-08.**
-2. ~~Public-repo asset guard~~ ✅ **DONE 2026-09-08** — `scripts/check-public-assets.sh` +
-   `scripts/install-git-hooks.sh` (pre-commit + pre-push) refuse framework IP / AdminCN slice; verified.
-   Extended in P0.1 to cover framework tooling (`.github/skills/`, `.mcp.json`, `.vscode/`, framework
-   scripts, sd.config.mjs, etc.).
-3. **NEXT → Phase 4 Part 1** (root config: pnpm-workspace/turbo/tsconfig — `docs/tasks/phase4-part1.md`,
-   gitignored local). Web-first (D-25) — apps/web only in the initial build wave.
-4. Verification tasks queued in `docs/TASK_QUEUE.md` (geofence-over-tunnel, headless-sync feasibility,
-   Pangolin throughput, offline-first mobile, sync resource cost, Expo background-geofence) — resolve
-   before their phase.
+1. ~~Mockup confirm~~ ~~Phase 0~~ ~~asset guard~~ ~~Phase 4 Parts 1–4~~ ✅ **DONE 2026-09-08.**
+2. **NEXT → Phase 4 Part 5 (`apps/web`):** Next.js + tRPC + Auth.js v5, plain shadcn/Kibo (D-26),
+   dashboard per D-22. Swap api-client's placeholder `AppRouter` → the real server `AppRouter` type.
+   Runtime verify needs dev Postgres up (bring it up; the Part-3 migration is apply-pending).
+3. Then **Part 6** (Expo mobile), **Part 7** (dev Docker Compose — brings the stack up), **Part 8**
+   (manifest/docs — **NO** `docker-publish`, D-27/inputs). Mobile+desktop are later waves (web-first, D-25/W-1).
+4. **Deferred `[HOW]` follow-ups:** DB migration apply (Part 7 compose) · `Document.size` Int→BigInt if
+   >2GB files · ESLint 8→9 flat config. Plus the 3 BLOCKED (hardware/stack/tunnel) + POST-V1 cloud-storage
+   in `docs/TASK_QUEUE.md`.
 
 ## Session note — 2026-09-08 (Phase 0 scaffold — branch `chore/phase0-scaffold`)
 

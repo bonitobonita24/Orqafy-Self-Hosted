@@ -33,7 +33,20 @@ exist pre-scaffold. They are NOT actionable now; they gate a later phase, not Ph
   control plane (tiers Starter…Max, metering, payment gateway) OUTSIDE the OSS app. Ships after v1. Pricing +
   provider analysis: `docs/planning/R9_CLOUD_STORAGE_PRICING.md`. `<source: owner 2026-09-08>`
 
+### Agent-found (Phase 4 build)
+
+- 🔴 **`Document.size` Int→BigInt** if single files >2GB are expected (Prisma schema + Zod). Construction
+  drawings are usually well under, so Int is fine for v1 — revisit if large-file uploads surface.
+  `<source: agent-found 2026-09-08>`
+- 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
+  legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. `<source: agent-found 2026-09-08>`
+
 ## ✅ Done recently
+
+- ✅ **Phase 4 build (FULL AUTO) — Parts 1–4** (2026-09-08): root config (`feat/phase4-part1`) · `@orqafy/shared`
+  Zod + `api-client` (part2) · `@orqafy/db` Prisma no-tenant + R-4 seed override (part3) · `ui`/`storage`/`jobs`/
+  `sync`/`geofence` runtime packages (part4). All typecheck/lint/test green, AGPL boundary verified after each
+  Part, HARD HOLD local. **Next: Part 5 `apps/web`.**
 
 - ✅ **MOCKUP.jsx — owner-approved** (2026-09-08). Dashboard PNG delivered + confirmed; design gate cleared,
   Phase 0 scaffold unblocked. (`docs/MOCKUP.jsx`, `mockup-dashboard.png`.)
