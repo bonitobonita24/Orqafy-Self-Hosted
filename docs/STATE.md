@@ -52,19 +52,27 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 
 1. **Owner confirm of the mockup** — delivered 2026-09-08, awaiting the owner's yes. The gate before
    Phase 0. If they want to review beyond the Dashboard, render the other 8 screens from `MOCKUP.jsx`.
-2. **Public-repo asset guard** — `.gitignore` + a pre-push check asserting no framework files
-   (`.ai_prompt/`, `AI/`) and no AdminCN slice (`starter/admincn/`). Un-gated; wire before/with first
-   scaffold since this repo is AGPL-public.
+2. ~~Public-repo asset guard~~ ✅ **DONE 2026-09-08** — `scripts/check-public-assets.sh` +
+   `scripts/install-git-hooks.sh` (pre-commit + pre-push) refuse framework IP / AdminCN slice; verified.
 3. Then **Phase 0 scaffold** (after mockup confirm).
 4. Verification tasks queued in `docs/TASK_QUEUE.md` (geofence-over-tunnel, headless-sync feasibility,
    Pangolin throughput, offline-first mobile, sync resource cost, Expo background-geofence) — resolve
    before their phase.
 
-## Session note — 2026-09-08
+## Session note — 2026-09-08 (loop iteration, slot 11)
+
+Loop wake with an empty handoff. Reconciled vs ground truth (clean, 0 open `[WHAT]`). Worked the
+highest-priority un-gated task: **wired the public-repo asset guard enforcement** (pre-commit/pre-push
+hooks refuse framework IP / AdminCN slice; verified by a refused force-add). Also corrected the stale
+README stage. Two local commits (`chore/asset-guard` 99feae9, `docs/readme-status-refresh` 8a00746);
+HARD HOLD, no push. Remaining 🔴s are phase-deferred verification (devices / running stack / near-phase).
+The **owner mockup confirm** remains the gate before Phase 0. RBAC retrofit stays **declined** (D-5).
+
+## Session note — 2026-09-08 (earlier, slot 12)
 
 Resumed loop session (slot 12). Reconciled state vs ground truth: 0 open `[WHAT]`, clean tree. Owner
 chose "confirm the mockup" → rendered Dashboard PNG delivered via SendUserFile. Owner then requested
 save + stop the loop **before** giving an explicit mockup confirm — so the mockup confirm remains the
-open gate for the next session. Flagged (and declined pending owner word) the SessionStart RBAC-retrofit
+open gate. Flagged (and declined pending owner word) the SessionStart RBAC-retrofit
 suggestion: **superseded by D-5** (single-company install, no tenant model — fleet 3-tier RBAC does not
 apply here).

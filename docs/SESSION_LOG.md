@@ -4,6 +4,23 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-08 — Asset guard enforced + README stage fixed (loop iteration)
+
+**In your words:** loop wake — the handoff was empty, so don't idle: re-derive state, work the
+highest-priority un-gated task, and leave a proper handoff.
+
+✅ **Done & verified** — Reconciled state vs live git (clean, 0 open `[WHAT]`). Built the **public-repo
+asset guard** enforcement: `scripts/check-public-assets.sh` + `scripts/install-git-hooks.sh` (pre-commit
++ pre-push) refuse `.ai_prompt/`, `AI/`, `starter/admincn/`, `.claude/`, `CLAUDE.md`. Verified by a
+force-added `.ai_prompt/` commit being **refused**. Corrected the README stage ("pre-spec" → "spec
+approved · pre-scaffold"). Two commits, local only (HARD HOLD).
+
+⏳ **Next** — Your **mockup confirm** is still the gate before Phase 0 scaffold. Remaining 🔴s in
+`docs/TASK_QUEUE.md` are phase-deferred verification (devices / running stack / near-phase).
+
+💬 **Notes** — `.gitignore` already listed the forbidden paths; that only blocks `git add .`, so this
+added the active guard the task's done-criterion required. RBAC retrofit stays declined (D-5).
+
 ## 2026-09-08 — Resume + mockup delivered for confirm; save & stop loop
 
 **In your words:** resume the session; you chose to confirm the mockup; then save the session and stop
