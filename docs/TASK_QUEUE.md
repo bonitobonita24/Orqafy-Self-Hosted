@@ -6,12 +6,6 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 ## 🔴 / 🟡 Open
 
-- 🔴 **First-run entry redirects to /login instead of /setup** — on a fresh install (0 users), visiting `/`
-  is bounced to `/login` by the edge middleware before the root RSC's first-run `redirect('/setup')` can
-  run, and `/login` has no link to `/setup`, so a brand-new operator can't discover the setup screen.
-  Where: `apps/web/src/middleware.ts` (runs before `apps/web/src/app/page.tsx`). Done: an unauthenticated
-  fresh install lands on (or is clearly linked to) `/setup`. `<source: agent-found 2026-09-08>`
-
 _The three below are BLOCKED — they require real hardware / a running stack / a live tunnel, none of which
 exist yet. They are NOT actionable now; they gate a later phase._
 
@@ -46,8 +40,27 @@ exist yet. They are NOT actionable now; they gate a later phase._
   `<source: agent-found 2026-09-08>`
 - 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
   legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. `<source: agent-found 2026-09-08>`
+- 🔴 **`dashboard.summary` returns 500** — the dashboard's tRPC `dashboard.summary` query 500s on load
+  (observed during the web-forms runtime verification; unrelated to the forms work — not touched by it).
+  Where: `apps/web/src/server/routers/dashboard.ts`. Needs the server-side error surfaced + fixed; the
+  dashboard page shell still renders. `<source: agent-found 2026-09-08>`
+- 🔴 **Host-run dev app breaks against the PgBouncer (pooled) URL** — running `pnpm --filter @orqafy/web dev`
+  on the HOST with `.env.dev`'s `DATABASE_URL` (PgBouncer, transaction pooling) makes every Prisma query 500
+  with `prepared statement "sN" does not exist` (PG code 26000). Fix: append `?pgbouncer=true` to the pooled
+  `DATABASE_URL` (Prisma disables prepared statements), or document that host-run dev uses `DIRECT_URL`. The
+  in-container app path is unaffected. Verified workaround: run the app with `DATABASE_URL=$DIRECT_URL`.
+  `<source: agent-found 2026-09-08>`
 
 ## ✅ Done recently
+
+- ✅ **Web usable end-to-end — first-run redirect fix + create/edit form UIs** (2026-09-08,
+  `feat/web-create-forms`). Fixed the first-run entry (`/` now reaches its RSC → 0 users → `/setup`; login
+  links to setup when needed; auth still enforced elsewhere). Built Client/Project/Task create+edit form
+  dialogs (react-hook-form + zodResolver bound to `@orqafy/shared`, wired to existing tRPC mutations) + a
+  `/clients` admin page + New/Edit affordances on projects & the project board; added `Textarea`/`Select`
+  to `@orqafy/ui`. Static green (build/typecheck/lint/prettier). Runtime-verified via Playwright on a fresh
+  DB: `/`→`/setup` → create admin → login → **create Client → Project → Task (with geofence) via the FORM
+  UIs** → persisted after reload (+ client edit). AGPL guard clean, no framework IP tracked. HARD HOLD local.
 
 - ✅ **Phase 4 build (FULL AUTO) — Parts 1–4** (2026-09-08): root config (`feat/phase4-part1`) · `@orqafy/shared`
   Zod + `api-client` (part2) · `@orqafy/db` Prisma no-tenant + R-4 seed override (part3) · `ui`/`storage`/`jobs`/
