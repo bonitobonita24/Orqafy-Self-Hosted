@@ -8,9 +8,11 @@
 
 1. **Read `docs/SEED_BRIEF.md` in full.** It is the founding authority — the owner's complete brief
    plus 4 confirmed decisions. Do not re-ask what it already settles.
-2. **Phase 0 ✅ + Phase 4 Parts 1–4 ✅ done. NEXT = Phase 4 Part 5 (`apps/web`).** Monorepo built:
-   `@orqafy/{shared,api-client,db,ui,storage,jobs,sync,geofence}` scaffolded, typecheck/lint/test green.
-   Framework brain seeded LOCAL-ONLY (gitignored + asset-guard verified).
+2. **Phase 0 ✅ + Phase 4 Parts 1–5 + 7 ✅ done — `apps/web` BUILT + runtime-verified end-to-end**
+   (first-run→login→dashboard→CRUD, Playwright + DB proof). 8 `@orqafy/*` packages + dev Compose bundle.
+   **NEXT = make web usable** (core create/edit form UIs + fix the `/setup` fresh-install redirect), then
+   Part 8 docs; **Part 6 Expo mobile is a later wave**. Current tip `feat/phase4-part7`. Framework brain
+   LOCAL-ONLY (gitignored + asset-guard verified).
 3. **`docs/PRODUCT.md` APPROVED; mockup APPROVED (2026-09-08)** — design gate cleared. `docs/DESIGN.md`
    (+ §8 offline-first, §9 desktop packaging) + `docs/MOCKUP.jsx`.
 4. **Open `[WHAT]`s** in `PENDING_DECISIONS.md`: **0**. **27 decisions locked (D-1…D-27).** FULL AUTO MODE
@@ -24,9 +26,9 @@
 - **Phase 0 scaffold + Phase 4 Parts 1–4 complete + verified.** Monorepo with 8 `@orqafy/*` packages
   (shared · api-client · db · ui · storage · jobs · sync · geofence): root config, Prisma schema +
   migration + seed (no tenant_id, R-4 seed override), runtime packages — all typecheck/lint/test green.
-  Next runnable milestone = Part 5 (`apps/web` boots).
+  Plus **`apps/web` (Part 5) built + `dev Compose` (Part 7) live runtime-verified** end-to-end.
 - **No remote — local only, HARD HOLD** (nothing pushed/deployed). Feature-branch chain off `main`
-  (main = init only); current tip `feat/phase4-part4`.
+  (main = init only); current tip `feat/phase4-part7`.
 - Framework files (`.ai_prompt/`, `AI/`, AdminCN slice) seeded **LOCAL-ONLY**, gitignored +
   asset-guard-enforced — this AGPL-public repo carries NO framework IP / paid slice (independently
   verified after every Part).
@@ -51,15 +53,16 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 
 ## Next un-gated work
 
-1. ~~Mockup confirm~~ ~~Phase 0~~ ~~asset guard~~ ~~Phase 4 Parts 1–4~~ ✅ **DONE 2026-09-08.**
-2. **NEXT → Phase 4 Part 5 (`apps/web`):** Next.js + tRPC + Auth.js v5, plain shadcn/Kibo (D-26),
-   dashboard per D-22. Swap api-client's placeholder `AppRouter` → the real server `AppRouter` type.
-   Runtime verify needs dev Postgres up (bring it up; the Part-3 migration is apply-pending).
-3. Then **Part 6** (Expo mobile), **Part 7** (dev Docker Compose — brings the stack up), **Part 8**
-   (manifest/docs — **NO** `docker-publish`, D-27/inputs). Mobile+desktop are later waves (web-first, D-25/W-1).
-4. **Deferred `[HOW]` follow-ups:** DB migration apply (Part 7 compose) · `Document.size` Int→BigInt if
-   >2GB files · ESLint 8→9 flat config. Plus the 3 BLOCKED (hardware/stack/tunnel) + POST-V1 cloud-storage
-   in `docs/TASK_QUEUE.md`.
+1. ~~Mockup confirm~~ ~~Phase 0~~ ~~Parts 1–5~~ ~~Part 7 (compose + live runtime verify)~~ ✅ **DONE 2026-09-08.**
+2. **NEXT → make `apps/web` usable:** (a) fix the `/setup` fresh-install redirect bug (`middleware.ts` bounces
+   `/` → `/login` before the root's first-run `redirect('/setup')`); (b) build the core create/edit **form UIs**
+   (Client, Project, Task at minimum) wired to the existing tRPC mutations; (c) re-verify by creating a project
+   through the UI (Playwright). Then **Part 8** (README/manifest — **NO** `docker-publish`, D-27/inputs).
+3. **Part 6 (Expo mobile) + desktop (Tauri)** are later waves (web-first, D-25/W-1) — big enough for their own
+   sessions. Stubs still open in web: permission-builder editor, Leaflet map picker, document upload/OCR wiring,
+   live kanban drag-drop, WS transport, self-hosted woff2 fonts.
+4. **Deferred `[HOW]` follow-ups (TASK_QUEUE):** `Document.size` Int→BigInt if >2GB · ESLint 8→9 flat config.
+   Plus the 3 BLOCKED (hardware/stack/tunnel) + POST-V1 cloud-storage.
 
 ## Session note — 2026-09-08 (Phase 0 scaffold — branch `chore/phase0-scaffold`)
 
