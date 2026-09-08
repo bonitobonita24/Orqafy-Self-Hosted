@@ -17,12 +17,17 @@
 set -euo pipefail
 
 # Forbidden path prefixes/files. A match anywhere in these is refused.
+# ⚠ KEEP IN SYNC with the "PUBLIC-REPO ASSET GUARD" block in .gitignore — the two
+# lists are a deliberate belt-and-suspenders pair (ignore = accident, this = enforcement).
+# Matching is case-insensitive so a .AI_Prompt/ variant cannot slip past on a
+# case-insensitive filesystem (macOS/Windows).
 FORBIDDEN=(
   ".ai_prompt/"      # AIEF framework prompt IP
-  "AI/"              # AIEF framework assets
+  "ai/"              # AIEF framework assets (matches AI/)
   "starter/admincn/" # paid AdminCN template slice
-  ".claude/"         # local Claude Code config / session state
-  "CLAUDE.md"        # framework/seat instructions (kept local only)
+  ".claude/"         # local Claude Code config
+  ".sessions/"       # local loop/session handoff state (internal FOCUS notes)
+  "claude.md"        # framework/seat instructions (kept local only)
 )
 
 MODE="${1:---staged}"
@@ -45,9 +50,10 @@ esac
 
 HITS=()
 for f in "${FILES[@]}"; do
-  for bad in "${FORBIDDEN[@]}"; do
+  lf="${f,,}"                         # lowercase for case-insensitive compare
+  for bad in "${FORBIDDEN[@]}"; do    # FORBIDDEN entries are already lowercase
     # Match a top-level file (CLAUDE.md) or anything under a forbidden dir prefix.
-    if [[ "$f" == "$bad" || "$f" == "$bad"* ]]; then
+    if [[ "$lf" == "$bad" || "$lf" == "$bad"* ]]; then
       HITS+=("$f")
       break
     fi
