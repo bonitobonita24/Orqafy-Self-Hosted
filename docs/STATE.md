@@ -1,6 +1,6 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-08 · **Phase 0 complete, next: Phase 4 Part 1.** Monorepo config seeded (inputs.yml, .nvmrc, package.json, dev ports/env, CREDENTIALS.md dev seed); framework brain seeded LOCAL-ONLY (gitignored + asset-guard verified). Spec approved; `docs/DESIGN.md` + `docs/MOCKUP.jsx` done; Dashboard mockup PNG previously delivered.
+**Last updated:** 2026-09-08 · **Phase 4 Parts 1–4 done, next: Phase 4 Part 5.** Monorepo config seeded (inputs.yml, .nvmrc, package.json, dev ports/env, CREDENTIALS.md dev seed); framework brain seeded LOCAL-ONLY (gitignored + asset-guard verified). Spec approved; `docs/DESIGN.md` + `docs/MOCKUP.jsx` done; Dashboard mockup PNG previously delivered. Packages: `@orqafy/{shared,api-client,db,ui,storage,jobs,sync,geofence}` scaffolded + typecheck/lint/prettier green (branch `feat/phase4-part4`).
 
 ## ⏳ COLD-START CHECKLIST (read first)
 
@@ -89,3 +89,28 @@ save + stop the loop **before** giving an explicit mockup confirm — so the moc
 open gate. Flagged (and declined pending owner word) the SessionStart RBAC-retrofit
 suggestion: **superseded by D-5** (single-company install, no tenant model — fleet 3-tier RBAC does not
 apply here).
+
+## Session note — 2026-09-08 (Phase 4 Part 4 — branch `feat/phase4-part4`)
+
+Built the shared runtime packages off `feat/phase4-part3`. Five new typed, testable workspace
+packages behind clean interfaces; feature internals stubbed with explicit TODOs, signatures + wiring
+complete and typecheck-green:
+
+- **`@orqafy/ui`** — MIT shadcn/ui + Kibo UI layer themed to DESIGN.md tokens (slate + blueprint-blue +
+  geofence-amber; IBM Plex Sans + JetBrains Mono). Base primitives (button/card/input/label/dialog/
+  table/form) + Kibo wrappers (kanban/gantt/dropzone stubs) + tokens/theme module + Tailwind preset +
+  globals.css. **No AdminCN / shadcn-studio Pro paid components (D-26).**
+- **`@orqafy/storage`** — one `StorageAdapter` interface, config-selected `S3StorageAdapter`
+  (MinIO/S3/R2, incl. NFS-mounted MinIO — R-2/D-27) **and** `LocalDiskStorageAdapter` fallback;
+  presigned up/down URLs; path-traversal-guarded.
+- **`@orqafy/jobs`** — BullMQ (Valkey) queues + typed job defs (OCR, doc-matching, sync-orchestration,
+  notification-dispatch, scheduled-reminders, progress-rollup) + real worker bootstrap, stub processors.
+- **`@orqafy/sync`** — `FileSyncProvider` port + `NextcloudCmdDriver` (R8 approach a; argv builder real,
+  spawn/supervision = Part 7 Tauri sidecar) + `WebDavSyncDriver` fallback seam (D-10a b).
+- **`@orqafy/geofence`** — pure on-device logic (D-19/R6): region model, haversine inside/outside eval,
+  iOS 20-region prioritisation, app-side dwell state machine. 12 vitest tests pass.
+
+Verify: `pnpm install`; `pnpm typecheck` + `pnpm lint` green across all 8 packages; `prettier --check`
+clean; `pnpm test` → geofence 12/12. Layering respected (ui/storage/jobs/geofence → only `@orqafy/shared`;
+no `apps/*` imports). Asset guard `--staged` + `--tracked` clean; `git ls-files` shows NO framework IP /
+AdminCN slice. One commit (`98a0505`), HARD HOLD — LOCAL only, no push/PR/merge. **Next → Phase 4 Part 5.**
