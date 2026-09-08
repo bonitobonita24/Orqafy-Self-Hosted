@@ -1,0 +1,486 @@
+// @orqafy/db — Prisma schema for every v1 entity.
+//
+// Contract source of truth: @orqafy/shared (Zod). Every model here mirrors a
+// schema in packages/shared/src/schemas + the controlled vocabularies in
+// packages/shared/src/enums.ts. Field names/optionality/enum string values
+// match the Zod contract exactly so the API boundary maps 1:1.
+//
+// HARD CONSTRAINTS:
+//   D-5  single-company install — NO tenant_id / tenancy column anywhere.
+//   D-17 RBAC = predefined roles (seeded as system PermissionGroups) + custom
+//        permission-groups + per-user permission overrides. Finance visibility
+//        et al. are permissions, never role-hardwired.
+//   D-19 geofence is presence-only, evaluated on-device; NO location history is
+//        stored (a Task carries only its anchor + schedule).
+//   D-20 AuditLog is the app-layer DPA access trail; Document.isSPI gates
+//        payroll/HR files behind finance permissions + out of broad search.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (PgBouncer) — app runtime
+  directUrl = env("DIRECT_URL")   // direct (Postgres) — migrations
+}
+
+// ─────────────────────────── Enums (mirror @orqafy/shared/enums) ───────────────────────────
+
+/// Predefined starting-point roles (seeded as system PermissionGroups).
+/// engineer & architect both map to project_manager (D-17).
+enum SystemRole {
+  owner_admin
+  project_manager
+  field_staff
+  accountant
+  client
+}
+
+/// Assignable permissions — the atoms custom groups & per-user overrides compose.
+enum Permission {
+  manage_users
+  configure_server
+  create_project
+  view_finances
+  manage_finances
+  approve_leave
+  manage_files
+  view_all_projects
+  export_data
+  view_audit_log
+}
+
+enum ProjectStatus {
+  planning
+  active
+  on_hold   @map("on-hold")
+  completed
+  cancelled
+}
+
+enum TaskStatus {
+  todo
+  in_progress @map("in-progress")
+  blocked
+  done
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum MilestoneStatus {
+  pending
+  in_progress @map("in-progress")
+  completed
+}
+
+enum SignOffStatus {
+  pending
+  approved
+  rejected
+}
+
+enum DocumentCategory {
+  invoice
+  po
+  expense
+  receipt
+  payroll
+  drawing
+  permit
+  photo
+  other
+}
+
+enum OcrStatus {
+  pending
+  processing
+  done
+  failed
+  skipped
+}
+
+enum DocumentReviewStatus {
+  pending
+  confirmed
+  reassigned
+}
+
+enum NotificationType {
+  task_assigned
+  geofence_alert
+  leave_requested
+  leave_decided
+  milestone_signoff
+  document_review
+  mention
+  system
+}
+
+enum LeaveRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+enum AuditTargetType {
+  organization
+  user
+  permission_group
+  client
+  project
+  task
+  milestone
+  document
+  document_review
+  photo
+  notification
+  leave_type
+  leave_balance
+  leave_request
+}
+
+// ─────────────────────────── Organisation (D-5 singleton) ───────────────────────────
+
+/// The single installing firm. No tenant dimension (D-5); one row in practice.
+model Organization {
+  id                String   @id @default(cuid())
+  name              String
+  address           String?
+  logoKey           String? // storage key for the logo object (bytes live in MinIO/S3)
+  dpoName           String?
+  dpoContact        String?
+  retentionSettings Json? // { entityOrCategory: days } DPA retention config (D-20)
+  timezone          String   @default("UTC")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ─────────────────────────── RBAC (D-17) ───────────────────────────
+
+/// A named bundle of permissions. Predefined roles seed `isSystem` groups keyed
+/// by `systemKey`; the operator composes custom groups from the same permission
+/// set. A User has exactly one role group + zero-or-more custom groups.
+model PermissionGroup {
+  id          String       @id @default(cuid())
+  name        String
+  permissions Permission[]
+  isSystem    Boolean      @default(false)
+  systemKey   SystemRole?  @unique // set only on the seeded system-role groups
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  usersInRole User[] @relation("UserRole")
+  members     User[] @relation("UserGroups")
+}
+
+/// A staff account within the one organisation.
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  roleId       String
+  phone        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  role      PermissionGroup          @relation("UserRole", fields: [roleId], references: [id])
+  groups    PermissionGroup[]        @relation("UserGroups")
+  overrides UserPermissionOverride[]
+
+  tasksCreated        Task[]         @relation("TaskCreatedBy")
+  tasksAssigned       Task[]         @relation("TaskAssignee")
+  documentsUploaded   Document[]     @relation("DocumentUploadedBy")
+  photosCaptured      Photo[]        @relation("PhotoCapturedBy")
+  notifications       Notification[]
+  leaveRequests       LeaveRequest[] @relation("LeaveRequestUser")
+  leaveApprovals      LeaveRequest[] @relation("LeaveRequestApprover")
+  leaveBalances       LeaveBalance[]
+  milestonesSignedOff Milestone[]    @relation("MilestoneSignedOffBy")
+  auditLogs           AuditLog[]
+
+  @@index([roleId])
+}
+
+/// Per-user permission override (D-17): grant (true) or revoke (false) a single
+/// permission on top of the user's role + group grants.
+model UserPermissionOverride {
+  id         String     @id @default(cuid())
+  userId     String
+  permission Permission
+  granted    Boolean // true = grant, false = revoke
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permission])
+  @@index([userId])
+}
+
+// ─────────────────────────── Projects & work ───────────────────────────
+
+/// An external client the firm runs projects for.
+model Client {
+  id            String   @id @default(cuid())
+  name          String
+  contactPerson String?
+  email         String?
+  phone         String?
+  address       String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  projects          Project[]
+  documents         Document[]
+  reviewSuggestions DocumentReview[] @relation("ReviewSuggestedClient")
+}
+
+/// A project under a client; tasks roll their progress up to `progressPct`.
+model Project {
+  id            String        @id @default(cuid())
+  name          String
+  code          String        @unique // human project code — unique identifier (ASSUMPTION)
+  clientId      String
+  status        ProjectStatus @default(planning)
+  startDate     DateTime?
+  targetEndDate DateTime?
+  description   String?
+  progressPct   Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  client            Client           @relation(fields: [clientId], references: [id])
+  tasks             Task[]
+  milestones        Milestone[]
+  documents         Document[]
+  reviewSuggestions DocumentReview[] @relation("ReviewSuggestedProject")
+
+  @@index([clientId])
+}
+
+/// A unit of work on a project. Geofence fields (D-19) make it a "site task":
+/// an on-device dwell inside `location.radiusMeters` on/after geofenceActiveFrom
+/// fires the assignee's local notification. Presence-only, no location history.
+model Task {
+  id                  String       @id @default(cuid())
+  title               String
+  description         String?
+  projectId           String
+  assigneeId          String?
+  status              TaskStatus   @default(todo)
+  priority            TaskPriority @default(medium)
+  dueDate             DateTime?
+  boardColumn         String?
+  location            Json? // { lat, lng, radiusMeters } — the geofence anchor (D-19)
+  geofenceActiveFrom  DateTime?
+  geofenceActiveUntil DateTime?
+  createdBy           String
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  project  Project @relation(fields: [projectId], references: [id])
+  assignee User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator  User    @relation("TaskCreatedBy", fields: [createdBy], references: [id])
+  photos   Photo[]
+
+  @@index([projectId])
+  @@index([assigneeId])
+}
+
+/// A project checkpoint; client sign-off is a v2 flow (signOff* fields).
+model Milestone {
+  id            String          @id @default(cuid())
+  projectId     String
+  title         String
+  targetDate    DateTime?
+  status        MilestoneStatus @default(pending)
+  signOffStatus SignOffStatus   @default(pending)
+  signedOffBy   String?
+  signedOffAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  project         Project @relation(fields: [projectId], references: [id])
+  signedOffByUser User?   @relation("MilestoneSignedOffBy", fields: [signedOffBy], references: [id])
+  photos          Photo[]
+
+  @@index([projectId])
+}
+
+// ─────────────────────────── Documents (D-13 thin-slice, D-20 SPI) ───────────────────────────
+
+/// A stored file. `storageKey` points at the object in MinIO/S3 (bytes live
+/// there, never in the row). `isSPI` gates payroll/HR docs behind finance
+/// permissions + excludes them from broad search (PH DPA, D-20). Concurrent
+/// edits are kept as an embedded revision chain (revisionHistory).
+model Document {
+  id              String           @id @default(cuid())
+  name            String
+  storageKey      String
+  projectId       String?
+  clientId        String?
+  category        DocumentCategory
+  mimeType        String
+  size            Int
+  ocrText         String? // full-text search target (D-13)
+  ocrStatus       OcrStatus        @default(pending)
+  isSPI           Boolean          @default(false)
+  revisionHistory Json             @default("[]") // DocumentRevision[] (embedded, per contract)
+  uploadedBy      String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  project  Project?         @relation(fields: [projectId], references: [id])
+  client   Client?          @relation(fields: [clientId], references: [id])
+  uploader User             @relation("DocumentUploadedBy", fields: [uploadedBy], references: [id])
+  reviews  DocumentReview[]
+
+  @@index([projectId])
+  @@index([clientId])
+  @@index([category])
+}
+
+/// Review-tray row for a document the auto-filer could not confidently place
+/// (D-13). `confidence` is the matcher's 0..1 score.
+model DocumentReview {
+  id                 String               @id @default(cuid())
+  fileId             String
+  suggestedClientId  String?
+  suggestedProjectId String?
+  suggestedCategory  DocumentCategory?
+  confidence         Float
+  status             DocumentReviewStatus @default(pending)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  file             Document @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  suggestedClient  Client?  @relation("ReviewSuggestedClient", fields: [suggestedClientId], references: [id])
+  suggestedProject Project? @relation("ReviewSuggestedProject", fields: [suggestedProjectId], references: [id])
+
+  @@index([fileId])
+  @@index([status])
+}
+
+/// A site photo captured against a task or milestone; bytes live in storage.
+model Photo {
+  id          String   @id @default(cuid())
+  storageKey  String
+  taskId      String?
+  milestoneId String?
+  capturedBy  String
+  capturedAt  DateTime
+  gpsLat      Float?
+  gpsLng      Float?
+  createdAt   DateTime @default(now())
+
+  task      Task?      @relation(fields: [taskId], references: [id])
+  milestone Milestone? @relation(fields: [milestoneId], references: [id])
+  capturer  User       @relation("PhotoCapturedBy", fields: [capturedBy], references: [id])
+
+  @@index([taskId])
+  @@index([milestoneId])
+}
+
+// ─────────────────────────── Notifications ───────────────────────────
+
+/// A per-user notification; `payload` shape is per-type (structured record).
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  payload   Json             @default("{}")
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+// ─────────────────────────── Leave (D-21 — leave only, no attendance/payroll) ───────────────────────────
+
+/// A configurable leave category (vacation/sick/emergency/…).
+model LeaveType {
+  id                 String   @id @default(cuid())
+  name               String
+  defaultDaysPerYear Int      @default(0)
+  isPaid             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  balances LeaveBalance[]
+  requests LeaveRequest[]
+}
+
+/// A user's per-type, per-year leave accounting.
+model LeaveBalance {
+  id          String   @id @default(cuid())
+  userId      String
+  leaveTypeId String
+  year        Int
+  entitled    Float
+  used        Float
+  remaining   Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
+
+  @@unique([userId, leaveTypeId, year])
+  @@index([userId])
+}
+
+/// A staff leave application (D-21). `reason` is optional and must not require
+/// health detail (SPI minimisation, PH DPA). Approver = anyone with approve_leave.
+model LeaveRequest {
+  id          String             @id @default(cuid())
+  userId      String
+  leaveTypeId String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String?
+  status      LeaveRequestStatus @default(pending)
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user      User      @relation("LeaveRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
+  approver  User?     @relation("LeaveRequestApprover", fields: [approvedBy], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ─────────────────────────── Audit trail (D-20) ───────────────────────────
+
+/// App-layer DPA access trail (D-20): who did what to which record, when.
+/// Append-only in practice; `metadata` carries request-specific context.
+model AuditLog {
+  id         String          @id @default(cuid())
+  userId     String
+  action     String
+  targetType AuditTargetType
+  targetId   String?
+  ip         String?
+  metadata   Json?
+  timestamp  DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([targetType, targetId])
+  @@index([timestamp])
+}
