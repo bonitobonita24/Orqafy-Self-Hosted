@@ -28,6 +28,29 @@ FORBIDDEN=(
   ".claude/"         # local Claude Code config
   ".sessions/"       # local loop/session handoff state (internal FOCUS notes)
   "claude.md"        # framework/seat instructions (kept local only)
+  # ── P0.1 (2026-09-08): framework tooling / IP seeded by bootstrap + deploy.sh ──
+  ".github/skills/"                    # AIEF framework skill IP (bootstrap Step 17)
+  ".clinerules"                        # framework tombstone (bootstrap Step 3)
+  ".socraticodecontextartifacts.json"  # framework context artifact
+  ".mcp.json"                          # framework MCP config (bootstrap Step 10)
+  ".vscode/"                           # framework editor/MCP config (bootstrap Step 10)
+  "docs/tasks/phase4-part"             # framework build-methodology task files (bootstrap Step 4)
+  # Framework-owned scripts (deploy.sh / bootstrap install into scripts/). The app's own
+  # check-public-assets.sh + install-git-hooks.sh stay TRACKED — enumerate, never blanket scripts/.
+  "scripts/lint-deploy.sh"
+  "scripts/design-stop-hook.sh"
+  "scripts/lint-design.sh"
+  "scripts/sync-context.sh"
+  "scripts/spec-gap-check.sh"
+  "scripts/design-fidelity.mjs"
+  "scripts/design-validate.mjs"
+  "scripts/audit-app.sh"
+  "scripts/dev-freshness-check.sh"
+  "scripts/build-primer.sh"
+  "scripts/review-scope.mjs"
+  # Framework design-toolkit config seeded at repo root (bootstrap Step 20)
+  "sd.config.mjs"
+  "design-fidelity.config.json"
 )
 
 MODE="${1:---staged}"

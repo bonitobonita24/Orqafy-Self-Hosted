@@ -10,6 +10,31 @@ CLAUDE.md
 .claude/
 .sessions/
 
+# ── P0.1 (2026-09-08): framework tooling / IP seeded by AIEF bootstrap + deploy.sh ──
+# KEEP IN SYNC with the FORBIDDEN list in scripts/check-public-assets.sh (belt-and-suspenders).
+.github/skills/
+.clinerules
+.socraticodecontextartifacts.json
+.mcp.json
+.vscode/
+docs/tasks/phase4-part*.md
+# Framework-owned scripts (installed into scripts/). Do NOT blanket-ignore scripts/ — the app's
+# own check-public-assets.sh + install-git-hooks.sh must stay tracked; enumerate the framework ones.
+scripts/lint-deploy.sh
+scripts/design-stop-hook.sh
+scripts/lint-design.sh
+scripts/sync-context.sh
+scripts/spec-gap-check.sh
+scripts/design-fidelity.mjs
+scripts/design-validate.mjs
+scripts/audit-app.sh
+scripts/dev-freshness-check.sh
+scripts/build-primer.sh
+scripts/review-scope.mjs
+# Framework design-toolkit config seeded at repo root (bootstrap Step 20)
+sd.config.mjs
+design-fidelity.config.json
+
 # Secrets — canonical home is the Server-Setups repo (SOPS+age). Never here.
 .env
 .env.*
