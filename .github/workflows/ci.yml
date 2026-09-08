@@ -1,0 +1,53 @@
+# CI — lint · typecheck · test · build (no publish, no deploy)
+#
+# Orqafy Self-Hosted ships to installing firms as a Docker Compose bundle (D-3),
+# so there is deliberately NO docker-publish / registry / deploy job here
+# (docker.publish:false, deployment.manager:none — inputs.yml). This workflow is
+# a pure quality gate. It does not run until the repository has a remote; that is
+# expected and fine.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify (lint · typecheck · test · build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @orqafy/db run db:generate
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
