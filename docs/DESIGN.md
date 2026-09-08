@@ -131,3 +131,54 @@ Screens to render: Dashboard, Projects list, Project board (kanban), Task detail
 geofence schedule), My Tasks (mobile), Geofence alert (mobile), Files + review tray, Apply-for-leave +
 Leave approvals, Users/Roles permission builder. Each component tagged with its
 `data-loading-path` (shadcn vs custom) per the framework's Phase 4 Part 5 contract.
+
+---
+
+## 8. Offline-first mobile behaviour (D-15)
+
+A v1 commitment, not a retrofit. The Expo app is usable on a construction site with no connectivity;
+the server is a sync target, never a hard dependency for field work. Verified geofence facts:
+`docs/planning/R6_EXPO_GEOFENCING.md`.
+
+- **Cached read model.** On login/sync the app caches the worker's assigned tasks, their
+  location+radius+schedule, the activity calendar, and recent project context into local storage
+  (SQLite/MMKV). My Tasks, Gantt-view, and the geofence set render from cache with zero network.
+- **Local geofence engine (no server contact).** Geofence Enter/Exit is evaluated entirely by the OS
+  location subsystem against the cached region set; the ~3-minute dwell timer and the local
+  notification fire on-device. A worker who has synced once needs **no signal** for the differentiator
+  to work. (iOS 20-region cap → cache-driven re-arming of the nearest active tasks, per R6.)
+- **Outbound queue (durable, ordered).** Task status changes, photo captures, and leave applications
+  are written to a local append-only outbound queue with a stable client-generated id + `createdAt`,
+  then drained to the server on reconnect (BullMQ-side idempotency by client id). Photos stage as local
+  files; upload is a queued job with retry/backoff — the worker never waits on the network to record
+  evidence.
+- **Conflict handling on reconnect.** Last-writer-wins per field using `updatedAt`, EXCEPT task
+  completion, which is monotonic (once done, a stale "in-progress" never un-completes it). Photo
+  uploads never conflict (append-only). A field surfaces a soft "updated on server since you edited"
+  note rather than silently clobbering. Deletes use tombstones (no silent resurrection on next sync).
+- **Sync trigger.** On app foreground, on connectivity regain, and on a periodic timer; the websocket
+  channel (when the app is open and online) delivers live server notifications on top.
+
+## 9. Desktop packaging &amp; the Rust sidecar surface (D-11, D-14)
+
+Desktop shell is **Tauri v2**. Full research: `docs/planning/R7_DESKTOP_PACKAGING.md` (signing/updater) and
+`docs/planning/R8_NEXTCLOUD_SYNC.md` (sync cadence).
+
+- **Signing (per platform):** macOS — Developer ID + `codesign` (hardened runtime, inside-out incl. the
+  sidecar) + notarization/stapling via notarytool. Windows — Authenticode (SignTool thumbprint or a
+  `signCommand`; Azure Trusted Signing / EV-cert options). Linux AppImage — optional GPG signature (no
+  OS gatekeeper enforces it; the updater's minisign signature is the load-bearing integrity check).
+- **Auto-update:** Tauri updater plugin, **static-JSON manifest served from our OWN domain** (AGPL, no
+  app store — D-2). `createUpdaterArtifacts:true` emits installer + `.sig`; the client verifies a
+  **minisign** signature against `pubkey` before installing, so a tampered artifact is rejected even off
+  an untrusted mirror. The updater private key lives in the **Server-Setups vault**; losing it = no
+  further updates to installed clients.
+- **Rust sidecar (sole non-TypeScript code — D-11):** bundled via `externalBin` + a `shell:allow-execute`
+  sidecar capability; spawned/supervised from Rust (`ShellExt::sidecar`). Its 7-point surface: (1) launch
+  the file-sync sidecar (headless `nextcloudcmd`, D-14); (2) own its lifecycle (kill on app exit);
+  (3) watch its `CommandEvent` stream; (4) restart-on-crash with capped backoff; (5) **drive the sync
+  cadence** — because `nextcloudcmd` is one-shot (R8), the sidecar triggers runs on a debounced
+  filesystem-watch + periodic timer, serialized behind a per-project-folder lock; (6) relay status to the
+  TS UI; (7) pass only validated args. Status-relay + scheduling only — **no sync/domain logic in Rust**
+  (that would be the D-11 signal to revisit Tauri). WebDAV-in-client stays the fallback behind a
+  `FileSyncProvider` port.

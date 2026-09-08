@@ -6,40 +6,47 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 ## 🔴 / 🟡 Open
 
+_All three below are BLOCKED — they require real hardware / a running stack / a live tunnel, none of which
+exist pre-scaffold. They are NOT actionable now; they gate a later phase, not Phase 0._
 
-- 🔴 **Real-device geofence-over-tunnel test** (iOS + Android) before Phase 3 — R-1 found **no source**
-  proving a VPN blocks geofence *triggering*; the open risk is notification *delivery* within the OS wake
-  budget over an idle WireGuard tunnel. Decides whether the reverse-tunnel choice (Pangolin `newt`) is
-  merely preferred or actually required. Done: measured trigger→delivery latency on both platforms,
-  recorded in `docs/planning/R1_REMOTE_ACCESS.md`. `<source: agent-found 2026-09-06>`
-
-
-- 🔴 **Sync-engine resource-cost check** — whichever engine wins, measure idle and sync-load RAM/CPU on
-  a desktop-as-server box already running Postgres + Valkey + MinIO before the choice is locked.
-  Done: figures recorded in the winning engine's decision doc. `<source: agent-found 2026-09-06>`
-- 🔴 **Pangolin throughput test — BLOCKING before any customer install** — Newt/Gerbil has
-  maintainer-acknowledged sequential-packet processing: historically ~1–6 MB/s single-stream, reaching
-  ~180 Mbit/s only with **Newt ≥1.16.0 + `USE_NATIVE_MAIN_INTERFACE=true` + host networking**. Those
-  settings are mandatory in our bundle. Done: measured real throughput for a large photo upload over
-  the tunnel, recorded in `docs/planning/R1a_PANGOLIN_SIZING.md`. `<source: agent-found 2026-09-06>`
-- 🔴 **Verify headless Nextcloud continuous-sync approach (D-14 caveat)** — the headless/CLI client is
-  understood to be one-shot, not a daemon. Confirm how continuous background sync is driven (scheduler,
-  fs-watch, or a supervising loop) from the Tauri Rust sidecar. Done: a working continuous-sync PoC, or
-  a documented switch to the WebDAV-in-our-client fallback. `<source: agent-found 2026-09-06>`
-- 🔴 **Offline-first mobile design (D-15)** — cached task list, LOCAL geofence evaluation with no server
-  contact, outbound queue for photo uploads + task updates, conflict handling on reconnect. A v1 design
-  commitment, not a later retrofit. Done: reflected in PRODUCT.md mobile section + DESIGN.md.
+- 🔴 **[BLOCKED-hardware] Real-device geofence-over-tunnel test** (iOS + Android) before Phase 3 — needs
+  physical devices + a live tunnel. R-1 found **no source** proving a VPN blocks geofence *triggering*;
+  the open risk is notification *delivery* within the OS wake budget over an idle WireGuard tunnel.
+  Decides whether the reverse-tunnel choice (Pangolin `newt`) is merely preferred or actually required.
+  Done: measured trigger→delivery latency on both platforms, recorded in `docs/planning/R1_REMOTE_ACCESS.md`.
   `<source: agent-found 2026-09-06>`
-- 🔴 **Desktop packaging workstream** — Tauri chosen (D-11). Remaining: code signing + notarisation +
-  auto-update per platform, and documenting the Rust sidecar-supervision surface as the sole
-  non-TypeScript code. Done: recorded in DESIGN.md. `<source: agent-found 2026-09-06>`
-- 🔴 **Verify Expo background-geofencing capability via context7** before Phase 3 — confirm current
-  `expo-location`/`expo-task-manager` background geofence support + iOS permission requirements.
-  Done: findings recorded in the PRODUCT.md mobile section. `<source: agent-found 2026-09-06>`
-- 🟡 **MOCKUP.jsx** — IN FLIGHT (design worker). Clickable shadcn-styled mockup, realistic PH
-  construction data, all declared screens. Done: rendered and owner-approved. `<source: owner 2026-09-06>`
+- 🔴 **[BLOCKED-post-scaffold] Sync-engine resource-cost check** — needs the stack actually running.
+  Measure idle and sync-load RAM/CPU on a desktop-as-server box already running Postgres + Valkey + MinIO
+  before the choice is locked. Done: figures recorded in the winning engine's decision doc.
+  `<source: agent-found 2026-09-06>`
+- 🔴 **[BLOCKED-infra] Pangolin throughput test — BLOCKING before any customer install** — needs a live
+  tunnel deploy (HARD HOLD). Newt/Gerbil has maintainer-acknowledged sequential-packet processing:
+  historically ~1–6 MB/s single-stream, reaching ~180 Mbit/s only with **Newt ≥1.16.0 +
+  `USE_NATIVE_MAIN_INTERFACE=true` + host networking**. Those settings are mandatory in our bundle.
+  Done: measured real throughput for a large photo upload over the tunnel, recorded in
+  `docs/planning/R1a_PANGOLIN_SIZING.md`. `<source: agent-found 2026-09-06>`
 
 ## ✅ Done recently
+
+- ✅ **MOCKUP.jsx — owner-approved** (2026-09-08). Dashboard PNG delivered + confirmed; design gate cleared,
+  Phase 0 scaffold unblocked. (`docs/MOCKUP.jsx`, `mockup-dashboard.png`.)
+- ✅ **Verify Expo background-geofencing (context7)** → `docs/planning/R6_EXPO_GEOFENCING.md` + PRODUCT.md
+  mobile section. Background Enter/Exit confirmed on iOS+Android via `startGeofencingAsync` +
+  `TaskManager.defineTask`, **native-build-only**; iOS 20-region cap (app re-arms nearest active tasks);
+  Enter/Exit-only (no native dwell → app-side 3-min timer); Always permission. On-device/offline confirmed
+  (one literal "no network" claim flagged unverified). (2026-09-08)
+- ✅ **Offline-first mobile design (D-15)** → PRODUCT.md mobile section + DESIGN.md §8. Cached read model,
+  local OS geofence eval with no server contact, durable ordered outbound queue (client-id idempotency),
+  reconnect conflict handling (LWW + monotonic completion + tombstones). (2026-09-08)
+- ✅ **Desktop packaging workstream (Tauri, D-11)** → `docs/planning/R7_DESKTOP_PACKAGING.md` + DESIGN.md §9.
+  Per-platform signing (macOS notarytool / Windows Authenticode / Linux GPG), minisign auto-update from our
+  own domain (AGPL, no store), and the 7-point Rust sidecar-supervision surface as the sole non-TS code.
+  (2026-09-08)
+- ✅ **Verify headless Nextcloud continuous-sync approach (D-14)** → `docs/planning/R8_NEXTCLOUD_SYNC.md`.
+  `nextcloudcmd` confirmed one-shot (no daemon/interval/watch flag). v1 recommendation: supervise
+  `nextcloudcmd` from the Rust sidecar via debounced fs-watch + periodic timer, serialized per project
+  folder; WebDAV-in-client is the fallback behind a `FileSyncProvider` port. Follow-up: verify
+  `nextcloudcmd --help` on the actually-bundled binary. (2026-09-08)
 
 - ✅ **Public-repo asset guard** — `scripts/check-public-assets.sh` (`--staged`/`--tracked`) +
   `scripts/install-git-hooks.sh` wiring pre-commit/pre-push. Refuses `.ai_prompt/`, `AI/`,
@@ -54,7 +61,7 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 - ✅ **Planning Assistant interview** → `docs/PRODUCT.md` written (12 required sections + conditional +
   Design Identity + Out of Scope). Interview produced D-17…D-23. Feature-boundary [WHAT] resolved.
-  **Awaiting owner approval before Phase 2.8 mockup / DESIGN.md** (2026-09-06).
+  **Owner-approved** (2026-09-06).
 
 - ✅ **R-3b file-sync re-comparison** → `docs/planning/R3b_FILE_SYNC_REVISED.md`. Corrected R-3's wrong
   claim that Syncthing has no access-control boundary (it does — server-side, `lib/model/model.go:1982`).

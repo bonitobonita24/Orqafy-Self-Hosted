@@ -200,8 +200,19 @@ completed milestone + its photos → **signs off or rejects** → the PM is noti
   session expiry for read + queued writes). **Push:** geofence + reminders are on-device; server
   notifications arrive via websocket when open and sync on reconnect. Background push (UnifiedPush/APNs)
   is a **v1.x** add-on.
+  - **Geofence capability — verified (context7, Expo current SDK, 2026-09-08; `docs/planning/R6`):**
+    background Enter/Exit wake-ups work on **iOS + Android** via `Location.startGeofencingAsync` bound to
+    a `TaskManager.defineTask` background task — **native build only** (never Expo Go, never PWA),
+    confirming the native app is the mandatory geofence carrier. **iOS caps monitoring at 20 regions**
+    (Android 100) → the app registers the ≤20 nearest active tasks and re-arms as the worker moves
+    (Phase-3 design item). Requires iOS **"Always"** location + `UIBackgroundModes:[location]`; Android
+    background-location + foreground-service. The OS fires **Enter/Exit only — no native "dwell" event**,
+    so the ~3-minute dwell rule is app-side (timer on Enter, cancel on Exit). Terminated-app relaunch:
+    iOS *may* relaunch on an event; Android generally does not — reflected in reliability messaging.
 - **Desktop App (Tauri, client-only):** Windows + macOS thin client (D-7, D-11). Syncs via a supervised
-  headless-Nextcloud sidecar (D-14 — pending the continuous-sync feasibility check). One app; ~50–300
+  headless-Nextcloud sidecar (D-14 — **resolved (`docs/planning/R8`)**: `nextcloudcmd` is one-shot, so the
+  Rust sidecar drives continuous sync via a debounced filesystem-watch + periodic timer, serialized per
+  project folder; WebDAV-in-client stays the fallback behind a `FileSyncProvider` port). One app; ~50–300
   lines of Rust for sidecar supervision are the sole non-TypeScript code.
 - **Maps:** Leaflet + OpenStreetMap — set a task's location + radius, view sites. No API keys,
   self-hostable tiles.
