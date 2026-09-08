@@ -2,8 +2,9 @@
 
 **Free, open-source, self-hosted project management for construction engineers and architects.**
 
-> ⚠️ **Pre-spec.** No application code yet. This repository currently holds the founding brief and
-> planning artifacts only. Start at [`docs/SEED_BRIEF.md`](docs/SEED_BRIEF.md).
+> ⚠️ **Pre-scaffold.** Spec is approved (`docs/PRODUCT.md`) and the design system + mockup are drawn
+> (`docs/DESIGN.md`, `docs/MOCKUP.jsx`), but no application code exists yet. This repository holds the
+> founding brief and planning artifacts only. Start at [`docs/SEED_BRIEF.md`](docs/SEED_BRIEF.md).
 
 Runs on an ordinary desktop as its own server — your data stays on your own storage (including a
 NAS on the same machine), your team connects over the local network, and the site crew reaches it
@@ -28,7 +29,7 @@ tasks and milestones)
 
 | | |
 |---|---|
-| Stage | Planning — Planning Assistant interview not yet run |
+| Stage | Spec approved · pre-scaffold (Phase 0 not yet started) |
 | Licence | AGPL-3.0 (see `docs/SEED_BRIEF.md` D-2) |
 | Install | Docker Compose first; native desktop installer later |
 | Deploy | **Local only.** No staging or production target. |
