@@ -13,6 +13,8 @@
     }
   },
   "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\""
   },
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.3"
   }
 }

@@ -100,3 +100,6 @@ tests/visual/diff/
 
 #  OUT of it per Scenario 49.)
 .ai_prompt/starter/admincn/
+
+# Playwright MCP scratch snapshots (verification runs)
+.playwright-mcp/

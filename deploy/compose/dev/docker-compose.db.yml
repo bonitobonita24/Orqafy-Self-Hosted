@@ -1,0 +1,67 @@
+# Orqafy Self-Hosted — dev database tier (Postgres + PgBouncer).
+# Phase 4 Part 7. Ships as a Compose bundle (D-3); dev only, HARD HOLD.
+# Ports are Rule-22 non-standard (base 56473) sourced from .env.dev — never hardcode.
+# Start this file FIRST (Postgres must be healthy before the app/worker migrate).
+#
+#   docker compose --env-file ../../../.env.dev -f docker-compose.db.yml up -d
+#
+# Prefer the start.sh helper, which wires every -f file and the env file for you.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: orqafy_dev_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Deterministic scram init so PgBouncer's userlist matches.
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "${POSTGRES_PORT}:5432" # DIRECT_URL — Prisma migrations
+    volumes:
+      - orqafy_dev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - orqafy_dev_net
+
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.23.1-p3
+    container_name: orqafy_dev_pgbouncer
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: orqafy_dev_postgres
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction # Prisma app runtime uses ?pgbouncer=true
+      MAX_CLIENT_CONN: "200"
+      DEFAULT_POOL_SIZE: "20"
+      LISTEN_PORT: "5432"
+    ports:
+      - "${PGBOUNCER_PORT}:5432" # DATABASE_URL — pooled app runtime
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - orqafy_dev_net
+
+volumes:
+  orqafy_dev_pgdata:
+    name: orqafy_dev_pgdata
+
+networks:
+  orqafy_dev_net:
+    name: orqafy_dev_net

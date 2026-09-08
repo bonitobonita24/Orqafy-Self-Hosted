@@ -1,0 +1,18 @@
+# Dev image for @orqafy/jobs (BullMQ worker). dev_build:true — built from source.
+# ⚠ Rebuild alongside the app (deploy-discipline): an app-only rebuild leaves this
+# worker on stale code.
+FROM node:22-alpine
+
+RUN apk add --no-cache libc6-compat openssl bash
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable
+
+WORKDIR /app
+COPY . .
+
+RUN pnpm install --frozen-lockfile
+
+# tsx watch — the worker bootstrap (src/main.ts) starts every BullMQ consumer.
+CMD ["pnpm", "--filter", "@orqafy/jobs", "dev"]

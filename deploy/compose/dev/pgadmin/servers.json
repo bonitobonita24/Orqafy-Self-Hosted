@@ -1,0 +1,24 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Orqafy Dev (Postgres)",
+      "Group": "Orqafy",
+      "Host": "orqafy_dev_postgres",
+      "Port": 5432,
+      "MaintenanceDB": "orqafy_dev",
+      "Username": "orqafy_fcf8c95753d355d6a69283",
+      "SSLMode": "prefer",
+      "Comment": "Direct Postgres (migrations/inspection). Pooled runtime goes through orqafy_dev_pgbouncer."
+    },
+    "2": {
+      "Name": "Orqafy Dev (PgBouncer pool)",
+      "Group": "Orqafy",
+      "Host": "orqafy_dev_pgbouncer",
+      "Port": 5432,
+      "MaintenanceDB": "orqafy_dev",
+      "Username": "orqafy_fcf8c95753d355d6a69283",
+      "SSLMode": "prefer",
+      "Comment": "Transaction-pooled app runtime path."
+    }
+  }
+}

@@ -1,0 +1,64 @@
+# Orqafy Self-Hosted — dev application tier (Next.js web app + BullMQ worker).
+# Phase 4 Part 7. dev_build:true — both build from source (no registry image;
+# docker.publish:false so there is NO docker-publish.yml / no CI push, D-3/D-27).
+#
+# ⚠ deploy-discipline: rebuild the app AND the worker together — an app-only
+#   --build leaves the worker running stale code. start.sh rebuilds both.
+#
+# Container service-to-service traffic uses INTERNAL hostnames/ports (declared
+# below), independent of the Rule-22 host ports in .env.dev (those publish to
+# localhost for tooling + host `pnpm dev`).
+
+services:
+  app:
+    build:
+      context: ../../..
+      dockerfile: deploy/compose/dev/Dockerfile.app
+    container_name: orqafy_dev_app
+    restart: unless-stopped
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      # Pooled runtime via PgBouncer (transaction mode ⇒ pgbouncer=true disables
+      # prepared statements); migrations use the direct Postgres URL.
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}?pgbouncer=true"
+      DIRECT_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@valkey:6379"
+      S3_ENDPOINT: "http://minio:9000"
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: ${AUTH_URL}
+    ports:
+      - "${APP_PORT}:56483"
+    networks:
+      - orqafy_dev_net
+
+  worker:
+    build:
+      context: ../../..
+      dockerfile: deploy/compose/dev/Dockerfile.worker
+    container_name: orqafy_dev_worker
+    restart: unless-stopped
+    depends_on:
+      valkey:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@valkey:6379"
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB}?pgbouncer=true"
+      S3_ENDPOINT: "http://minio:9000"
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+    networks:
+      - orqafy_dev_net
+
+networks:
+  orqafy_dev_net:
+    name: orqafy_dev_net
