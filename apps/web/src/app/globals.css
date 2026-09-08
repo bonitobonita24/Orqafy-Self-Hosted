@@ -1,0 +1,22 @@
+/*
+ * apps/web global stylesheet. The Orqafy design tokens (CSS variables) come
+ * from @orqafy/ui/globals.css (DESIGN.md §2–§3). Tailwind layers are added on
+ * top; the base border-color is re-applied AFTER Tailwind preflight so the
+ * token wins (shadcn/ui convention).
+ */
+@import '@orqafy/ui/globals.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+  }
+}

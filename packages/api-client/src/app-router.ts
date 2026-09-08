@@ -1,23 +1,15 @@
 // ---------------------------------------------------------------------------
-// PLACEHOLDER AppRouter type — the Part 2 / Part 5 seam.
+// AppRouter type — the real Orqafy tRPC router, defined by the server in
+// apps/web (Part 5). This is a TYPE-ONLY re-export (erased at build under
+// verbatimModuleSyntax), so this package pulls in NO server/db runtime code —
+// it stays a pure client that depends only on @orqafy/shared + @trpc/client.
 //
-// The real tRPC router is defined by the server in Part 5 (apps/web, D-1:
-// Next.js + tRPC). It does not exist yet, so this package is wired against the
-// generic `AnyTRPCRouter` so it typechecks and compiles today.
+// The mobile (Expo) and desktop (Tauri) apps import `createOrqafyClient` from
+// this package and get full end-to-end type safety from the same AppRouter the
+// web app serves. (apps/web itself uses its own colocated tRPC client, so there
+// is no web ⇄ api-client dependency cycle.)
 //
-// AT PART 5, replace the two lines below with a TYPE-ONLY import of the real
-// router, e.g.:
-//
-//     import type { AppRouter } from '@orqafy/web/server';
-//     export type { AppRouter };
-//
-// Nothing else in this package changes — `createOrqafyClient` already threads
-// `AppRouter` through `createTRPCClient<AppRouter>`, so swapping this type in
-// gives every call full end-to-end type safety.
-//
-// ⚠ LAYERING: this is a `import type` (erased at build). This package must
-// import NEITHER `@orqafy/db` NOR any jobs package — types only.
+// ⚠ LAYERING: `@orqafy/web` is a devDependency here purely for this type import.
+// This package must never import @orqafy/db or any jobs package at runtime.
 // ---------------------------------------------------------------------------
-import type { AnyTRPCRouter } from '@trpc/server';
-
-export type AppRouter = AnyTRPCRouter;
+export type { AppRouter } from '@orqafy/web/server';

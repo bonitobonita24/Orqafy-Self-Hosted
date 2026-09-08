@@ -21,6 +21,7 @@
     "@trpc/client": "^11.0.0"
   },
   "devDependencies": {
+    "@orqafy/web": "workspace:*",
     "@trpc/server": "^11.0.0",
     "typescript": "^5.7.3"
   }
