@@ -86,5 +86,7 @@ environments:
 
 ports:
   dev:                                # Rule-22 non-standard, GENERATED at Phase 3 P0.5 (§6) — do not hardcode
-    base: null                        # <generated at P0.5> — random per-project base (e.g. 43xxx)
-    # app / db / pgbouncer / redis / minio / minio_console / pgadmin / smtp / smtp_ui derived from base
+    base: 56473                       # Rule-22 random base, GENERATED at P0.5 — locked (do not regenerate)
+    # Derived (base+offset): postgres 56473 · pgbouncer 56474 · valkey 56475 · minio 56476 ·
+    # minio_console 56477 · pgadmin 56478 · mailhog_smtp 56479 · mailhog_ui 56480 · app 56483.
+    # Values mirrored in .env.dev (gitignored). Regenerating invalidates running containers.
