@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import {
@@ -13,9 +14,14 @@ import {
   Input,
   Label,
 } from '@orqafy/ui';
+import { trpc } from '@/trpc/react';
 
 export default function LoginPage() {
   const router = useRouter();
+  // On a fresh install (no users yet) surface a direct link to first-run setup —
+  // belt-and-suspenders alongside the root RSC's /setup redirect.
+  const setupStatus = trpc.setup.status.useQuery();
+  const needsSetup = setupStatus.data?.needsSetup === true;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +77,14 @@ export default function LoginPage() {
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
+          {needsSetup ? (
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              First time here?{' '}
+              <Link href="/setup" className="font-medium text-primary hover:underline">
+                Set up this install
+              </Link>
+            </p>
+          ) : null}
         </CardContent>
       </Card>
     </main>

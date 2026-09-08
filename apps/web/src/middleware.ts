@@ -21,7 +21,14 @@ const PUBLIC_PREFIXES = ['/login', '/setup', '/api/auth', '/api/trpc'];
 // the default export is annotated to Next's portable NextMiddleware type.
 const middleware = auth((req) => {
   const { pathname } = req.nextUrl;
-  const isPublic = PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  // The root `/` is always allowed through to its Node RSC (app/page.tsx). That
+  // RSC does the DB-backed FIRST-RUN routing the edge runtime cannot: 0 users →
+  // /setup, otherwise unauthenticated → /login, else → /dashboard. Without this
+  // exception the edge would bounce `/` → /login before the RSC runs, so a fresh
+  // install could never reach /setup (the first-run entry redirect bug).
+  const isRoot = pathname === '/';
+  const isPublic =
+    isRoot || PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const isAuthed = req.auth !== null;
 
   if (!isAuthed && !isPublic) {

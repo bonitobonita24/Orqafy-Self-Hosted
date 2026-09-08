@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { Plus, Pencil } from 'lucide-react';
 import {
+  Button,
   Card,
   CardContent,
   Table,
@@ -12,6 +14,7 @@ import {
   TableRow,
 } from '@orqafy/ui';
 import { trpc } from '@/trpc/react';
+import { ProjectFormDialog } from '@/components/forms/project-form';
 
 // Keyed by Prisma-native ProjectStatus values (`on_hold`).
 const STATUS_TONE: Record<string, string> = {
@@ -27,9 +30,18 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-        <p className="text-sm text-muted-foreground">All projects across your clients.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+          <p className="text-sm text-muted-foreground">All projects across your clients.</p>
+        </div>
+        <ProjectFormDialog
+          trigger={
+            <Button>
+              <Plus /> New project
+            </Button>
+          }
+        />
       </div>
 
       <Card>
@@ -42,6 +54,7 @@ export default function ProjectsPage() {
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Tasks</TableHead>
                 <TableHead className="text-right">Progress</TableHead>
+                <TableHead className="w-16" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -63,6 +76,16 @@ export default function ProjectsPage() {
                   </TableCell>
                   <TableCell className="text-right font-mono">{project._count.tasks}</TableCell>
                   <TableCell className="text-right font-mono">{project.progressPct}%</TableCell>
+                  <TableCell className="text-right">
+                    <ProjectFormDialog
+                      project={project}
+                      trigger={
+                        <Button variant="ghost" size="icon" aria-label={`Edit ${project.name}`}>
+                          <Pencil />
+                        </Button>
+                      }
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
