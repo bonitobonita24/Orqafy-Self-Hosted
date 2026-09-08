@@ -1,6 +1,8 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-08 · **Phase 4 Parts 1–4 done, next: Phase 4 Part 5.** Monorepo config seeded (inputs.yml, .nvmrc, package.json, dev ports/env, CREDENTIALS.md dev seed); framework brain seeded LOCAL-ONLY (gitignored + asset-guard verified). Spec approved; `docs/DESIGN.md` + `docs/MOCKUP.jsx` done; Dashboard mockup PNG previously delivered. Packages: `@orqafy/{shared,api-client,db,ui,storage,jobs,sync,geofence}` scaffolded + typecheck/lint/prettier green (branch `feat/phase4-part4`).
+**Last updated:** 2026-09-08 · **Phase 4 Parts 1–5 + Part 7 done; next: Phase 4 Part 6 (Expo mobile) / Part 8 (manifest/docs).** Monorepo config seeded (inputs.yml, .nvmrc, package.json, dev ports/env, CREDENTIALS.md dev seed); framework brain seeded LOCAL-ONLY (gitignored + asset-guard verified). Spec approved; `docs/DESIGN.md` + `docs/MOCKUP.jsx` done. Packages `@orqafy/{shared,api-client,db,ui,storage,jobs,sync,geofence}` + `apps/web` built, typecheck/lint green.
+
+**Phase 4 Part 7 ✅ (branch `feat/phase4-part7`, local, HARD HOLD).** Dev Compose bundle `deploy/compose/dev/` (postgres+pgbouncer, valkey, minio+console+bucket-init, mailhog, pgadmin pre-wired, app, worker) + `start.sh` + `tools/dev-smoke.sh`; Rule-22 ports, named volumes `orqafy_dev_*`, NO `docker-publish.yml` (D-3/D-27). `docker compose config` valid. **Live-verified end-to-end**: migration applied (16 tables), web app booted, Playwright drove first-run→login→dashboard→Client/Project/Task CRUD, all persisted (UI reload + DB). Added worker entrypoint `packages/jobs/src/main.ts`. **Fixed a blocking Part-5 middleware bug** (`/api/trpc` was 307→/login for unauth'd requests, killing first-run) — see SESSION_LOG + lesson `nextjs.middleware.matcher-gates-api-trpc`. Agent-found open item: `/` on fresh install redirects to `/login` not `/setup` (TASK_QUEUE). Part 6 (Expo mobile) is a later wave (web-first, D-25/W-1).
 
 ## ⏳ COLD-START CHECKLIST (read first)
 

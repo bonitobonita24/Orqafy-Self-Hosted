@@ -6,8 +6,14 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 ## 🔴 / 🟡 Open
 
-_All three below are BLOCKED — they require real hardware / a running stack / a live tunnel, none of which
-exist pre-scaffold. They are NOT actionable now; they gate a later phase, not Phase 0._
+- 🔴 **First-run entry redirects to /login instead of /setup** — on a fresh install (0 users), visiting `/`
+  is bounced to `/login` by the edge middleware before the root RSC's first-run `redirect('/setup')` can
+  run, and `/login` has no link to `/setup`, so a brand-new operator can't discover the setup screen.
+  Where: `apps/web/src/middleware.ts` (runs before `apps/web/src/app/page.tsx`). Done: an unauthenticated
+  fresh install lands on (or is clearly linked to) `/setup`. `<source: agent-found 2026-09-08>`
+
+_The three below are BLOCKED — they require real hardware / a running stack / a live tunnel, none of which
+exist yet. They are NOT actionable now; they gate a later phase._
 
 - 🔴 **[BLOCKED-hardware] Real-device geofence-over-tunnel test** (iOS + Android) before Phase 3 — needs
   physical devices + a live tunnel. R-1 found **no source** proving a VPN blocks geofence *triggering*;

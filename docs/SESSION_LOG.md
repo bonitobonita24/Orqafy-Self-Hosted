@@ -4,6 +4,35 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-08 — Phase 4 Part 7: dev Docker Compose bundle + live runtime verification
+
+**In your words:** build the dev Compose bundle (Part 7), then actually run it and prove the web app works
+end-to-end — first-run setup → login → dashboard → create a Client/Project/Task that persist — with real
+screenshot evidence, not assertions.
+
+✅ **Done & verified**
+- **Dev Compose bundle built** (`deploy/compose/dev/`): postgres+pgbouncer, valkey, minio (+console+bucket
+  init), mailhog, pgadmin (pre-wired `servers.json`), app, worker. `start.sh` orchestrator + `tools/dev-smoke.sh`.
+  Rule-22 ports (base 56473), named volumes `orqafy_dev_*`, NO `docker-publish.yml` (D-3/D-27). `docker
+  compose config` valid; added a real `@orqafy/jobs` worker entrypoint (`src/main.ts`) so the worker boots.
+- **Live runtime verified**: brought up the infra tier, applied the Part-3 migration (`prisma migrate
+  deploy` → 16 entity tables present), booted the web app. Playwright (headless, closed when done) drove the
+  real D-5 flow: first-run created the operator's admin (Owner/Admin role + org + 5 system roles seeded),
+  auto-login, dashboard loaded, then Client→Project→Task created and confirmed persisted via a Projects-list
+  reload AND a DB join. Screenshots in `screenshots/` (01 setup · 02 dashboard · 03 projects-persisted).
+  Stack torn down cleanly, volumes kept.
+
+💬 **Decisions / notes**
+- **Found + fixed a blocking Part-5 bug** ([HOW]): the edge middleware matched `/api/trpc` but did not
+  allow it, so unauthenticated tRPC calls (incl. the public first-run `setup.*` procedures) were 307→`/login`
+  — first-run could never reach the DB. Fix: treat `/api/trpc` as public at the edge; tRPC's per-procedure
+  auth stays the real boundary. Committed `fix(web)`; lesson logged (`nextjs.middleware.matcher-gates-api-trpc`).
+- **Agent-found UX gap (open, deferred):** `/` on a fresh install redirects to `/login` not `/setup` (see
+  TASK_QUEUE) — the middleware runs before the root's first-run redirect. Logged, not fixed (out of scope).
+- **No create UI yet in Part 5** — Client/Project/Task were created via authenticated tRPC calls (real
+  server + Prisma), persistence proven by UI reload + DB. Build the create forms in a later UI pass.
+- Branch `feat/phase4-part7`, local only, HARD HOLD — nothing pushed/deployed.
+
 ## 2026-09-08 — Phase 0 scaffolded + UI baseline + commercial model
 
 **In your words:** clear the pending work; then you asked about adopting shadcn-admin-kit for the UI, told
