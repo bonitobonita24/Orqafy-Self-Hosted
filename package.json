@@ -1,0 +1,11 @@
+{
+  "name": "orqafy",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Free, self-hosted construction PM + file sync + geofenced site tasks.",
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "pnpm@10",
+  "engines": {
+    "node": ">=22"
+  }
+}

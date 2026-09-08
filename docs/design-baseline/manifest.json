@@ -1,0 +1,7 @@
+{
+  "dashboard": {
+    "mockupRoute": "/mockup/dashboard",
+    "appRoute": "/dashboard",
+    "fixtureState": "seeded-demo"
+  }
+}
