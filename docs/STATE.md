@@ -1,6 +1,6 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-08 · **Phase 4 Parts 1–5 + Part 7 done; next: Phase 4 Part 6 (Expo mobile) / Part 8 (manifest/docs).** Monorepo config seeded (inputs.yml, .nvmrc, package.json, dev ports/env, CREDENTIALS.md dev seed); framework brain seeded LOCAL-ONLY (gitignored + asset-guard verified). Spec approved; `docs/DESIGN.md` + `docs/MOCKUP.jsx` done. Packages `@orqafy/{shared,api-client,db,ui,storage,jobs,sync,geofence}` + `apps/web` built, typecheck/lint green.
+**Last updated:** 2026-09-08 · **WEB CORE v1 COMPLETE + verified + documented (full-auto run). Phase 4 Parts 1–5, 7, 8 done + web usable-forms + dashboard/pgbouncer bugfix.** Current tip `feat/phase4-part8-docs`. NEXT = remaining web scope (see "Next un-gated work"), then Expo mobile (Part 6) + Tauri desktop as later waves. Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
 
 **Phase 4 Part 7 ✅ (branch `feat/phase4-part7`, local, HARD HOLD).** Dev Compose bundle `deploy/compose/dev/` (postgres+pgbouncer, valkey, minio+console+bucket-init, mailhog, pgadmin pre-wired, app, worker) + `start.sh` + `tools/dev-smoke.sh`; Rule-22 ports, named volumes `orqafy_dev_*`, NO `docker-publish.yml` (D-3/D-27). `docker compose config` valid. **Live-verified end-to-end**: migration applied (16 tables), web app booted, Playwright drove first-run→login→dashboard→Client/Project/Task CRUD, all persisted (UI reload + DB). Added worker entrypoint `packages/jobs/src/main.ts`. **Fixed a blocking Part-5 middleware bug** (`/api/trpc` was 307→/login for unauth'd requests, killing first-run) — see SESSION_LOG + lesson `nextjs.middleware.matcher-gates-api-trpc`. Agent-found open item: `/` on fresh install redirects to `/login` not `/setup` (TASK_QUEUE). Part 6 (Expo mobile) is a later wave (web-first, D-25/W-1).
 
@@ -8,11 +8,11 @@
 
 1. **Read `docs/SEED_BRIEF.md` in full.** It is the founding authority — the owner's complete brief
    plus 4 confirmed decisions. Do not re-ask what it already settles.
-2. **Phase 0 ✅ + Phase 4 Parts 1–5 + 7 ✅ done — `apps/web` BUILT + runtime-verified end-to-end**
-   (first-run→login→dashboard→CRUD, Playwright + DB proof). 8 `@orqafy/*` packages + dev Compose bundle.
-   **NEXT = make web usable** (core create/edit form UIs + fix the `/setup` fresh-install redirect), then
-   Part 8 docs; **Part 6 Expo mobile is a later wave**. Current tip `feat/phase4-part7`. Framework brain
-   LOCAL-ONLY (gitignored + asset-guard verified).
+2. **WEB CORE v1 ✅ COMPLETE + verified + documented** — Phase 4 Parts 1–5, 7, 8 + Client/Project/Task
+   create-edit forms + `/setup` fix + dashboard/pgbouncer bugfix. 8 `@orqafy/*` packages + `apps/web` + dev
+   Compose + LICENSE/README/CI. Live-verified (first-run→login→dashboard→form-CRUD, Playwright+DB). Current
+   tip `feat/phase4-part8-docs`. Framework brain LOCAL-ONLY (gitignored + guard-verified). **NEXT = remaining
+   web scope** (§Next un-gated work), then Expo mobile + Tauri desktop (later waves).
 3. **`docs/PRODUCT.md` APPROVED; mockup APPROVED (2026-09-08)** — design gate cleared. `docs/DESIGN.md`
    (+ §8 offline-first, §9 desktop packaging) + `docs/MOCKUP.jsx`.
 4. **Open `[WHAT]`s** in `PENDING_DECISIONS.md`: **0**. **27 decisions locked (D-1…D-27).** FULL AUTO MODE
@@ -53,11 +53,12 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 
 ## Next un-gated work
 
-1. ~~Mockup confirm~~ ~~Phase 0~~ ~~Parts 1–5~~ ~~Part 7 (compose + live runtime verify)~~ ✅ **DONE 2026-09-08.**
-2. **NEXT → make `apps/web` usable:** (a) fix the `/setup` fresh-install redirect bug (`middleware.ts` bounces
-   `/` → `/login` before the root's first-run `redirect('/setup')`); (b) build the core create/edit **form UIs**
-   (Client, Project, Task at minimum) wired to the existing tRPC mutations; (c) re-verify by creating a project
-   through the UI (Playwright). Then **Part 8** (README/manifest — **NO** `docker-publish`, D-27/inputs).
+1. ~~Mockup~~ ~~Phase 0~~ ~~Parts 1–5,7,8~~ ~~web create/edit forms~~ ~~/setup fix~~ ~~dashboard+pgbouncer bugfix~~ ~~LICENSE/README/CI~~ ✅ **DONE 2026-09-08 (full-auto).**
+2. **NEXT → remaining web scope** (finish web-first before mobile): the other entity **create/edit forms**
+   (Leave apply/approve · Users + Roles + the **permission-builder editor UI** · Milestones · Document
+   metadata); then the stubbed web features — **document upload/OCR wiring** (`@orqafy/storage`+`jobs`),
+   **Leaflet map picker** (task location), **live kanban drag-drop**, **websocket transport** for realtime,
+   **self-hosted woff2 fonts**. Each is its own chunk; runtime-verify after each.
 3. **Part 6 (Expo mobile) + desktop (Tauri)** are later waves (web-first, D-25/W-1) — big enough for their own
    sessions. Stubs still open in web: permission-builder editor, Leaflet map picker, document upload/OCR wiring,
    live kanban drag-drop, WS transport, self-hosted woff2 fonts.

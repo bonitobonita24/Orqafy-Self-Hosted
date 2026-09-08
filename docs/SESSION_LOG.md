@@ -4,6 +4,30 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-08 — Web core v1 COMPLETE (full auto): app builds, runs, documented
+
+**In your words:** kick off Phase 4 Part 1 and run in full auto mode.
+
+✅ **Done & verified** (each: Opus worker → PM-verified typecheck/lint/build + AGPL boundary → committed local)
+- **Web core v1 built + runtime-verified + documented.** `apps/web` (Next.js + tRPC + Auth.js v5, plain
+  shadcn/Kibo) on 8 `@orqafy/*` packages + a dev Docker Compose bundle. Real browser flow passes end-to-end:
+  first-run `/setup` → login → dashboard (KPIs) → **create + edit Client / Project / Task via form UIs** →
+  persisted (Playwright + DB). Screenshots delivered.
+- **Fixed 2 real bugs surfaced by verifying** (not static gates): the first-run `/api/trpc` middleware
+  redirect (blocked setup), and the dashboard-500 — which turned out to be a PgBouncer prepared-statement
+  issue (pooled URL missing `?pgbouncer=true`), one root cause fixed cleanly.
+- **Public-repo deliverables:** AGPL-3.0 `LICENSE`, honest `README` + self-host quickstart, CI
+  (lint/typecheck/test/build, **no** publish).
+
+💬 **Decisions / notes** — HARD HOLD held throughout (nothing pushed/deployed); framework IP never entered the
+public AGPL repo (boundary independently verified after every step). Two global lessons logged.
+
+⏳ **Next** — remaining web scope (other entity forms · permission-builder UI · document upload/OCR · Leaflet
+map picker · kanban drag-drop · websocket transport · self-hosted fonts), then Expo mobile + Tauri desktop as
+later waves.
+
+⛔ **Blocked / deferred** — 3 hardware/stack/tunnel tasks; POST-V1 cloud-storage add-on.
+
 ## 2026-09-08 — Phase 4 Part 7: dev Docker Compose bundle + live runtime verification
 
 **In your words:** build the dev Compose bundle (Part 7), then actually run it and prove the web app works

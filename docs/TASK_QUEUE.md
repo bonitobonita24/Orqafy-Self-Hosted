@@ -40,18 +40,29 @@ exist yet. They are NOT actionable now; they gate a later phase._
   `<source: agent-found 2026-09-08>`
 - 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
   legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. `<source: agent-found 2026-09-08>`
-- 🔴 **`dashboard.summary` returns 500** — the dashboard's tRPC `dashboard.summary` query 500s on load
-  (observed during the web-forms runtime verification; unrelated to the forms work — not touched by it).
-  Where: `apps/web/src/server/routers/dashboard.ts`. Needs the server-side error surfaced + fixed; the
-  dashboard page shell still renders. `<source: agent-found 2026-09-08>`
-- 🔴 **Host-run dev app breaks against the PgBouncer (pooled) URL** — running `pnpm --filter @orqafy/web dev`
-  on the HOST with `.env.dev`'s `DATABASE_URL` (PgBouncer, transaction pooling) makes every Prisma query 500
-  with `prepared statement "sN" does not exist` (PG code 26000). Fix: append `?pgbouncer=true` to the pooled
-  `DATABASE_URL` (Prisma disables prepared statements), or document that host-run dev uses `DIRECT_URL`. The
-  in-container app path is unaffected. Verified workaround: run the app with `DATABASE_URL=$DIRECT_URL`.
+
+### Remaining web scope (finish before mobile — web-first, D-25/W-1)
+
+- 🔴 **Remaining entity create/edit forms** — Leave (apply/approve) · Users + Roles + the **permission-builder
+  editor UI** (D-17) · Milestones · Document metadata. Same pattern as the Client/Project/Task forms.
   `<source: agent-found 2026-09-08>`
+- 🔴 **Stubbed web features** — document upload/OCR wiring (`@orqafy/storage`+`jobs`) · Leaflet map picker for
+  task location · live kanban drag-drop · websocket transport for realtime (D-22) · self-hosted woff2 fonts.
+  Each its own chunk, runtime-verify after each. `<source: agent-found 2026-09-08>`
+- 🔴 **Expo mobile (Part 6) + Tauri desktop** — later waves (own sessions): offline-first, on-device geofence
+  (D-19/R6), photo capture; Tauri client + Rust sync sidecar (D-11/D-14). `<source: plan 2026-09-08>`
 
 ## ✅ Done recently
+
+- ✅ **`dashboard.summary` 500 + host-run PgBouncer error — FIXED** (`fix/web-dashboard-pgbouncer` `be54aee`,
+  2026-09-08). Single root cause: pooled `DATABASE_URL` missing `?pgbouncer=true` (transaction pooling +
+  Prisma named prepared statements collide); the dashboard 500 was a *symptom*, not a separate bug. Fixed in
+  `.env.example` (tracked) + `.env.dev`; verified dashboard 200 with KPIs + list query over the pooled URL.
+  Lesson `prisma.pgbouncer.missing-pgbouncer-true-prepared-stmt`.
+- ✅ **Web core v1 — Parts 5, 7, 8 (FULL AUTO, 2026-09-08)** — `apps/web` (Next.js+tRPC+Auth.js v5, plain
+  shadcn/Kibo) built; dev Compose bundle live runtime-verified (first-run→login→dashboard→CRUD); LICENSE
+  (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (no publish). All green,
+  boundary verified after each step, HARD HOLD local.
 
 - ✅ **Web usable end-to-end — first-run redirect fix + create/edit form UIs** (2026-09-08,
   `feat/web-create-forms`). Fixed the first-run entry (`/` now reaches its RSC → 0 users → `/setup`; login
