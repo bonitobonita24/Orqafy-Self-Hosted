@@ -317,3 +317,18 @@ Resolves the four `[WHAT]`s from `docs/planning/PHASE0_SCAFFOLD_PLAN.md` §8, un
   Part-3 DB seed to the app's own role model + interactive first-run (plan R-4 / build-task B3).
 - **`docker.publish: false`** (owner-confirmed) — ships as a Compose bundle; no registry image, no CI
   publish, no staging/prod.
+
+### D-26 · Web UI baseline — plain shadcn/ui + Kibo (owner, 2026-09-08; supersedes D-25/W-4)
+Web UI is built on **plain shadcn/ui + Kibo UI, Next.js-native** — NOT the AdminCN (shadcn/studio Pro)
+starter, and NOT `marmelab/shadcn-admin-kit`.
+- **shadcn-admin-kit evaluated + rejected on STACK FIT (not licence):** it is MIT ✅ but a react-admin
+  (`ra-core`) client-side SPA using `dataProvider`/`authProvider` — it diverges from our locked Next.js +
+  tRPC + Auth.js stack (D-1), is CRUD-admin-centric, needs custom tRPC/Auth adapters, and does nothing for
+  the Expo mobile app. May harvest individual MIT components as inspiration only.
+- **AdminCN (shadcn/studio Pro):** the owner HOLDS a paid shadcn/studio licence (valid for OSS + commercial
+  apps), so *use* is not the issue. The owner nonetheless chose plain shadcn/ui + Kibo for the cleanest
+  public-repo story (zero paid-slice dependency, fully MIT even locally). Standing safeguard regardless:
+  a paid template's SOURCE is never committed to this public AGPL repo — only our own derived shadcn/ui code.
+- Consistent with DESIGN.md D-23 (shadcn/ui + Kibo UI; Kaneo as visual reference). Governs the Phase-4
+  web-UI build (plan §7 B4/B5). The Phase-0 local AdminCN seed is now an unused local reference (harmless,
+  gitignored).
