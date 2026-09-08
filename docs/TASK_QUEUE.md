@@ -26,6 +26,13 @@ exist pre-scaffold. They are NOT actionable now; they gate a later phase, not Ph
   Done: measured real throughput for a large photo upload over the tunnel, recorded in
   `docs/planning/R1a_PANGOLIN_SIZING.md`. `<source: agent-found 2026-09-06>`
 
+### Post-v1 (deferred, not blocked)
+
+- 🔴 **[POST-V1] Cloud-storage add-on + billing control plane** (D-27) — the paid monetization track: point
+  the storage abstraction at **Cloudflare R2** per-subscriber bucket; build the hosted billing/subscription
+  control plane (tiers Starter…Max, metering, payment gateway) OUTSIDE the OSS app. Ships after v1. Pricing +
+  provider analysis: `docs/planning/R9_CLOUD_STORAGE_PRICING.md`. `<source: owner 2026-09-08>`
+
 ## ✅ Done recently
 
 - ✅ **MOCKUP.jsx — owner-approved** (2026-09-08). Dashboard PNG delivered + confirmed; design gate cleared,

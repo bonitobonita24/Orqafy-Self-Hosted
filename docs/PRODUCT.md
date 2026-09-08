@@ -292,4 +292,27 @@ commercial Orqafy · store-published mobile apps.
 **Deferred to v2:** finance modules (invoicing/PO/inventory/expenses) · client portal · document-AI LLM
 layer + per-supplier learning.
 
+---
+
+## Commercial Model (post-v1)
+
+The app itself is **free and open-source (AGPL-3.0), self-hosted** — no licence fee, no per-seat cost. The
+**only** paid offering is an **optional cloud-hosted storage add-on** (D-27): a firm that would rather not
+self-host its files subscribes to store its assets in Powerbyte's cloud, on a **monthly tier by storage
+size**.
+
+- **Backend: Cloudflare R2** — chosen over AWS S3, decisively cheaper for this egress-heavy workload (R2
+  charges **$0 egress**; S3's ~$0.09/GB egress dominates the bill for a firm repeatedly viewing/downloading
+  photos + drawings). Full analysis: `docs/planning/R9_CLOUD_STORAGE_PRICING.md`. The existing MinIO→S3
+  storage abstraction (R-2) makes the cloud backend the **same code path**.
+- **Tiers (USD/mo, ratified 2026-09-08):** Starter 25 GB $3 · Team 100 GB $6 · Business 250 GB $12 ·
+  Pro 500 GB $19 · Scale 1 TB $35 · Max 2 TB $60. **Unlimited viewing/downloads** (R2 egress is free);
+  gross margins 49–93%, covering the VPS + net profit.
+- **Boundary:** billing + subscription live on **Powerbyte's hosted control plane, NOT inside the
+  open-source app** — the app merely points its storage backend at the subscriber's cloud bucket. The
+  shipped product stays genuinely free/OSS with no payment gateway baked in (`inputs.yml` payment/docker
+  stay `none`).
+- **Timing: post-v1.** v1 ships the free self-hosted app; the storage subscription + billing control plane
+  is a later monetization track.
+
 **Deferred to v1.x:** background mobile push · native desktop server installer.

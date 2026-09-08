@@ -332,3 +332,20 @@ starter, and NOT `marmelab/shadcn-admin-kit`.
 - Consistent with DESIGN.md D-23 (shadcn/ui + Kibo UI; Kaneo as visual reference). Governs the Phase-4
   web-UI build (plan §7 B4/B5). The Phase-0 local AdminCN seed is now an unused local reference (harmless,
   gitignored).
+
+### D-27 · Commercial model — optional cloud-storage add-on on Cloudflare R2 (owner, 2026-09-08)
+The app stays **free/OSS/self-hosted**; the ONLY paid offering is an **optional cloud-hosted storage add-on**
+— subscribe to store assets in Powerbyte's cloud, **monthly tier by storage size**. Analysis:
+`docs/planning/R9_CLOUD_STORAGE_PRICING.md`.
+- **Backend = Cloudflare R2** (over AWS S3). This workload is EGRESS-HEAVY (firms re-view/download site
+  photos + drawings); R2 egress is **$0** vs S3 ~$0.09/GB, making R2 **~2.5×–13× cheaper** (e.g. 1 TB @ 2×
+  egress: R2 ≈ $15 vs S3 ≈ $199). Same code path as the MinIO→S3 storage abstraction (R-2). *(R2 rates
+  verified official 2026-09-08; S3 rates secondary-source-corroborated — re-verify at build.)*
+- **Tiers ratified (USD/mo):** Starter 25 GB **$3** · Team 100 GB **$6** · Business 250 GB **$12** ·
+  Pro 500 GB **$19** · Scale 1 TB **$35** · Max 2 TB **$60**. Unlimited viewing/downloads (R2 egress free);
+  margins 49–93%, cover a ~$10/mo VPS (÷ ~20 subs) + net profit. Overage ~$0.03–0.05/GB or upgrade-prompt.
+- **Billing lives on Powerbyte's HOSTED control plane, NOT in the OSS app** — the app just points its
+  storage backend at the subscriber's bucket; no payment gateway in the shipped product (reconciles the
+  earlier `payment.gateway: none` — that holds for the self-hosted app itself).
+- **Timing: POST-V1.** v1 ships the free self-hosted app; the storage subscription + billing control plane
+  is a later monetization track. Captured as a post-v1 task in `docs/TASK_QUEUE.md`.
