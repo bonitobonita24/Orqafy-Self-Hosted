@@ -36,14 +36,18 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 - 🔴 **Verify Expo background-geofencing capability via context7** before Phase 3 — confirm current
   `expo-location`/`expo-task-manager` background geofence support + iOS permission requirements.
   Done: findings recorded in the PRODUCT.md mobile section. `<source: agent-found 2026-09-06>`
-- 🔴 **Public-repo asset guard** — `.gitignore` + a pre-push check asserting no framework files
-  (`.ai_prompt/`, `AI/`) and no AdminCN slice (`starter/admincn/`) can be committed. Done: a test commit
-  containing those paths is refused. `<source: agent-found 2026-09-06>`
+- 🔴 **README status is stale** — README.md says "Planning Assistant interview not yet run" / "Pre-spec",
+  but PRODUCT.md is approved and DESIGN.md + MOCKUP.jsx are done. Update the Status table + the pre-spec
+  banner at next docs touch. `<source: agent-found 2026-09-08>`
 - 🟡 **MOCKUP.jsx** — IN FLIGHT (design worker). Clickable shadcn-styled mockup, realistic PH
   construction data, all declared screens. Done: rendered and owner-approved. `<source: owner 2026-09-06>`
 
 ## ✅ Done recently
 
+- ✅ **Public-repo asset guard** — `scripts/check-public-assets.sh` (`--staged`/`--tracked`) +
+  `scripts/install-git-hooks.sh` wiring pre-commit/pre-push. Refuses `.ai_prompt/`, `AI/`,
+  `starter/admincn/`, `.claude/`, `CLAUDE.md`. Verified: a force-added `.ai_prompt/` commit was refused.
+  README contributor note added. (`chore/asset-guard`, 2026-09-08).
 - ✅ **PRODUCT.md owner-approved** (2026-09-06).
 - ✅ **DESIGN.md** → `docs/DESIGN.md`. Tokens (slate base + blueprint-blue primary + geofence-amber
   accent), IBM Plex Sans + JetBrains Mono, component conventions, the geofence assertive treatment, and

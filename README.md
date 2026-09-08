@@ -33,6 +33,19 @@ tasks and milestones)
 | Install | Docker Compose first; native desktop installer later |
 | Deploy | **Local only.** No staging or production target. |
 
+## Contributing (local setup)
+
+This repo is AGPL-3.0 and public: it must never carry the AIEF framework files it was built with,
+or any paid template slice. A guard enforces that. **Run it once per clone:**
+
+```bash
+bash scripts/install-git-hooks.sh
+```
+
+This installs `pre-commit` and `pre-push` hooks that refuse any commit/push containing `.ai_prompt/`,
+`AI/`, `starter/admincn/`, `.claude/`, or `CLAUDE.md`. Run the check manually any time with
+`bash scripts/check-public-assets.sh --tracked`.
+
 ---
 
 Built by [Powerbyte IT Solutions](https://powerbyteitsolutions.com) — Calapan City, Oriental Mindoro, Philippines.
