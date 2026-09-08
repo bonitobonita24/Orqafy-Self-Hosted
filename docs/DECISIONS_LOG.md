@@ -288,3 +288,15 @@ leave only. Sick-leave reason optional, no required health detail (SPI care).
 **Simple, uncluttered, user-friendly, common modern interface** (owner's explicit steer). Kaneo as
 visual reference; shadcn/ui + Kibo UI; IBM Plex Sans + JetBrains Mono; neutral base + one accent.
 Field pages Mobile First, admin/ops pages Mobile Ready.
+
+### D-24 · Mockup approved + Phase-0-prep research resolved (2026-09-08)
+- Owner **approved** the Phase 2.8 dashboard mockup (`docs/MOCKUP.jsx` / `mockup-dashboard.png`) — the
+  design gate is cleared and **Phase 0 scaffold is unblocked**.
+- Four pre-scaffold research tasks resolved, context7-grounded (cited + unverified flags): **R6** Expo
+  background-geofencing verified (native-build-only, iOS 20-region cap, Enter/Exit-only → app-side dwell);
+  **D-15** offline-first mobile design specced (cache + local geofence eval + outbound queue + reconnect
+  conflict handling); **R7** Tauri packaging + minisign self-hosted auto-update + Rust sidecar surface;
+  **D-14 RESOLVED** — `nextcloudcmd` is one-shot, so the Rust sidecar drives continuous sync (debounced
+  fs-watch + timer), WebDAV-in-client as fallback.
+- Three tasks remain **BLOCKED** on real hardware / a running stack / a live tunnel (geofence-over-tunnel
+  latency, sync-engine resource cost, Pangolin throughput) — they gate a later phase, not Phase 0.

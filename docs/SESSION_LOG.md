@@ -4,6 +4,35 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-08 — Mockup approved; pre-scaffold research cleared
+
+**In your words:** you confirmed you hadn't actually seen the mockup, so I put it in front of you and
+you approved it — then asked me to clear all pending Squirlnote tasks, analyzing/planning each first and
+using the right skills for the job.
+
+✅ **Done & verified**
+- Put the dashboard mockup in front of you; **you approved it** → design gate cleared, Phase 0 unblocked.
+- Reconciled a **stale Squirlnote board**: its 3 "Pending" tasks were all already done/resolved → moved to
+  For Review; mirrored the *real* backlog (`docs/TASK_QUEUE.md`) onto the board (4 actionable, 3 blocked).
+- Completed the **4 actionable pre-scaffold research tasks** (parallel Opus agents, context7-grounded):
+  Expo geofencing verified (R6), offline-first mobile design (D-15), Tauri packaging (R7), Nextcloud
+  continuous-sync resolved (R8, D-14). Integrated into PRODUCT.md + DESIGN.md §8–9; committed
+  (`docs/research-integration` @ 87c93ab, HARD HOLD local).
+
+💬 **Decisions / notes**
+- **D-24** logged (mockup approved + research resolved). **D-14 resolved** (nextcloudcmd one-shot →
+  supervise from Rust sidecar).
+- Self-caught + reverted a mislabel: Squirlnote `add_label` by display-id `ORQ-N` hit the **commercial
+  Orqafy** board (shared `ORQ` prefix); fixed via raw IDs + logged the global lesson.
+
+⛔ **Blocked (later phase, not Phase 0)**
+- Real-device geofence-over-tunnel test, sync-engine resource cost, Pangolin throughput — need real
+  hardware / a running stack / a live tunnel.
+
+⏳ **Next**
+- **Phase 0 scaffold** (owner chose research-first → then scaffold): AIEF stack, Compose-first, AGPL
+  public repo. Plan to be presented + confirmed before executing.
+
 ## 2026-09-08 — Asset guard enforced + README stage fixed (loop iteration)
 
 **In your words:** loop wake — the handoff was empty, so don't idle: re-derive state, work the
