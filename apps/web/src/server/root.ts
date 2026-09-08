@@ -7,6 +7,7 @@ import { authRouter } from './routers/auth';
 import { usersRouter, rolesRouter } from './routers/users';
 import { clientsRouter } from './routers/clients';
 import { projectsRouter } from './routers/projects';
+import { milestonesRouter } from './routers/milestones';
 import { tasksRouter } from './routers/tasks';
 import { documentsRouter } from './routers/documents';
 import { notificationsRouter } from './routers/notifications';
@@ -20,6 +21,7 @@ export const appRouter = router({
   roles: rolesRouter,
   clients: clientsRouter,
   projects: projectsRouter,
+  milestones: milestonesRouter,
   tasks: tasksRouter,
   documents: documentsRouter,
   notifications: notificationsRouter,

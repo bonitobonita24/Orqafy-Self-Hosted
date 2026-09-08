@@ -94,6 +94,50 @@ export const taskFormSchema = taskSchema
   });
 export type TaskFormValues = z.infer<typeof taskFormSchema>;
 
+// ── Milestone ───────────────────────────────────────────────────────────────
+// Prisma-native MilestoneStatus values (underscore) — the tRPC contract form.
+const milestoneStatusValues = ['pending', 'in_progress', 'completed'] as const;
+const MILESTONE_STATUS_LABEL: Record<(typeof milestoneStatusValues)[number], string> = {
+  pending: 'Pending',
+  in_progress: 'In progress',
+  completed: 'Completed',
+};
+export const MILESTONE_STATUS = milestoneStatusValues.map((value) => ({
+  value,
+  label: MILESTONE_STATUS_LABEL[value],
+}));
+
+export const milestoneFormSchema = z.object({
+  title: z.string().min(1, 'A title is required'),
+  status: z.enum(milestoneStatusValues),
+  targetDate: z.string().optional(),
+});
+export type MilestoneFormValues = z.infer<typeof milestoneFormSchema>;
+
+// ── Leave request (D-21) ─────────────────────────────────────────────────────
+// `reason` is optional and must never require health detail (SPI minimisation,
+// PH DPA). Dates are strings from <input type="date">, converted before submit.
+export const leaveFormSchema = z.object({
+  leaveTypeId: z.string().min(1, 'Select a leave type'),
+  startDate: z.string().min(1, 'A start date is required'),
+  endDate: z.string().min(1, 'An end date is required'),
+  reason: z.string().optional(),
+});
+export type LeaveFormValues = z.infer<typeof leaveFormSchema>;
+
+// ── User (D-17 — role assignment only; the permission-builder editor is a later
+// chunk). `password` is create-only and required in the dialog (min 8, enforced
+// there so edit mode can omit it). `isActive` is edit-only.
+export const userFormSchema = z.object({
+  name: z.string().min(1, 'A name is required'),
+  email: z.string().email('Enter a valid email address'),
+  password: z.string().optional(),
+  roleId: z.string().min(1, 'Assign a role'),
+  phone: z.string().optional(),
+  isActive: z.enum(['true', 'false']).optional(),
+});
+export type UserFormValues = z.infer<typeof userFormSchema>;
+
 /** '' | undefined → undefined; otherwise a Date built from the input value. */
 export function toDate(value: string | undefined): Date | undefined {
   if (value === undefined || value === '') return undefined;

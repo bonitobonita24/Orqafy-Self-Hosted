@@ -9,6 +9,7 @@ import { Button, Card, CardContent, CardHeader, CardTitle, KanbanBoard } from '@
 import type { KanbanColumn } from '@orqafy/ui';
 import { trpc } from '@/trpc/react';
 import { TaskFormDialog } from '@/components/forms/task-form';
+import { MilestoneFormDialog } from '@/components/forms/milestone-form';
 
 // Board columns keyed by the Prisma-native TaskStatus values (`in_progress`).
 const COLUMNS: { id: string; title: string }[] = [
@@ -127,17 +128,49 @@ export default function ProjectDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Milestones</CardTitle>
+              <MilestoneFormDialog
+                projectId={data.id}
+                trigger={
+                  <Button size="sm">
+                    <Plus /> New milestone
+                  </Button>
+                }
+              />
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-1">
               {data.milestones.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No milestones yet.</p>
               ) : (
                 data.milestones.map((m) => (
-                  <div key={m.id} className="flex items-center justify-between text-sm">
-                    <span>{m.title}</span>
-                    <span className="text-muted-foreground">{m.status}</span>
+                  <div
+                    key={m.id}
+                    className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-sm">{m.title}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {m.status}
+                        {m.targetDate != null
+                          ? ` · ${new Date(m.targetDate).toLocaleDateString()}`
+                          : ''}
+                      </span>
+                    </div>
+                    <MilestoneFormDialog
+                      projectId={data.id}
+                      milestone={{
+                        id: m.id,
+                        title: m.title,
+                        status: m.status,
+                        targetDate: m.targetDate,
+                      }}
+                      trigger={
+                        <Button variant="ghost" size="icon" aria-label={`Edit ${m.title}`}>
+                          <Pencil />
+                        </Button>
+                      }
+                    />
                   </div>
                 ))
               )}
