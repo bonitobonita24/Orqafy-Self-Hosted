@@ -9,7 +9,13 @@ import { authConfig } from '@/auth.config';
 // Annotate to keep the type portable under pnpm (TS2742) — see src/auth.ts.
 const auth: NextAuthResult['auth'] = NextAuth(authConfig).auth;
 
-const PUBLIC_PREFIXES = ['/login', '/setup', '/api/auth'];
+// `/api/trpc` is intentionally public at the EDGE: tRPC enforces its own
+// per-procedure auth (protectedProcedure / permissionProcedure throw UNAUTHORIZED
+// / FORBIDDEN server-side), so the real authorization boundary is the API layer,
+// not this middleware. Gating it here would 307-redirect every API call to the
+// HTML /login page — including the public first-run `setup.*` procedures — which
+// breaks first-run setup entirely (no user can ever be created).
+const PUBLIC_PREFIXES = ['/login', '/setup', '/api/auth', '/api/trpc'];
 
 // The auth() wrapper's return type references a non-portable internal path, so
 // the default export is annotated to Next's portable NextMiddleware type.
