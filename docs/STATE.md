@@ -1,17 +1,22 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-06 · Planning Assistant interview complete — `docs/PRODUCT.md` written, awaiting owner approval
+**Last updated:** 2026-09-08 · Spec approved; `docs/DESIGN.md` + `docs/MOCKUP.jsx` done. Dashboard mockup PNG delivered to owner this session — **awaiting owner mockup confirm** (the gate before Phase 0 scaffold).
 
 ## ⏳ COLD-START CHECKLIST (read first)
 
 1. **Read `docs/SEED_BRIEF.md` in full.** It is the founding authority — the owner's complete brief
    plus 4 confirmed decisions. Do not re-ask what it already settles.
 2. **Nothing is built.** No scaffold, no `package.json`, no schema. The project is at pre-Phase-0.
-3. **`docs/PRODUCT.md` EXISTS** (written 2026-09-06 from the interview) — read it; it is the spec the
-   build follows. **Awaiting owner approval.** Next after approval: Phase 2.8 mockup + `docs/DESIGN.md`.
+3. **`docs/PRODUCT.md` is APPROVED** (owner-approved 2026-09-07). `docs/DESIGN.md` + `docs/MOCKUP.jsx`
+   (9 screens) are written; `mockup-dashboard.png` (Dashboard screen only) rendered and **delivered to
+   the owner 2026-09-08 for confirmation.** ⚠ **Owner has NOT yet explicitly confirmed the mockup** —
+   that confirm is the gate before Phase 0. Only the Dashboard is captured as a PNG; the other 8 screens
+   live in MOCKUP.jsx (render them if the owner wants to review those too).
 4. **Open `[WHAT]`s** in `PENDING_DECISIONS.md`: **0** — all product decisions resolved (D-1…D-23).
-5. **Backlog:** `docs/TASK_QUEUE.md` — open items are now build/verify tasks (DESIGN.md + MOCKUP.jsx,
-   public-repo asset guard, and the queued verification tasks). Interview + R-1…R-4 are ✅.
+   (Mockup confirm is a build-gate acknowledgement, not a tracked `[WHAT]` decision.)
+5. **Backlog:** `docs/TASK_QUEUE.md` — open items are build/verify tasks (public-repo asset guard +
+   the queued verification tasks: geofence-over-tunnel, headless-sync, Pangolin throughput,
+   offline-first mobile, sync resource-cost, Expo background-geofence). Interview + R-1…R-5 are ✅.
 
 ## Where things stand
 
@@ -45,9 +50,21 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 
 ## Next un-gated work
 
-1. **Owner approval of `docs/PRODUCT.md`** — the gate before anything scaffolds.
-2. After approval: **Phase 2.8 mockup** (`docs/MOCKUP.jsx`) + **`docs/DESIGN.md`** (Kaneo reference,
-   shadcn/ui, IBM Plex Sans + JetBrains Mono, "simple modern" per D-23).
-3. Then Phase 0 scaffold. Public-repo asset guard should be wired before/with first scaffold.
+1. **Owner confirm of the mockup** — delivered 2026-09-08, awaiting the owner's yes. The gate before
+   Phase 0. If they want to review beyond the Dashboard, render the other 8 screens from `MOCKUP.jsx`.
+2. **Public-repo asset guard** — `.gitignore` + a pre-push check asserting no framework files
+   (`.ai_prompt/`, `AI/`) and no AdminCN slice (`starter/admincn/`). Un-gated; wire before/with first
+   scaffold since this repo is AGPL-public.
+3. Then **Phase 0 scaffold** (after mockup confirm).
 4. Verification tasks queued in `docs/TASK_QUEUE.md` (geofence-over-tunnel, headless-sync feasibility,
-   Pangolin throughput, offline-first mobile, Nextcloud resource cost) — resolve before their phase.
+   Pangolin throughput, offline-first mobile, sync resource cost, Expo background-geofence) — resolve
+   before their phase.
+
+## Session note — 2026-09-08
+
+Resumed loop session (slot 12). Reconciled state vs ground truth: 0 open `[WHAT]`, clean tree. Owner
+chose "confirm the mockup" → rendered Dashboard PNG delivered via SendUserFile. Owner then requested
+save + stop the loop **before** giving an explicit mockup confirm — so the mockup confirm remains the
+open gate for the next session. Flagged (and declined pending owner word) the SessionStart RBAC-retrofit
+suggestion: **superseded by D-5** (single-company install, no tenant model — fleet 3-tier RBAC does not
+apply here).

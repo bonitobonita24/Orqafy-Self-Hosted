@@ -4,6 +4,22 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-08 — Resume + mockup delivered for confirm; save & stop loop
+
+**In your words:** resume the session; you chose to confirm the mockup; then save the session and stop
+the reboot loop.
+
+✅ **Done & verified** — Resumed and reconciled state against live git (clean tree, 0 open `[WHAT]`).
+Rendered Dashboard mockup (`mockup-dashboard.png`) delivered to you via file card. Handoff + memory
+updated; loop stopped.
+
+⏳ **Next** — Your explicit **mockup confirm** is the gate before Phase 0. Then: public-repo asset guard
+→ Phase 0 scaffold. Verification tasks still queued in `docs/TASK_QUEUE.md`.
+
+💬 **Notes** — Only the Dashboard is captured as a PNG; the other 8 screens live in `MOCKUP.jsx` (say
+the word to render them). Declined the SessionStart RBAC-retrofit suggestion — **superseded by D-5**
+(single-company install, no tenant model; fleet 3-tier RBAC doesn't apply here).
+
 ## 2026-09-06 — Resume session: two decisions locked, R-1…R-4 research delivered
 
 **In your words:** resume the session — then, of the two decidable open questions and the research
