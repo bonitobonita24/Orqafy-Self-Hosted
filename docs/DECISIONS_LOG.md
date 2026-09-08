@@ -300,3 +300,20 @@ Field pages Mobile First, admin/ops pages Mobile Ready.
   fs-watch + timer), WebDAV-in-client as fallback.
 - Three tasks remain **BLOCKED** on real hardware / a running stack / a live tunnel (geofence-over-tunnel
   latency, sync-engine resource cost, Pangolin throughput) — they gate a later phase, not Phase 0.
+
+### D-25 · Phase 0 scaffold parameters (owner, 2026-09-08)
+Resolves the four `[WHAT]`s from `docs/planning/PHASE0_SCAFFOLD_PLAN.md` §8, unblocking Phase 0 execution.
+- **W-1 Breadth → WEB FIRST.** Scaffold `apps/web` to a running vertical slice first; `apps/mobile` (Expo)
+  and `apps/desktop` (Tauri) shells come in later build waves.
+- **W-4 UI baseline → INHERIT AdminCN LOCALLY, SHIP DERIVED shadcn output.** Framework default: AdminCN
+  app-shell as local reference only; the public AGPL repo commits ONLY our own data-decoupled shadcn/ui
+  code — no AdminCN paid-slice files in history.
+- **W-2 Dev admin → SEED A DEV-ONLY ADMIN** (generated, in gitignored `CREDENTIALS.md`). Real installs
+  still use interactive first-run, NO Powerbyte universal creds (D-5 preserved).
+- **W-3 Framework tooling files → LOCAL-ONLY / HIDDEN.** `docs/tasks/phase4-part*.md`, `.clinerules`,
+  `.mcp.json`, etc. are gitignored ("built with the framework, shipped without it").
+- **Also (HOW, not owner-gated):** extend the asset guard BEFORE any framework seeding (plan task P0.1,
+  covers `.github/skills/`, framework `scripts/*`, `.clinerules`, `.mcp.json`, `.vscode/`); override the
+  Part-3 DB seed to the app's own role model + interactive first-run (plan R-4 / build-task B3).
+- **`docker.publish: false`** (owner-confirmed) — ships as a Compose bundle; no registry image, no CI
+  publish, no staging/prod.
