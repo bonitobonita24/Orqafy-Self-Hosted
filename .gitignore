@@ -31,6 +31,7 @@ scripts/audit-app.sh
 scripts/dev-freshness-check.sh
 scripts/build-primer.sh
 scripts/review-scope.mjs
+scripts/audit-scope.mjs
 # Framework design-toolkit config seeded at repo root (bootstrap Step 20)
 sd.config.mjs
 design-fidelity.config.json
@@ -52,3 +53,49 @@ screenshots/
 test-artifacts/
 *.log
 .DS_Store
+
+# ─── Build + TypeScript cache (Spec-Driven V32) ───
+*.tsbuildinfo
+
+# ─── Environment files — NEVER commit real credentials ───
+
+# ─── Credentials master list ───
+CREDENTIALS.md
+
+# ─── AI Artifacts: Machine-Local Only (never commit) ───
+.specstory/
+project.memory.md
+.code-review-graph/
+.github/skills/**/node_modules/
+skills-lock.json
+
+# ─── Third-Party AI Tool Artifacts (safety net) ───
+.agents/
+.cursor/
+.windsurf/
+.aider*
+.copilot/
+.continue/
+.tabby/
+.augment/
+.roo/
+
+# ─── Automation Handoff Docs (consumed by framework, not committed) ───
+n8n-handoff.md
+openclaw-handoff.md
+
+# ─── V32.8 Design Toolkit artifacts ───
+tokens/build/
+tests/visual/__snapshots__/
+tests/visual/diff/
+
+# ─── V32.48.1 AdminCN starter slice — local cherry-pick REFERENCE, never committed ───
+
+# (sync-to-project.sh stages it to .ai_prompt/starter/admincn/, deploy.sh re-copies that to
+
+#  starter/admincn/ each sync; it is non-compiling reference material — committing EITHER copy
+
+#  duplicates an app's own components/ui. Both paths are ignored. Cherry-pick the AdminCN extras
+
+#  OUT of it per Scenario 49.)
+.ai_prompt/starter/admincn/

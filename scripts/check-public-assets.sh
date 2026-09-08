@@ -48,6 +48,7 @@ FORBIDDEN=(
   "scripts/dev-freshness-check.sh"
   "scripts/build-primer.sh"
   "scripts/review-scope.mjs"
+  "scripts/audit-scope.mjs"
   # Framework design-toolkit config seeded at repo root (bootstrap Step 20)
   "sd.config.mjs"
   "design-fidelity.config.json"
