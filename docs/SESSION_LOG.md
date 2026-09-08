@@ -4,6 +4,33 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-08 — Phase 0 scaffolded + UI baseline + commercial model
+
+**In your words:** clear the pending work; then you asked about adopting shadcn-admin-kit for the UI, told
+me you hold a shadcn/studio licence, and set the commercial model — a paid cloud-storage add-on priced off
+R2-or-S3, whichever's cheaper, with a nice margin over the VPS.
+
+✅ **Done & verified**
+- **Phase 0 scaffold COMPLETE + independently verified.** Non-destructive bootstrap: monorepo shaped
+  (inputs.yml, package.json pnpm@10/Node22, schema, dev env/ports), framework seeded LOCAL-ONLY. AGPL
+  boundary proven clean — no framework IP tracked, asset guard extended (19/19 fixtures blocked), all
+  boundary paths ignored. Branch `chore/phase0-scaffold`, 6 commits, HARD HOLD unpushed.
+- **R2 vs S3 pricing study** (context7/web, cited) → R2 wins ~2.5–13× (egress-heavy; R2 $0 egress).
+  Analysis in `docs/planning/R9_CLOUD_STORAGE_PRICING.md`.
+
+💬 **Decisions**
+- **D-26** — Web UI = **plain shadcn/ui + Kibo** (Next.js-native). Evaluated marmelab/shadcn-admin-kit
+  (MIT ✅ but a react-admin SPA → rejected on stack-fit, not licence) and AdminCN (you're licensed, but you
+  chose the zero-paid-slice public-repo story).
+- **D-27** — Commercial model: optional **cloud-storage add-on on Cloudflare R2**; tiers ratified
+  $3/$6/$12/$19/$35/$60 (25GB→2TB), margins 49–93%; billing on the hosted control plane, not the OSS app;
+  **post-v1**.
+
+⏳ **Next**
+- **Phase 4 Part 1** build (root config) → B2…B8 per the scaffold plan. Plan-first-dispatch each Part.
+
+⛔ **Blocked / deferred** — 3 tasks need hardware/running-stack/live-tunnel; cloud-storage add-on is post-v1.
+
 ## 2026-09-08 — Mockup approved; pre-scaffold research cleared
 
 **In your words:** you confirmed you hadn't actually seen the mockup, so I put it in front of you and
