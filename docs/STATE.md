@@ -54,11 +54,12 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 ## Next un-gated work
 
 1. ~~Mockup~~ ~~Phase 0~~ ~~Parts 1–5,7,8~~ ~~web create/edit forms~~ ~~/setup fix~~ ~~dashboard+pgbouncer bugfix~~ ~~LICENSE/README/CI~~ ✅ **DONE 2026-09-08 (full-auto).**
-2. **NEXT → remaining web scope** (finish web-first before mobile): the other entity **create/edit forms**
-   (Leave apply/approve · Users + Roles + the **permission-builder editor UI** · Milestones · Document
-   metadata); then the stubbed web features — **document upload/OCR wiring** (`@orqafy/storage`+`jobs`),
-   **Leaflet map picker** (task location), **live kanban drag-drop**, **websocket transport** for realtime,
-   **self-hosted woff2 fonts**. Each is its own chunk; runtime-verify after each.
+2. **NEXT → remaining web scope** (finish web-first before mobile). Leave(apply/approve)/Milestones/Users
+   management forms ✅ done (`feat/web-mgmt-forms` 583efad, verified). Remaining:
+   **permission-builder editor UI** (D-17; custom groups + per-user overrides — API exists) · **Document
+   upload/management** (core module, currently stubbed) · **Leaflet map picker** (task geofence location) ·
+   **live kanban drag-drop** · **websocket transport** for realtime (D-22) · **self-hosted woff2 fonts**.
+   Each its own chunk; runtime-verify after each.
 3. **Part 6 (Expo mobile) + desktop (Tauri)** are later waves (web-first, D-25/W-1) — big enough for their own
    sessions. Stubs still open in web: permission-builder editor, Leaflet map picker, document upload/OCR wiring,
    live kanban drag-drop, WS transport, self-hosted woff2 fonts.

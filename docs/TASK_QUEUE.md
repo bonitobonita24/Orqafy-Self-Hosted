@@ -43,9 +43,10 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
-- 🔴 **Remaining entity create/edit forms** — Leave (apply/approve) · Users + Roles + the **permission-builder
-  editor UI** (D-17) · Milestones · Document metadata. Same pattern as the Client/Project/Task forms.
-  `<source: agent-found 2026-09-08>`
+- 🟡 **Entity forms — PARTIAL** — ✅ Leave (apply/approve) · Milestones · Users (create/edit + role assign)
+  done (`feat/web-mgmt-forms` 583efad, runtime-verified). Remaining: **permission-builder editor UI** (D-17;
+  custom groups + per-user overrides — API already exists) + Document metadata form. Same pattern as the
+  shipped forms. `<source: agent-found 2026-09-08>`
 - 🔴 **Stubbed web features** — document upload/OCR wiring (`@orqafy/storage`+`jobs`) · Leaflet map picker for
   task location · live kanban drag-drop · websocket transport for realtime (D-22) · self-hosted woff2 fonts.
   Each its own chunk, runtime-verify after each. `<source: agent-found 2026-09-08>`
@@ -54,6 +55,11 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **Web management UIs — Leave / Milestones / Users** (2026-09-08, `feat/web-mgmt-forms` 583efad). Leave
+  apply + approve/reject (D-21) · Milestone create/edit on project detail · Users list/create/edit + role
+  assignment (D-17, role-assign only — permission-builder deferred). Added a minimal `milestones` router.
+  Runtime-verified (Playwright+DB): created a User+role, a Milestone, applied+approved Leave. Green, boundary
+  clean, HARD HOLD local.
 - ✅ **`dashboard.summary` 500 + host-run PgBouncer error — FIXED** (`fix/web-dashboard-pgbouncer` `be54aee`,
   2026-09-08). Single root cause: pooled `DATABASE_URL` missing `?pgbouncer=true` (transaction pooling +
   Prisma named prepared statements collide); the dashboard 500 was a *symptom*, not a separate bug. Fixed in
