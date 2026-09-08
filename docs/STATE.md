@@ -1,6 +1,6 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-08 · Spec approved; `docs/DESIGN.md` + `docs/MOCKUP.jsx` done. Dashboard mockup PNG delivered to owner this session — **awaiting owner mockup confirm** (the gate before Phase 0 scaffold).
+**Last updated:** 2026-09-08 · **Phase 0 complete, next: Phase 4 Part 1.** Monorepo config seeded (inputs.yml, .nvmrc, package.json, dev ports/env, CREDENTIALS.md dev seed); framework brain seeded LOCAL-ONLY (gitignored + asset-guard verified). Spec approved; `docs/DESIGN.md` + `docs/MOCKUP.jsx` done; Dashboard mockup PNG previously delivered.
 
 ## ⏳ COLD-START CHECKLIST (read first)
 
@@ -50,14 +50,27 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 
 ## Next un-gated work
 
-1. **Owner confirm of the mockup** — delivered 2026-09-08, awaiting the owner's yes. The gate before
-   Phase 0. If they want to review beyond the Dashboard, render the other 8 screens from `MOCKUP.jsx`.
+1. ~~Owner confirm of the mockup~~ + ~~Phase 0 scaffold~~ ✅ **DONE 2026-09-08.**
 2. ~~Public-repo asset guard~~ ✅ **DONE 2026-09-08** — `scripts/check-public-assets.sh` +
    `scripts/install-git-hooks.sh` (pre-commit + pre-push) refuse framework IP / AdminCN slice; verified.
-3. Then **Phase 0 scaffold** (after mockup confirm).
+   Extended in P0.1 to cover framework tooling (`.github/skills/`, `.mcp.json`, `.vscode/`, framework
+   scripts, sd.config.mjs, etc.).
+3. **NEXT → Phase 4 Part 1** (root config: pnpm-workspace/turbo/tsconfig — `docs/tasks/phase4-part1.md`,
+   gitignored local). Web-first (D-25) — apps/web only in the initial build wave.
 4. Verification tasks queued in `docs/TASK_QUEUE.md` (geofence-over-tunnel, headless-sync feasibility,
    Pangolin throughput, offline-first mobile, sync resource cost, Expo background-geofence) — resolve
    before their phase.
+
+## Session note — 2026-09-08 (Phase 0 scaffold — branch `chore/phase0-scaffold`)
+
+Executed Phase 0 tasks P0.1→P0.6 (stopped at the exit gate; did NOT run Phase-4 B1-B8). Six atomic
+local commits on `chore/phase0-scaffold` (off `docs/research-integration`), HARD HOLD — no push.
+P0.1 extended the AGPL asset guard for framework tooling (19/19 fixtures blocked); P0.2 seeded
+`.ai_prompt/` + ran `deploy.sh` (all framework IP gitignored+guarded; closed a missed
+`scripts/audit-scope.mjs` gap); P0.3 authored `inputs.yml` + `inputs.schema.json` (validates);
+P0.4 non-destructive bootstrap scaffold (approved docs untouched — `git diff` empty); P0.5 Rule-22
+dev ports (base 56473) + `.env.dev`/`.env.example`; P0.6 exit gate. CREDENTIALS.md is dev-only,
+generated secrets, NO Powerbyte creds (D-5). `check-public-assets.sh --tracked` green throughout.
 
 ## Session note — 2026-09-08 (loop iteration, slot 11)
 
