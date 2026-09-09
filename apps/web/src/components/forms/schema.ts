@@ -12,7 +12,13 @@
 //    native <input type="date|datetime-local|number"> produces); the dialogs
 //    convert them to Date / number just before calling the mutation.
 import { z } from 'zod';
-import { clientSchema, projectSchema, taskSchema, taskPriorityEnum } from '@orqafy/shared';
+import {
+  clientSchema,
+  projectSchema,
+  taskSchema,
+  taskPriorityEnum,
+  documentSchema,
+} from '@orqafy/shared';
 
 // ── Client ────────────────────────────────────────────────────────────────
 export const clientFormSchema = clientSchema
@@ -147,6 +153,18 @@ export const groupFormSchema = z.object({
   permissions: z.array(z.string()).default([]),
 });
 export type GroupFormValues = z.infer<typeof groupFormSchema>;
+
+// ── Document (D-13) ───────────────────────────────────────────────────────
+// METADATA-only shape: the /api/media upload response supplies storageKey/size/
+// mimeType — never the user — so those server-owned fields are omitted here.
+// `projectId`/`clientId` are optional Select values (blankToUndef on submit).
+export const documentFormSchema = documentSchema
+  .pick({ name: true, category: true, isSPI: true })
+  .extend({
+    projectId: z.string().optional(),
+    clientId: z.string().optional(),
+  });
+export type DocumentFormValues = z.infer<typeof documentFormSchema>;
 
 /** '' | undefined → undefined; otherwise a Date built from the input value. */
 export function toDate(value: string | undefined): Date | undefined {

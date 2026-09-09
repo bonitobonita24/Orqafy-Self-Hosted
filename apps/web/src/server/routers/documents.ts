@@ -11,6 +11,8 @@ import { TRPCError } from '@trpc/server';
 import { documentCategoryEnum, documentReviewStatusEnum } from '@orqafy/shared';
 import { router, protectedProcedure, permissionProcedure } from '../trpc';
 import { omitUndefined } from '../util';
+import { enqueueOcr } from '../queues';
+import { getStorageAdapter } from '../storage';
 
 export const documentsRouter = router({
   list: protectedProcedure
@@ -91,5 +93,80 @@ export const documentsRouter = router({
         where: { id: input.reviewId },
         data: { status: input.status },
       });
+    }),
+
+  /**
+   * Commit a document metadata row after its bytes were uploaded via
+   * `/api/media` (which returns `storageKey`, `size`, `mimeType`). Enqueues an
+   * OCR job best-effort — a queue outage never rolls back the committed row.
+   */
+  create: permissionProcedure('manage_files')
+    .input(
+      z.object({
+        name: z.string().min(1),
+        category: documentCategoryEnum,
+        projectId: z.string().min(1).optional(),
+        clientId: z.string().min(1).optional(),
+        isSPI: z.boolean().optional(),
+        storageKey: z.string().min(1),
+        size: z.number().int().nonnegative(),
+        mimeType: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.create({
+        data: {
+          name: input.name,
+          category: input.category,
+          storageKey: input.storageKey,
+          size: input.size,
+          mimeType: input.mimeType,
+          isSPI: input.isSPI ?? false,
+          uploadedBy: ctx.userId,
+          ...omitUndefined({ projectId: input.projectId, clientId: input.clientId }),
+        },
+      });
+
+      try {
+        await enqueueOcr({ documentId: doc.id, revisionId: '0', storageKey: doc.storageKey });
+      } catch (e) {
+        console.error('OCR enqueue failed', e);
+      }
+
+      return doc;
+    }),
+
+  /** Edit document metadata (filing/category/SPI flag). Bytes are immutable. */
+  update: permissionProcedure('manage_files')
+    .input(
+      z.object({
+        id: z.string().min(1),
+        name: z.string().min(1).optional(),
+        category: documentCategoryEnum.optional(),
+        projectId: z.string().min(1).optional(),
+        clientId: z.string().min(1).optional(),
+        isSPI: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...rest } = input;
+      return ctx.prisma.document.update({ where: { id }, data: omitUndefined(rest) });
+    }),
+
+  /** Delete a document: best-effort remove the bytes, then the metadata row. */
+  delete: permissionProcedure('manage_files')
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({ where: { id: input.id } });
+      if (doc === null) throw new TRPCError({ code: 'NOT_FOUND' });
+
+      try {
+        await getStorageAdapter().deleteObject(doc.storageKey);
+      } catch (e) {
+        console.error('Storage delete failed (row will still be removed)', e);
+      }
+
+      await ctx.prisma.document.delete({ where: { id: input.id } });
+      return { id: input.id };
     }),
 });

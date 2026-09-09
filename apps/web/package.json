@@ -19,7 +19,9 @@
   },
   "dependencies": {
     "@orqafy/db": "workspace:*",
+    "@orqafy/jobs": "workspace:*",
     "@orqafy/shared": "workspace:*",
+    "@orqafy/storage": "workspace:*",
     "@orqafy/ui": "workspace:*",
     "@hookform/resolvers": "^3.9.1",
     "@tanstack/react-query": "^5.102.0",

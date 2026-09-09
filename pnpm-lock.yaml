@@ -38,9 +38,15 @@ importers:
       '@orqafy/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@orqafy/jobs':
+        specifier: workspace:*
+        version: link:../../packages/jobs
       '@orqafy/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@orqafy/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@orqafy/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -219,6 +225,9 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)
 
   packages/sync:
     dependencies:
