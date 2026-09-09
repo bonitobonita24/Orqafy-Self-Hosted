@@ -35,7 +35,16 @@ export function createOcrClient(config: OcrClientConfig): OcrClient {
   return {
     async extract(input) {
       const form = new FormData();
-      const blob = new Blob([input.body], { type: input.contentType });
+      // Under the newer TS DOM lib `Uint8Array` is generic over `ArrayBufferLike`
+      // (which includes `SharedArrayBuffer`) and no longer satisfies `BlobPart`
+      // structurally, so `new Blob([input.body])` fails to typecheck through the
+      // web app's stricter lib. `.slice()` returns a full-length copy backed by a
+      // fresh `ArrayBuffer`; passing that buffer (a valid BlobPart in both the DOM
+      // and Node libs) is behaviourally identical and resolves in both tsconfigs.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- required under the web app's stricter DOM lib (ArrayBufferLike ⊄ BlobPart); this package's own lib deems it redundant, so the two tsconfigs disagree.
+      const blob = new Blob([input.body.slice().buffer as ArrayBuffer], {
+        type: input.contentType,
+      });
       form.append('file', blob, input.filename);
 
       const controller = new AbortController();
