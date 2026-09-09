@@ -1,6 +1,6 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-09 · **WEB CORE v1 COMPLETE + verified. Phase 4 Parts 1–5, 7, 8 + web usable-forms + Leave/Milestones/Users mgmt forms + dashboard/pgbouncer bugfix + permission-builder editor UI (D-17) + document upload/management.** Current tip `feat/web-document-management` (`206c66d`, off `feat/web-permission-builder`). **NEXT = remaining web scope** (Leaflet map picker · live kanban DnD · WS transport · self-hosted woff2 fonts), then Document OCR/matching processors (later chunk), then Expo mobile (Part 6) + Tauri desktop as later waves. Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
+**Last updated:** 2026-09-09 · **WEB CORE v1 COMPLETE + verified. Phase 4 Parts 1–5, 7, 8 + web usable-forms + Leave/Milestones/Users mgmt forms + dashboard/pgbouncer bugfix + permission-builder editor UI (D-17) + document upload/management + Leaflet map picker.** Current tip `feat/web-map-picker` (`93008dc`, off `feat/web-document-management`). **NEXT = remaining web scope** (live kanban DnD · WS transport · self-hosted woff2 fonts), then Document OCR/matching processors (later chunk), then Expo mobile (Part 6) + Tauri desktop as later waves. Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
 
 **Phase 4 Part 7 ✅ (branch `feat/phase4-part7`, local, HARD HOLD).** Dev Compose bundle `deploy/compose/dev/` (postgres+pgbouncer, valkey, minio+console+bucket-init, mailhog, pgadmin pre-wired, app, worker) + `start.sh` + `tools/dev-smoke.sh`; Rule-22 ports, named volumes `orqafy_dev_*`, NO `docker-publish.yml` (D-3/D-27). `docker compose config` valid. **Live-verified end-to-end**: migration applied (16 tables), web app booted, Playwright drove first-run→login→dashboard→Client/Project/Task CRUD, all persisted (UI reload + DB). Added worker entrypoint `packages/jobs/src/main.ts`. **Fixed a blocking Part-5 middleware bug** (`/api/trpc` was 307→/login for unauth'd requests, killing first-run) — see SESSION_LOG + lesson `nextjs.middleware.matcher-gates-api-trpc`. Agent-found open item: `/` on fresh install redirects to `/login` not `/setup` (TASK_QUEUE). Part 6 (Expo mobile) is a later wave (web-first, D-25/W-1).
 
@@ -56,15 +56,33 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 1. ~~Mockup~~ ~~Phase 0~~ ~~Parts 1–5,7,8~~ ~~web create/edit forms~~ ~~/setup fix~~ ~~dashboard+pgbouncer bugfix~~ ~~LICENSE/README/CI~~ ✅ **DONE 2026-09-08 (full-auto).**
 2. **NEXT → remaining web scope** (finish web-first before mobile). Leave/Milestones/Users forms ✅
    (`feat/web-mgmt-forms` 583efad). **Permission-builder editor UI (D-17) ✅** (`feat/web-permission-builder`
-   701d6b4, runtime-verified). Remaining: **Document upload/management** (core module, stubbed — wire
-   `@orqafy/storage`+`jobs` + a Document metadata form) · **Leaflet map picker** (task geofence location) ·
-   **live kanban drag-drop** · **websocket transport** for realtime (D-22) · **self-hosted woff2 fonts**.
-   Each its own chunk; runtime-verify after each.
+   701d6b4). **Document upload/management ✅** (`feat/web-document-management` 206c66d). **Leaflet map picker ✅**
+   (`feat/web-map-picker` 93008dc, runtime-verified). Remaining: **live kanban drag-drop** · **websocket
+   transport** for realtime (D-22) · **self-hosted woff2 fonts**. Then **Document OCR/matching processors**
+   (`@orqafy/jobs` stubs). Each its own chunk; runtime-verify after each.
 3. **Part 6 (Expo mobile) + desktop (Tauri)** are later waves (web-first, D-25/W-1) — big enough for their own
-   sessions. Stubs still open in web: permission-builder editor, Leaflet map picker, document upload/OCR wiring,
-   live kanban drag-drop, WS transport, self-hosted woff2 fonts.
+   sessions. Stubs still open in web: live kanban drag-drop, WS transport, self-hosted woff2 fonts,
+   document OCR/matching processors.
 4. **Deferred `[HOW]` follow-ups (TASK_QUEUE):** `Document.size` Int→BigInt if >2GB · ESLint 8→9 flat config.
    Plus the 3 BLOCKED (hardware/stack/tunnel) + POST-V1 cloud-storage.
+
+## Session note — 2026-09-09 (Leaflet map picker — `feat/web-map-picker`)
+
+Worked the top remaining web-scope item: **Leaflet map picker for task geofence location** (branch
+`feat/web-map-picker` off `feat/web-document-management`). Delivered a new `MapPicker` in `@orqafy/ui`
+(click-to-place + draggable marker + `Circle` radius preview, inline-SVG `divIcon` so no CDN marker asset,
+env-configurable tile URL `NEXT_PUBLIC_MAP_TILE_URL` default OSM), exposed via the `@orqafy/ui/map-picker`
+**subpath** export (NOT the barrel — keeps leaflet from evaluating server-side, which had caused a `/setup`
+SSR `window is not defined` crash); `apps/web` wraps it in a `next/dynamic` `ssr:false` client component and
+integrates it into `task-form.tsx` (map writes `geofenceLat/Lng` at 6dp via `setValue`, radius input drives the
+circle, numeric inputs retained). Added `parseGeofenceStrings` + 8 vitest in `@orqafy/shared`. Static gates green
+(typecheck 9/9, lint 9/9, web build, new tests 8/8 · geofence 12/12 · storage 10/10). **PM runtime-verified via
+Playwright on the live dev stack** (`admin@orqafy.local`): New-task map rendered, 6/6 OSM tiles loaded, click set
+lat 14.600066 / lng 120.984192, radius 150 drove the circle, created task persisted `{"lat":14.600066,"lng":120.984192,"radiusMeters":150}`
+to the DB (confirmed via psql); only a benign favicon 404 in console. Deps added: `@orqafy/ui` leaflet@^1.9.4 +
+react-leaflet@^5.0.0 + @types/leaflet (dev); `@orqafy/shared` vitest (dev). One commit `93008dc`, AGPL guard clean,
+HARD HOLD local. **NEXT = remaining web scope** (live kanban DnD · WS transport D-22 · self-hosted woff2 fonts),
+then Document OCR/matching processors. SessionStart RBAC-retrofit flag re-declined — false positive, D-5 single-org.
 
 ## Session note — 2026-09-09 (loop slot 12 — document upload/management)
 

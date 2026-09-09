@@ -4,6 +4,29 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Leaflet map picker for task geofence
+
+**In your words:** (autonomous loop) keep building the remaining web scope — next up was the Leaflet map picker.
+
+✅ **Done**
+- Built an interactive **map picker** for setting a task's geofence location. On the task form you can now
+  click or drag a pin on a real map to place the site anchor, and a circle shows the alert radius as you change
+  it. The map uses OpenStreetMap tiles (swappable via an env setting), and the numeric lat/lng/radius fields
+  stay in sync with the map.
+- Verified it for real in the running app (not just a build): the map loaded with all tiles, a click set the
+  coordinates, the radius drove the circle, and the created task's location saved correctly to the database.
+
+💬 **Notes**
+- The map library only runs in the browser (it crashes if loaded on the server), so it's loaded client-side
+  only — this also avoids re-introducing an earlier first-run crash.
+- Committed locally on `feat/web-map-picker` (`93008dc`). Nothing pushed (HARD HOLD).
+- The start-of-session RBAC-retrofit suggestion was a **false positive** and was stood down again — it doesn't
+  apply here (single-company install, D-5).
+
+⏳ **Next**
+- Remaining web polish: live drag-drop on the kanban board, realtime updates, and self-hosted fonts. Then the
+  document OCR/auto-filing processors, then the mobile + desktop apps as their own waves.
+
 ## 2026-09-09 — Document upload & management
 
 **In your words:** (autonomous loop) keep building the remaining web scope — next up was document upload/management.
