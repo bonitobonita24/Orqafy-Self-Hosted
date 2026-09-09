@@ -35,6 +35,10 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ### Agent-found (Phase 4 build)
 
+- 🔴 **BullMQ `@valkey/valkey-glide` build warning** — since `apps/web` imports `@orqafy/jobs`, `next build`
+  emits a benign "Module not found: @valkey/valkey-glide" warning (BullMQ's optional Glide client; we use the
+  default ioredis path — runtime-verified working). Silence by marking it external in `next.config`.
+  `<source: agent-found 2026-09-09>`
 - 🔴 **`Document.size` Int→BigInt** if single files >2GB are expected (Prisma schema + Zod). Construction
   drawings are usually well under, so Int is fine for v1 — revisit if large-file uploads surface.
   `<source: agent-found 2026-09-08>`
@@ -43,18 +47,29 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
-- 🟡 **Entity forms — PARTIAL** — ✅ Leave (apply/approve) · Milestones · Users (create/edit + role assign)
-  done (`feat/web-mgmt-forms` 583efad). ✅ **Permission-builder editor UI (D-17)** done
-  (`feat/web-permission-builder` 701d6b4, runtime-verified). Remaining: **Document metadata form** (with the
-  document upload chunk below). Same pattern as the shipped forms. `<source: agent-found 2026-09-08>`
-- 🔴 **Stubbed web features** — document upload/OCR wiring (`@orqafy/storage`+`jobs`) · Leaflet map picker for
-  task location · live kanban drag-drop · websocket transport for realtime (D-22) · self-hosted woff2 fonts.
-  Each its own chunk, runtime-verify after each. `<source: agent-found 2026-09-08>`
+- ✅ **Entity forms — DONE** — Leave (apply/approve) · Milestones · Users (create/edit + role assign)
+  (`feat/web-mgmt-forms` 583efad) · **Permission-builder editor UI (D-17)** (`feat/web-permission-builder`
+  701d6b4) · **Document upload + metadata form** (`feat/web-document-management` 206c66d). All runtime-verified.
+- 🔴 **Stubbed web features (remaining)** — Leaflet map picker for task location · live kanban drag-drop ·
+  websocket transport for realtime (D-22) · self-hosted woff2 fonts. Each its own chunk, runtime-verify after
+  each. `<source: agent-found 2026-09-08>`
+- 🔴 **Document OCR/matching processors** — the `ocr` + `document-matching` BullMQ processors in
+  `@orqafy/jobs` are still stubs (return pending). Upload enqueues a real OCR job (verified `bull:ocr`), but
+  the processing (RapidOCR/Tesseract clean lane per R-5/D-13, then the DocumentReview match tray) is a later
+  chunk. `<source: agent-found 2026-09-09>`
 - 🔴 **Expo mobile (Part 6) + Tauri desktop** — later waves (own sessions): offline-first, on-device geofence
   (D-19/R6), photo capture; Tauri client + Rust sync sidecar (D-11/D-14). `<source: plan 2026-09-08>`
 
 ## ✅ Done recently
 
+- ✅ **Document upload + management** (2026-09-09, `feat/web-document-management` 206c66d). Server-proxied
+  `/api/media` upload (StorageAdapter, no browser-direct presign) + `/api/media/[id]` gated download +
+  documents `create`/`update`/`delete` (`manage_files`) + a Files-page upload dialog with per-row
+  download/edit/delete + Restricted badge; wired `@orqafy/storage`+`@orqafy/jobs` into web, `buildDocumentKey`
+  traversal-safe helper (+10 vitest). Runtime-verified (Playwright + live stack): upload→MinIO object at safe
+  key + `bull:ocr` job + DB row; download real bytes; edit (project preserved); delete cascades row+object.
+  Fixed an async-select prefill data-loss bug found in verification (lesson
+  `react-hook-form.async-select.prefill-data-loss`). Green, AGPL guard clean, HARD HOLD local.
 - ✅ **Permission-builder editor UI (D-17)** (2026-09-09, `feat/web-permission-builder` 701d6b4). Custom
   permission groups (create/edit/delete on `/settings/roles`; system-group name locked, permissions editable,
   no delete) + per-user overrides dialog on the Users table (3-state Inherit/Force-grant/Force-revoke over the

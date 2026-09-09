@@ -4,6 +4,36 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Document upload & management
+
+**In your words:** (autonomous loop) keep building the remaining web scope — next up was document upload/management.
+
+✅ **Done**
+- Built **document upload and management** on the Files page — the last of the core web forms.
+  - **Upload** a file with its filing details (name, category, project/client, and a "sensitive/finance-restricted"
+    flag). Files stream through the app to storage (MinIO), so it works the same whether storage is MinIO, S3, or a
+    local folder.
+  - **Download**, **edit the details**, and **delete** each document from its row. Sensitive documents show a
+    "Restricted" badge and only finance-permitted users can download them.
+  - Every upload automatically queues the document for the future OCR/auto-filing step (the queue is wired; the
+    actual OCR/matching is a later piece).
+- Verified it for real in the running app (not just a build): uploaded a PDF → confirmed the file physically
+  landed in storage and the record saved → downloaded it back → edited its details → deleted it (file and record
+  both removed). All clean.
+
+💬 **Notes**
+- While testing I caught and fixed a subtle bug that would have **silently unset a document's project** when you
+  edited its details — the project dropdown wasn't pre-selecting the saved value. Fixed and re-verified. Recorded
+  as a reusable lesson so it can't recur elsewhere.
+- Committed locally on `feat/web-document-management` (`206c66d`). Nothing pushed (HARD HOLD).
+- A harmless build warning remains (an optional storage-queue driver we don't use) — logged as a tidy-up.
+- The start-of-session RBAC-retrofit suggestion was declined again — it doesn't apply here (single-company, D-5).
+
+⏳ **Next**
+- Remaining web polish: the map picker for task locations, live drag-drop on the kanban board, realtime updates,
+  and self-hosted fonts. Then the document OCR/auto-filing processors, then the mobile + desktop apps as their
+  own waves.
+
 ## 2026-09-09 — Permission-builder editor UI (D-17)
 
 **In your words:** (autonomous loop) keep building the remaining web scope — next up was the permission-builder editor.

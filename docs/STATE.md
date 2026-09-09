@@ -1,6 +1,6 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-09 · **WEB CORE v1 COMPLETE + verified. Phase 4 Parts 1–5, 7, 8 + web usable-forms + Leave/Milestones/Users mgmt forms + dashboard/pgbouncer bugfix + permission-builder editor UI (D-17).** Current tip `feat/web-permission-builder` (`701d6b4`, off `feat/web-mgmt-forms`). **NEXT = Document upload/management** (core module, stubbed: `@orqafy/storage`+`jobs` wiring + Document metadata form) — then remaining web scope (Leaflet map picker · live kanban DnD · WS transport · self-hosted woff2 fonts), then Expo mobile (Part 6) + Tauri desktop as later waves. Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
+**Last updated:** 2026-09-09 · **WEB CORE v1 COMPLETE + verified. Phase 4 Parts 1–5, 7, 8 + web usable-forms + Leave/Milestones/Users mgmt forms + dashboard/pgbouncer bugfix + permission-builder editor UI (D-17) + document upload/management.** Current tip `feat/web-document-management` (`206c66d`, off `feat/web-permission-builder`). **NEXT = remaining web scope** (Leaflet map picker · live kanban DnD · WS transport · self-hosted woff2 fonts), then Document OCR/matching processors (later chunk), then Expo mobile (Part 6) + Tauri desktop as later waves. Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
 
 **Phase 4 Part 7 ✅ (branch `feat/phase4-part7`, local, HARD HOLD).** Dev Compose bundle `deploy/compose/dev/` (postgres+pgbouncer, valkey, minio+console+bucket-init, mailhog, pgadmin pre-wired, app, worker) + `start.sh` + `tools/dev-smoke.sh`; Rule-22 ports, named volumes `orqafy_dev_*`, NO `docker-publish.yml` (D-3/D-27). `docker compose config` valid. **Live-verified end-to-end**: migration applied (16 tables), web app booted, Playwright drove first-run→login→dashboard→Client/Project/Task CRUD, all persisted (UI reload + DB). Added worker entrypoint `packages/jobs/src/main.ts`. **Fixed a blocking Part-5 middleware bug** (`/api/trpc` was 307→/login for unauth'd requests, killing first-run) — see SESSION_LOG + lesson `nextjs.middleware.matcher-gates-api-trpc`. Agent-found open item: `/` on fresh install redirects to `/login` not `/setup` (TASK_QUEUE). Part 6 (Expo mobile) is a later wave (web-first, D-25/W-1).
 
@@ -65,6 +65,28 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
    live kanban drag-drop, WS transport, self-hosted woff2 fonts.
 4. **Deferred `[HOW]` follow-ups (TASK_QUEUE):** `Document.size` Int→BigInt if >2GB · ESLint 8→9 flat config.
    Plus the 3 BLOCKED (hardware/stack/tunnel) + POST-V1 cloud-storage.
+
+## Session note — 2026-09-09 (loop slot 12 — document upload/management)
+
+Loop wake, empty handoff. Re-derived the queue (0 open `[WHAT]`, clean tree, un-gated work available) → worked
+the top item: **Document upload + management** (branch `feat/web-document-management` off
+`feat/web-permission-builder`; scout-mapped the module, then two serial Opus workers: backend/transport, then
+frontend). **[HOW] decided: server-proxied `/api/media` upload** (StorageAdapter streams server-side; no
+browser-direct presigned PUT — local-disk can't presign + avoids the MinIO signed-host mismatch; LAN-first
+D-15). Delivered: `/api/media` POST (manage_files-gated, 50MiB cap, exec/script denylist) + `/api/media/[id]`
+GET (auth + isSPI/view_finances gated) download proxy; documents `create`(+best-effort OCR enqueue)/`update`/
+`delete`(+best-effort object delete); `buildDocumentKey` traversal-safe helper (+10 vitest); env→storage-config
+mapper + BullMQ queue singletons; Files-page upload dialog + per-row download/edit/delete + Restricted badge.
+**PM runtime-verified via Playwright on the live dev stack** (infra in Docker + web on host, `.env.dev` sourced):
+upload→object in MinIO at the safe key + `bull:ocr` job enqueued + DB row; download returned the real 85 bytes;
+metadata edit (project preserved); delete cascaded row+object; console clean (only pre-existing favicon 404).
+**Caught + fixed a data-loss defect in verification:** the edit dialog's project/client `<select>`s load async,
+so RHF applied the saved id before its `<option>` existed → value fell back to "None" → saving would silently
+unset the filing. Fixed with a re-sync `useEffect` once the option lists resolve; lesson logged
+(`react-hook-form.async-select.prefill-data-loss`). One commit `206c66d`, asset guard clean, HARD HOLD local.
+Cross-scope note: `apps/web` now depends on `@orqafy/storage`+`@orqafy/jobs` and talks to MinIO+Valkey via the
+`/api/media` proxy + `getQueues()`. **NEXT = remaining web scope** (Leaflet map picker · kanban DnD · WS · fonts).
+RBAC-retrofit SessionStart note re-declined (superseded by D-5).
 
 ## Session note — 2026-09-09 (loop slot 11 — permission-builder editor UI, D-17)
 
