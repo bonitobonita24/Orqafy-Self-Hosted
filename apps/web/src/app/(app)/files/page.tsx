@@ -6,7 +6,7 @@
 // appear for callers with finance sight (server-gated, D-20) and carry a
 // "Restricted" badge. The unsorted-review count badge is preserved.
 import { useState } from 'react';
-import { Download, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Download, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import {
   Button,
   Card,
@@ -19,6 +19,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Input,
 } from '@orqafy/ui';
 import { trpc } from '@/trpc/react';
 import { DocumentFormDialog, documentCategoryLabel } from '@/components/forms/document-form';
@@ -91,7 +92,9 @@ function DeleteDocumentButton({ id, name }: { id: string; name: string }) {
 }
 
 export default function FilesPage() {
-  const docs = trpc.documents.list.useQuery();
+  const [q, setQ] = useState('');
+  const query = q.trim();
+  const docs = trpc.documents.list.useQuery(query ? { q: query } : undefined);
   const unsorted = trpc.documents.unsortedCount.useQuery();
 
   return (
@@ -106,21 +109,39 @@ export default function FilesPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4 space-y-0">
           <CardTitle>Documents</CardTitle>
-          <DocumentFormDialog
-            trigger={
-              <Button>
-                <Plus /> Upload document
-              </Button>
-            }
-          />
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
+            <div className="relative w-full max-w-xs">
+              <Search
+                aria-hidden="true"
+                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                type="search"
+                aria-label="Search document text"
+                placeholder="Search document text…"
+                className="pl-8"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <DocumentFormDialog
+              trigger={
+                <Button>
+                  <Plus /> Upload document
+                </Button>
+              }
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-2">
           {docs.data === undefined ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : docs.data.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No documents yet.</p>
+            <p className="text-sm text-muted-foreground">
+              {query ? `No documents match “${query}”.` : 'No documents yet.'}
+            </p>
           ) : (
             docs.data.map((doc) => (
               <div

@@ -21,6 +21,7 @@ export const documentsRouter = router({
         .object({
           projectId: z.string().min(1).optional(),
           category: documentCategoryEnum.optional(),
+          q: z.string().min(1).optional(),
         })
         .optional(),
     )
@@ -31,6 +32,9 @@ export const documentsRouter = router({
           ...omitUndefined({ projectId: input?.projectId, category: input?.category }),
           // SPI docs excluded from broad listing unless the caller has finance sight.
           ...(canSeeSPI ? {} : { isSPI: false }),
+          // v1 search = case-insensitive ILIKE on ocrText. Graduation path: Postgres
+          // tsvector + GIN index on ocrText (TODO if scale demands).
+          ...(input?.q ? { ocrText: { contains: input.q, mode: 'insensitive' as const } } : {}),
         },
         orderBy: { createdAt: 'desc' },
         include: { project: { select: { id: true, name: true } } },
