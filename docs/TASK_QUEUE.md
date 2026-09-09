@@ -35,20 +35,12 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ### Agent-found (Phase 4 build)
 
-- 🔴 **[HIGH — blocks `next build` / prod+docker image] `<Html> should not be imported outside pages/_document`
-  on default `/404` static-gen.** `pnpm --filter @orqafy/web build` now clears compile + type-check (see the
-  ocr.ts fix `b59b086`) but dies at "Generating static pages" prerendering the framework-default `/404`
-  (`/_error`) with the `<Html>` error (chunk `935.js`). **Pre-existing, NOT from the review/search work** —
-  there is no `next/document`/`Html` import, no custom error/404/not-found page, and no stray `pages/` dir in
-  `apps/web/src`; a framework/dependency-level Next 15.5 static-gen issue. Never surfaced because all prior
-  verification ran in **dev mode** (`next dev` via `Dockerfile.app`), never a production `next build`. Likely
-  fixes to try: mark BullMQ/valkey external in `next.config` (its server graph is pulled into the error chunk),
-  a custom `app/not-found.tsx` + `app/global-error.tsx`, or a Next patch. Until fixed, dev-mode is the only
-  runnable build path. `<source: agent-found 2026-09-09>`
-- 🔴 **BullMQ `@valkey/valkey-glide` build warning** — since `apps/web` imports `@orqafy/jobs`, `next build`
-  emits a benign "Module not found: @valkey/valkey-glide" warning (BullMQ's optional Glide client; we use the
-  default ioredis path — runtime-verified working). Silence by marking it external in `next.config`.
-  `<source: agent-found 2026-09-09>`
+- 🟡 **[BENIGN] `jose`/Auth.js Edge-runtime `CompressionStream` build warning** — `next build` emits a single
+  "A Node.js API is used (CompressionStream) which is not supported in the Edge Runtime" warning from
+  `jose` (pulled in by `@auth/core`, which runs in the Edge middleware). Benign: `CompressionStream` is only
+  used for JWE `zip`-compressed tokens, which Auth.js does NOT use for its default JWT sessions. Pre-existing,
+  third-party, no runtime effect. Left as-is (any suppression would be a hack into a dependency's Edge path).
+  Do NOT re-investigate. `<source: agent-found 2026-09-09>`
 - 🔴 **`Document.size` Int→BigInt** if single files >2GB are expected (Prisma schema + Zod). Construction
   drawings are usually well under, so Int is fine for v1 — revisit if large-file uploads surface.
   `<source: agent-found 2026-09-08>`
@@ -69,6 +61,18 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **Production `next build` is GREEN — HIGH `<Html>`/404 blocker resolved + valkey warning silenced**
+  (2026-09-09, `fix/prod-build-clean`, `64f4806`). The previously-logged HIGH blocker (`<Html> should not be
+  imported outside pages/_document` on default `/404` static-gen) **no longer reproduces**: two clean
+  `rm -rf .next && pnpm --filter @orqafy/web build` runs each exit 0, generate all 6 static pages (incl.
+  `/_not-found` as static ○), zero `<Html>` errors. Root cause of the original failure was almost certainly
+  the pre-`b59b086` ocr.ts BlobPart issue distorting the server module graph feeding the `/_error` chunk
+  (compounded by a stale `.next`); the ocr.ts fix cleared it — no code change was needed for the 404 itself.
+  Separately silenced the benign BullMQ `@valkey/valkey-glide` "Module not found" warning via a webpack
+  `IgnorePlugin` on that exact optional module in `apps/web/next.config.mjs` (we use ioredis; the glide path
+  is never taken) — verified gone, build still exit 0, the `/api/trpc`→jobs→bullmq route still bundles. Only
+  remaining build warning is the benign `jose`/Edge `CompressionStream` note (see Open, left as-is). AGPL
+  guard clean, HARD HOLD local. **Prod/docker image build path is now unblocked.**
 - ✅ **Document review-tray + OCR-text search UI** (2026-09-09, `feat/document-review-search`, tip `b59b086`).
   The two remaining web surfaces over the D-13 OCR pipeline. **Review tray** (`/review`, new `Inbox` nav entry):
   lists pending `DocumentReview` rows (`documents.reviewTray`) with per-row **Confirm** (accept the auto-filer

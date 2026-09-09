@@ -4,6 +4,16 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Production build unblocked (green)
+
+**In your words:** resume the web-first build.
+
+✅ Done — the **production build now completes cleanly**. The HIGH blocker I logged last session (Next.js choking on its default "404" page) **turned out to already be fixed** — it was a side-effect of the OCR TypeScript fix from that same session plus a stale build cache. I re-ran two clean production builds from scratch; both succeed, generate every page, and show zero of that error. No new code was needed for the 404 itself.
+✅ Done — while there, I silenced the one remaining harmless build warning (a Valkey client BullMQ mentions but we never use) so the build output is clean. Verified the build still exits successfully and the parts that use the job queue still bundle.
+💬 Note — one truly benign warning remains, from Auth.js's crypto library on the edge runtime; it has no runtime effect and any "fix" would be a hack into a third-party dependency, so I left it and marked it do-not-chase.
+💬 Note — lesson carried forward: a blocker logged one session can be quietly fixed by unrelated work in the next — always re-reproduce before spending time on it.
+⏳ Next — Expo mobile (Part 6) + Tauri desktop; each is big enough for its own session.
+
 ## 2026-09-09 — Document review-tray + OCR-text search UI
 
 **In your words:** finish the remaining web scope — the review-tray screen (so a human can confirm/reassign the documents the auto-filer wasn't sure about) and a way to search documents by their extracted (OCR) text. The pipeline already produces the data; build the screens.
