@@ -6,6 +6,7 @@
 import { Worker, type ConnectionOptions, type Processor } from 'bullmq';
 
 import type { JobDeps } from './deps';
+import { matchDocument, type ProjectRef } from './matching';
 import { QUEUE_NAMES, type JobTypeMap, type QueueKey } from './queues';
 
 /** A processor per queue key, each typed to that queue's data/result. */
@@ -86,8 +87,56 @@ export function createProcessors(deps: JobDeps): ProcessorMap {
         throw err;
       }
     },
-    // Task 5 replaces this body.
-    documentMatching: defaultProcessors.documentMatching,
+    documentMatching: async (job): Promise<JobTypeMap['documentMatching']['result']> => {
+      const { documentId, ocrText } = job.data;
+      if (ocrText === undefined || ocrText.trim().length === 0) {
+        await deps.prisma.documentReview.create({
+          data: { fileId: documentId, confidence: 0, status: 'pending' },
+        });
+        return { status: 'pending' as const };
+      }
+      const projects: ProjectRef[] = await deps.prisma.project.findMany({
+        select: { id: true, code: true, name: true, clientId: true },
+      });
+      const verdict = matchDocument({ text: ocrText, projects });
+
+      if (verdict.kind === 'auto-file') {
+        await deps.prisma.document.update({
+          where: { id: documentId },
+          data: {
+            projectId: verdict.projectId,
+            clientId: verdict.clientId,
+            ...(verdict.category !== undefined ? { category: verdict.category } : {}),
+          },
+        });
+        await deps.prisma.documentReview.create({
+          data: {
+            fileId: documentId,
+            suggestedProjectId: verdict.projectId,
+            suggestedClientId: verdict.clientId,
+            confidence: verdict.confidence,
+            status: 'confirmed',
+            ...(verdict.category !== undefined ? { suggestedCategory: verdict.category } : {}),
+          },
+        });
+        return { status: 'confirmed' as const, suggestedProjectId: verdict.projectId };
+      }
+
+      await deps.prisma.documentReview.create({
+        data: {
+          fileId: documentId,
+          confidence: verdict.confidence,
+          status: 'pending',
+          ...(verdict.suggestedProjectId !== undefined ? { suggestedProjectId: verdict.suggestedProjectId } : {}),
+          ...(verdict.suggestedClientId !== undefined ? { suggestedClientId: verdict.suggestedClientId } : {}),
+          ...(verdict.suggestedCategory !== undefined ? { suggestedCategory: verdict.suggestedCategory } : {}),
+        },
+      });
+      return {
+        status: 'pending' as const,
+        ...(verdict.suggestedProjectId !== undefined ? { suggestedProjectId: verdict.suggestedProjectId } : {}),
+      };
+    },
   };
 }
 
