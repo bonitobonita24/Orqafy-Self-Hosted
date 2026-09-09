@@ -31,7 +31,9 @@ import {
   Select,
   Textarea,
 } from '@orqafy/ui';
+import { parseGeofenceStrings } from '@orqafy/shared';
 import { trpc } from '@/trpc/react';
+import { MapPicker } from './map-picker.client';
 import {
   taskFormSchema,
   type TaskFormValues,
@@ -40,6 +42,11 @@ import {
   blankToUndef,
   toDate,
 } from './schema';
+
+/** Stringify a map-derived coordinate to ~6 decimals (≈0.1 m) without trailing zeros. */
+function coord(n: number): string {
+  return String(Number(n.toFixed(6)));
+}
 
 interface TaskLike {
   id: string;
@@ -101,8 +108,17 @@ export function TaskFormDialog({
     handleSubmit,
     reset,
     setError,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = form;
+
+  // Live numeric view of the geofence string inputs, feeding the map picker.
+  const geo = parseGeofenceStrings({
+    lat: watch('geofenceLat'),
+    lng: watch('geofenceLng'),
+    radius: watch('geofenceRadius'),
+  });
 
   const create = trpc.tasks.create.useMutation();
   const update = trpc.tasks.update.useMutation();
@@ -265,6 +281,21 @@ export function TaskFormDialog({
               <p className="text-xs text-muted-foreground">
                 Turns this into a site task — the assignee is reminded on-device when they arrive.
                 All three coordinates are required together.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <MapPicker
+                lat={geo.lat}
+                lng={geo.lng}
+                radiusMeters={geo.radiusMeters}
+                onChange={({ lat, lng }) => {
+                  setValue('geofenceLat', coord(lat), { shouldValidate: true });
+                  setValue('geofenceLng', coord(lng), { shouldValidate: true });
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Click the map or drag the pin to set the anchor; type below for precise values. Set a
+                radius to preview the geofence circle.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

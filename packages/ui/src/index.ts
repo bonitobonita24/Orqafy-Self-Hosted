@@ -25,3 +25,9 @@ export * from './components/ui/form';
 export * from './components/kibo/kanban';
 export * from './components/kibo/gantt';
 export * from './components/kibo/dropzone';
+
+// NOTE: MapPicker is deliberately NOT re-exported from this barrel. It eagerly
+// imports leaflet (which touches `window` at module load), so a barrel re-export
+// would pull leaflet into every server component importing from @orqafy/ui and
+// break SSR prerender. Import it via the dedicated client-only subpath instead:
+//   import('@orqafy/ui/map-picker')  (always with next/dynamic { ssr: false }).
