@@ -349,3 +349,18 @@ The app stays **free/OSS/self-hosted**; the ONLY paid offering is an **optional 
   earlier `payment.gateway: none` — that holds for the self-hosted app itself).
 - **Timing: POST-V1.** v1 ships the free self-hosted app; the storage subscription + billing control plane
   is a later monetization track. Captured as a post-v1 task in `docs/TASK_QUEUE.md`.
+
+### D-22 (impl) · Realtime transport realized as tRPC v11 SSE, not WebSocket ([HOW], 2026-09-09)
+D-22 (live board / notification updates) shipped over **tRPC v11 SSE (`httpSubscriptionLink`)**, riding the
+existing Next.js fetch route handler (`app/api/trpc/[trpc]/route.ts`, `force-dynamic`) via a client
+`splitLink`. This **supersedes the code's original `realtime.ts` comment** that envisioned a standalone Node
+WS server (`@trpc/server/adapters/ws` + `applyWSSHandler`). Rationale (technical, [HOW]):
+- `apps/web` is default App Router with **no custom server and no docker-compose app tier wired for a WS
+  sidecar** — WS would need a second process + a new `ws` dependency; SSE needs neither.
+- **Single-process self-hosted (D-3)** is the deployment target; SSE over the existing handler is sufficient.
+- SSE is **same-origin fetch → Auth.js session cookies flow automatically** (a WS `createContext` would need
+  bespoke cookie/session handling).
+- **SCALE SEAM (POST-V1, not built):** the `realtimeBus` is an in-memory single-process singleton. A
+  multi-instance deployment must back it with **Valkey pub/sub** (the BullMQ Valkey connection already exists;
+  a pub/sub client would be added then). Recorded so a future scale-out doesn't silently break cross-instance
+  realtime. Verified live two-client (`feat/web-realtime-sse` e3484e1).

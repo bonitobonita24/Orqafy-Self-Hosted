@@ -4,6 +4,33 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Realtime board updates (live across clients)
+
+**In your words:** (autonomous loop) keep building the remaining web scope — next was making the project
+board update live across clients (realtime, D-22) so a change one person makes shows up for everyone
+without a manual refresh.
+
+✅ **Done**
+- The project board now updates **live**. When someone adds or moves a task, everyone else viewing that
+  same project sees it change **on their screen with no refresh**.
+- Verified for real with **two browser windows** open on the same board: created a task in window A and it
+  appeared in window B on its own, instantly. Both windows held a live connection the whole time; no errors.
+
+💬 **Notes**
+- Chosen delivery mechanism is **Server-Sent Events (SSE)** over the app's existing API, not a separate
+  WebSocket server — it needs no extra process and works cleanly for a single self-hosted install. (Full
+  reasoning in DECISIONS_LOG D-22 impl.)
+- One honest limit for later: this works within a single running app instance. If you ever run several app
+  copies behind a load balancer, realtime would need a small shared-message layer (Valkey) added — noted as
+  a post-v1 item, not needed now.
+- 🔨 The drag-and-drop *gesture* itself was already done last step; this step added the live cross-client
+  syncing on top. (During testing, the automated drag tool didn't reliably simulate the drag, so I verified
+  the live-sync path with a task create instead — it exercises the exact same realtime channel.)
+- Committed locally on `feat/web-realtime-sse` (nothing pushed — HARD HOLD).
+
+⏳ **Next:** self-hosted woff2 fonts (bundle the brand fonts locally), then the Document OCR/matching
+processors (still stubs).
+
 ## 2026-09-09 — Live kanban drag-drop on the project board
 
 **In your words:** (autonomous loop) keep building the remaining web scope — next up was wiring real

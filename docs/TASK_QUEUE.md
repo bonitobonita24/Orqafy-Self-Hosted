@@ -61,8 +61,8 @@ exist yet. They are NOT actionable now; they gate a later phase._
   (`feat/web-mgmt-forms` 583efad) · **Permission-builder editor UI (D-17)** (`feat/web-permission-builder`
   701d6b4) · **Document upload + metadata form** (`feat/web-document-management` 206c66d). All runtime-verified.
 - 🔴 **Stubbed web features (remaining)** — ~~live kanban drag-drop~~ ✅ (`feat/web-kanban-dnd` c43ed89) ·
-  websocket transport for realtime (D-22) · self-hosted woff2 fonts. Each its own chunk, runtime-verify
-  after each. `<source: agent-found 2026-09-08>`
+  ~~realtime transport (D-22)~~ ✅ **SSE** (`feat/web-realtime-sse` e3484e1) · **self-hosted woff2 fonts
+  (NEXT)**. Each its own chunk, runtime-verify after each. `<source: agent-found 2026-09-08>`
 - 🔴 **Document OCR/matching processors** — the `ocr` + `document-matching` BullMQ processors in
   `@orqafy/jobs` are still stubs (return pending). Upload enqueues a real OCR job (verified `bull:ocr`), but
   the processing (RapidOCR/Tesseract clean lane per R-5/D-13, then the DocumentReview match tray) is a later
@@ -72,6 +72,14 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **Realtime board updates over SSE (D-22)** (2026-09-09, `feat/web-realtime-sse` e3484e1). Wired the
+  in-memory `realtimeBus` to a live carrier: tRPC v11 SSE over the existing Next.js fetch route handler
+  (`force-dynamic`) + client `httpSubscriptionLink`/`splitLink` — no WS server / custom Next server needed
+  (single-process self-hosted, D-3); Auth.js cookies flow same-origin. New `tasks.onBoardChanged` subscription
+  (`board:changed`/`task:updated`, per-project) → board page invalidates `projects.byId` on each event.
+  Playwright **two-client** verified: a task change in client A appeared live in client B with **no reload**;
+  both held a persistent SSE stream; onData fired on both; no server errors. Scale seam noted (in-memory bus →
+  Valkey pub/sub for multi-instance, POST-V1). Static gates green, AGPL guard clean, HARD HOLD local.
 - ✅ **Live kanban drag-drop** (2026-09-09, `feat/web-kanban-dnd` c43ed89). Replaced the static board stub
   with real `@dnd-kit/core` DnD: droppable columns keyed to `TaskStatus`, draggable cards, Pointer+Keyboard
   sensors, `onCardMove` fires only on cross-column drops → `tasks.move` mutation with react-query v5
