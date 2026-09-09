@@ -4,6 +4,9 @@ import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { appRouter } from '@/server/root';
 import { createTRPCContext } from '@/server/context';
 
+// SSE subscriptions (httpSubscriptionLink) ride GET; keep the stream unbuffered.
+export const dynamic = 'force-dynamic';
+
 const handler = (req: Request): Promise<Response> =>
   fetchRequestHandler({
     endpoint: '/api/trpc',

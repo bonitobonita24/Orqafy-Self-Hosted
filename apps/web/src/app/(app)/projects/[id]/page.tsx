@@ -32,6 +32,16 @@ export default function ProjectDetailPage() {
   const data = project.data;
 
   const utils = trpc.useUtils();
+  // Live board updates (D-22): re-fetch the project when any task/board change
+  // for this project streams over the SSE subscription transport.
+  trpc.tasks.onBoardChanged.useSubscription(
+    { projectId: params.id },
+    {
+      onData: () => {
+        void utils.projects.byId.invalidate({ id: params.id });
+      },
+    },
+  );
   // Cross-column drag → tasks.move, with an optimistic board update + rollback.
   const move = trpc.tasks.move.useMutation({
     async onMutate(vars) {

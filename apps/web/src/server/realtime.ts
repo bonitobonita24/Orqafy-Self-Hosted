@@ -1,12 +1,15 @@
 // Realtime seam (D-22). Web is real-time: the kanban board and the notification
-// center update live over a websocket. This module is the typed pub/sub bus +
-// tRPC observable factory that the routers publish to and subscribe from.
+// center update live. This module is the typed pub/sub bus + tRPC observable
+// factory that the routers publish to and subscribe from.
 //
-// SEAM / TODO(part-7): the websocket *transport* (a standalone Node WS server via
-// `@trpc/server/adapters/ws` + `applyWSSHandler`, run alongside the app in the
-// Compose bundle) is wired in Part 7. Until then the bus + subscription
-// procedures are fully typed and callable in-process; only the socket carrier is
-// pending. Mobile stays offline-first / sync-on-reconnect (never a WS dependency).
+// TRANSPORT (D-22, wired): subscriptions ride tRPC v11 SSE over the existing
+// Next.js fetch route handler (`app/api/trpc/[trpc]/route.ts`, force-dynamic) via
+// the client `httpSubscriptionLink` (splitLink in providers.tsx). No standalone
+// WS server / custom Next server is needed for the single-process self-hosted
+// deployment (D-3). Cookies flow same-origin, so Auth.js session auth is carried
+// automatically. Mobile stays offline-first / sync-on-reconnect (never a WS/SSE
+// dependency). SCALE SEAM: the bus is in-memory / single-process — a multi-
+// instance deployment must back it with Valkey pub/sub (POST-V1, not wired).
 import 'server-only';
 import { observable } from '@trpc/server/observable';
 

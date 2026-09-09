@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { Prisma, TaskStatus } from '@orqafy/db';
 import { taskPriorityEnum, locationSchema } from '@orqafy/shared';
+import { observable } from '@trpc/server/observable';
 import { router, protectedProcedure } from '../trpc';
 import { omitUndefined } from '../util';
 import { realtimeBus } from '../realtime';
@@ -143,4 +144,26 @@ export const tasksRouter = router({
       realtimeBus.emit('task:updated', { projectId: task.projectId, taskId: task.id });
       return task;
     }),
+
+  /**
+   * Live board feed for one project (D-22). Streams a lightweight signal on any
+   * board/task change so the client re-fetches. Carried over SSE via
+   * httpSubscriptionLink. Mirrors notifications.onNew.
+   */
+  onBoardChanged: protectedProcedure
+    .input(z.object({ projectId: z.string() }))
+    .subscription(({ input }) =>
+      observable<{ projectId: string }>((emit) => {
+        const offBoard = realtimeBus.on('board:changed', (payload) => {
+          if (payload.projectId === input.projectId) emit.next({ projectId: payload.projectId });
+        });
+        const offTask = realtimeBus.on('task:updated', (payload) => {
+          if (payload.projectId === input.projectId) emit.next({ projectId: payload.projectId });
+        });
+        return () => {
+          offBoard();
+          offTask();
+        };
+      }),
+    ),
 });
