@@ -56,8 +56,18 @@ exist yet. They are NOT actionable now; they gate a later phase._
   ~~realtime transport (D-22)~~ ✅ **SSE** (`feat/web-realtime-sse` e3484e1) · ~~self-hosted woff2 fonts~~ ✅
   (`feat/self-hosted-fonts` 0560001) · ~~OCR/matching processors~~ ✅ (`feat/document-ocr-matching` af0d71d).
   `<source: agent-found 2026-09-08>`
-- 🔴 **Expo mobile (Part 6) + Tauri desktop** — later waves (own sessions): offline-first, on-device geofence
-  (D-19/R6), photo capture; Tauri client + Rust sync sidecar (D-11/D-14). `<source: plan 2026-09-08>`
+- 🟡 **Expo mobile (Part 6)** — IN PROGRESS (wave plan: `docs/tasks/mobile-wave-plan.md`; branch
+  `feat/mobile-scaffold`). ✅ **Chunk 1 scaffold DONE + verified** (`dc138a4`): `apps/mobile` Expo SDK 54
+  (expo ~54.0.37 / expo-location ~19.0.8 / expo-task-manager ~14.0.9), config-plugin bg-geofence permissions,
+  monorepo Metro, expo-router tab shell, RN theme from `@orqafy/ui/theme` values; tsc+eslint+`expo config`
+  green, Rule 13 clean. Remaining chunks: 2 offline data layer (SQLite + outbound queue) · 3 auth+tRPC
+  transport · 4 geofence integration · 5 core screens. `<source: plan 2026-09-08>`
+- 🔴 **Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar (D-11/D-14).
+  `<source: plan 2026-09-08>`
+- 🔴 **[agent-found 2026-09-09] Enforce Rule 13 in apps/mobile via ESLint** — add `no-restricted-imports`
+  banning `@orqafy/ui` (barrel) + `@orqafy/{db,jobs,storage,sync,web}` while allowing `@orqafy/ui/theme`, so
+  the mobile layering boundary is compiler-enforced, not just documented (mobile depends on `@orqafy/ui`
+  workspace:* solely for the pure /theme token values). `<source: agent-found 2026-09-09>`
 
 ## ✅ Done recently
 

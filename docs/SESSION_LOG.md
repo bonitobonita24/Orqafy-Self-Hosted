@@ -4,6 +4,16 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Started the Expo mobile app (scaffold)
+
+**In your words:** start the Expo mobile wave.
+
+✅ Done — the **mobile app now exists as a real, buildable project** (`apps/mobile`). It's an Expo (SDK 54) app set up exactly the way the rest of the codebase expects — it reuses the shared geofence logic, API client, and design colors we already built, and can *only* talk to the backend through the API (never the database directly). The permissions needed for background geofencing (the whole reason for a native app) are wired in: iOS "Always" location + background mode, Android background location + the Android-14 foreground-service permission. It has a bottom tab bar (My Tasks / Calendar / Notifications) with themed placeholder screens as the shell.
+✅ Done — verified it holds together: type-checks clean, lints clean, the Expo config resolves with all the permission plugins parsing, and no forbidden imports. (Note: there's **no phone/simulator here**, so "verified" means it compiles and configures correctly — actually feeling a geofence fire needs a real device, which is the separately-tracked hardware task.)
+💬 Note — I wrote a durable plan for the whole mobile build at `docs/tasks/mobile-wave-plan.md`, broken into 5 chunks so it can span sessions. This was chunk 1.
+💬 Note — two things I'll need to build on the *server* side when we get to mobile login (chunk 3): the web app currently only supports browser-cookie login, so mobile will need a token-based path; and the shared API client needs a small extension. Both flagged, neither blocks the next chunk.
+⏳ Next — chunk 2: the offline-first data layer (local database cache + a durable queue so field staff can work with no signal and sync when they reconnect).
+
 ## 2026-09-09 — Production build unblocked (green)
 
 **In your words:** resume the web-first build.
