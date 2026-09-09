@@ -4,6 +4,16 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Document OCR + doc-matching pipeline
+
+**In your words:** wire up the OCR + doc-matching processors so an uploaded document's text is extracted (offline, RapidOCR/Tesseract per R-5/D-13) and matched into the DocumentReview "match tray".
+
+✅ Done — the two `@orqafy/jobs` processors are now real (were stubs). Upload → OCR → text persisted → auto-file to project on a confident code hit, else a pending review-tray row. Built offline RapidOCR sidecar (Docker profile), deterministic exact-ID matcher (no LLM), `createProcessors(deps)` seam, 15 unit tests. **Verified end-to-end on the live stack from the committed containers** (real upload → worker OCR → `PRJ-017` auto-filed as confirmed/0.95/invoice; a no-code doc → pending review). Evidence in `test-artifacts/ocr-e2e-2026-09-09/`.
+✅ Done (bonus) — fixed the broken dev Docker rebuild (added a repo `.dockerignore` + `CI=true`; also unblocks the web image) and the OCR image's `libGL` crash. Closed 2 known backlog items.
+🔨 Partial — n/a.
+⏳ Next — Expo mobile (Part 6) + Tauri desktop (own sessions). Also queued: the review-tray + full-text-search **UI** surfaces (the pipeline now populates the data; the screens may not exist yet).
+💬 Notes — 8 commits on `feat/document-ocr-matching` (tip `af0d71d`), all LOCAL (HARD HOLD, nothing pushed). Cross-scope: the new root `.dockerignore` also fixes `Dockerfile.app`'s latent build bug. No LLM in v1 per D-13; RapidOCR is the default engine, Tesseract the documented fallback (swap the sidecar, no TS change).
+
 ## 2026-09-09 — Self-hosted brand fonts
 
 **In your words:** (autonomous loop) keep building the remaining web scope — the app was showing the brand

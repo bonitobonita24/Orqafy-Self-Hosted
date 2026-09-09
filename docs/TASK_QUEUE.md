@@ -44,34 +44,23 @@ exist yet. They are NOT actionable now; they gate a later phase._
   `<source: agent-found 2026-09-08>`
 - 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
   legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. `<source: agent-found 2026-09-08>`
-- 🔴 **Dev Docker image rebuild broken** — `bash deploy/compose/start.sh dev up -d --build` fails at
-  `pnpm install --frozen-lockfile` in `deploy/compose/dev/Dockerfile.app` (+`.worker`) with
-  `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY` (pnpm 10 refuses to purge node_modules non-interactively).
-  Triggered when the lockfile changes (e.g. adding a dep) so the copied modules dir mismatches. Fix: set
-  `ENV CI=true` (or `--config.confirmModulesPurge=false`) before the install in both Dockerfiles.
-  Host hot-reload dev path is unaffected and is the supported dev mode. `<source: agent-found 2026-09-09>`
-- 🔴 **No `.dockerignore`** — repo has none, so host `node_modules` (and `.env*`) get sent into the Docker
-  build context; this is the root cause of the pnpm-purge failure above and bloats the build. Add a
-  `.dockerignore` excluding `**/node_modules`, `.env*`, `.git`, `.next`, framework brain dirs.
-  `<source: agent-found 2026-09-09>`
 
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
 - ✅ **Entity forms — DONE** — Leave (apply/approve) · Milestones · Users (create/edit + role assign)
   (`feat/web-mgmt-forms` 583efad) · **Permission-builder editor UI (D-17)** (`feat/web-permission-builder`
   701d6b4) · **Document upload + metadata form** (`feat/web-document-management` 206c66d). All runtime-verified.
-- 🔴 **Stubbed web features (remaining)** — ~~live kanban drag-drop~~ ✅ (`feat/web-kanban-dnd` c43ed89) ·
-  ~~realtime transport (D-22)~~ ✅ **SSE** (`feat/web-realtime-sse` e3484e1) · **self-hosted woff2 fonts
-  (NEXT)**. Each its own chunk, runtime-verify after each. `<source: agent-found 2026-09-08>`
-- 🔴 **Document OCR/matching processors** — the `ocr` + `document-matching` BullMQ processors in
-  `@orqafy/jobs` are still stubs (return pending). Upload enqueues a real OCR job (verified `bull:ocr`), but
-  the processing (RapidOCR/Tesseract clean lane per R-5/D-13, then the DocumentReview match tray) is a later
-  chunk. `<source: agent-found 2026-09-09>`
+- ✅ **Stubbed web features — DONE** — ~~live kanban drag-drop~~ ✅ (`feat/web-kanban-dnd` c43ed89) ·
+  ~~realtime transport (D-22)~~ ✅ **SSE** (`feat/web-realtime-sse` e3484e1) · ~~self-hosted woff2 fonts~~ ✅
+  (`feat/self-hosted-fonts` 0560001) · ~~OCR/matching processors~~ ✅ (`feat/document-ocr-matching` af0d71d).
+  `<source: agent-found 2026-09-08>`
 - 🔴 **Expo mobile (Part 6) + Tauri desktop** — later waves (own sessions): offline-first, on-device geofence
   (D-19/R6), photo capture; Tauri client + Rust sync sidecar (D-11/D-14). `<source: plan 2026-09-08>`
 
 ## ✅ Done recently
 
+- ✅ **Document OCR + doc-matching pipeline (D-13 thin slice)** (2026-09-09, `feat/document-ocr-matching`, 8 commits, tip `af0d71d`). The `ocr` + `document-matching` BullMQ processors are now real: the worker fetches bytes via `@orqafy/storage`, POSTs to a **profile-gated offline RapidOCR HTTP sidecar** (`deploy/compose/ocr/` — no OCR lib in the TS repo, per R-5/D-13), persists `Document.ocrText`/`ocrStatus`, then runs a deterministic exact-ID matcher (`Project.code`/name, NO LLM) that auto-files a confident hit (`Document.projectId`/`clientId` + a `confirmed` DocumentReview @0.95) or writes a `pending` DocumentReview to the match tray. `createProcessors(deps)` DI seam; 15 vitest unit tests. Live e2e verified **from the committed containers** (worker+ocr, no host workaround): positive `PRJ-017`→confirmed 0.95 invoice + negative no-code→pending 0. Evidence: `test-artifacts/ocr-e2e-2026-09-09/`. AGPL guard clean, HARD HOLD local. Follow-up (agent-found): review-tray + full-text-search **UI** surfaces — data is correct, screens may not exist yet.
+- ✅ **Docker dev-build fixes (closed 2 known 🔴)** (2026-09-09, `af0d71d`). Root-caused `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`: no repo `.dockerignore` → host `node_modules` (~1.3GB) shipped into the `../../..` build context → pnpm refuses to purge without a TTY. Added repo-root `.dockerignore` (`**/node_modules`, `.git`, `.next`, `dist`, `test-artifacts`, `.env*` with `!.env.example`) + `CI=true` on the worker install line. **Cross-scope note:** the `.dockerignore` also fixes `Dockerfile.app`'s identical latent bug. Also added `libgl1 libglib2.0-0` to the OCR image (opencv/cv2 needs `libGL.so.1`). Both images build + boot clean, container-verified.
 - ✅ **Self-hosted brand fonts (woff2)** (2026-09-09, `feat/self-hosted-fonts` 0560001). Vendored IBM Plex
   Sans + JetBrains Mono as latin-subset OFL woff2 (weights 400/500/600 — scoped to `font-medium`/
   `font-semibold`/body; no 700 in the UI) under `apps/web/src/fonts`, loaded via `next/font/local`
