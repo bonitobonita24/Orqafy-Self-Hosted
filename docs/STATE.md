@@ -1,6 +1,6 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-08 · **WEB CORE v1 COMPLETE + verified + documented (full-auto run). Phase 4 Parts 1–5, 7, 8 done + web usable-forms + dashboard/pgbouncer bugfix.** Current tip `feat/phase4-part8-docs`. NEXT = remaining web scope (see "Next un-gated work"), then Expo mobile (Part 6) + Tauri desktop as later waves. Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
+**Last updated:** 2026-09-09 · **WEB CORE v1 COMPLETE + verified + documented (full-auto run). Phase 4 Parts 1–5, 7, 8 done + web usable-forms + Leave/Milestones/Users mgmt forms + dashboard/pgbouncer bugfix.** Current tip `feat/web-mgmt-forms` (`b614da5`). **NEXT = permission-builder editor UI (D-17)** — then remaining web scope (see "Next un-gated work"), then Expo mobile (Part 6) + Tauri desktop as later waves. Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
 
 **Phase 4 Part 7 ✅ (branch `feat/phase4-part7`, local, HARD HOLD).** Dev Compose bundle `deploy/compose/dev/` (postgres+pgbouncer, valkey, minio+console+bucket-init, mailhog, pgadmin pre-wired, app, worker) + `start.sh` + `tools/dev-smoke.sh`; Rule-22 ports, named volumes `orqafy_dev_*`, NO `docker-publish.yml` (D-3/D-27). `docker compose config` valid. **Live-verified end-to-end**: migration applied (16 tables), web app booted, Playwright drove first-run→login→dashboard→Client/Project/Task CRUD, all persisted (UI reload + DB). Added worker entrypoint `packages/jobs/src/main.ts`. **Fixed a blocking Part-5 middleware bug** (`/api/trpc` was 307→/login for unauth'd requests, killing first-run) — see SESSION_LOG + lesson `nextjs.middleware.matcher-gates-api-trpc`. Agent-found open item: `/` on fresh install redirects to `/login` not `/setup` (TASK_QUEUE). Part 6 (Expo mobile) is a later wave (web-first, D-25/W-1).
 
@@ -65,6 +65,15 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
    live kanban drag-drop, WS transport, self-hosted woff2 fonts.
 4. **Deferred `[HOW]` follow-ups (TASK_QUEUE):** `Document.size` Int→BigInt if >2GB · ESLint 8→9 flat config.
    Plus the 3 BLOCKED (hardware/stack/tunnel) + POST-V1 cloud-storage.
+
+## Session note — 2026-09-09 (resume + save, slot 11 — no code change)
+
+Reconcile-only session. Loaded cold-start authority, reconciled vs ground truth: clean tree, branch
+`feat/web-mgmt-forms` tip `b614da5`, **0 open `[WHAT]`**. Corrected the stale tip references in STATE.md
+header + cold-start memory (was `feat/phase4-part8-docs` → now `feat/web-mgmt-forms`) and re-derived NEXT
+from the queue = **permission-builder editor UI (D-17)**. Re-flagged and re-declined the SessionStart
+3-tier RBAC retrofit — superseded by D-5 (single-company, no tenant model). Owner asked to save + hand off;
+no build work performed. HARD HOLD held (nothing pushed).
 
 ## Session note — 2026-09-08 (Phase 0 scaffold — branch `chore/phase0-scaffold`)
 

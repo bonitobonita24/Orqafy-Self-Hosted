@@ -4,6 +4,24 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Resume + checkpoint (no code change)
+
+**In your words:** save session first, make a complete handoff.
+
+✅ **Done**
+- Reconstructed where we left off and verified it against the live repo (clean tree, branch
+  `feat/web-mgmt-forms`, 0 open decisions).
+- Corrected stale "current tip" pointers in the handoff + memory, and wrote the complete handoff.
+
+💬 **Notes** — The SessionStart prompt keeps offering a multi-tenant RBAC retrofit; it does **not** apply
+here (D-5: this is a single-company install, no tenant model). Declined again. HARD HOLD held — nothing pushed.
+
+⏳ **Next** — permission-builder editor UI (D-17: custom groups + per-user overrides; the API already
+exists). Then: document upload/management, Leaflet map picker, kanban drag-drop, websocket transport,
+self-hosted fonts. Expo mobile + Tauri desktop are later waves.
+
+⛔ **Blocked / deferred** — 3 hardware/stack/tunnel verification tasks; POST-V1 cloud-storage add-on.
+
 ## 2026-09-08 — Web core v1 COMPLETE (full auto): app builds, runs, documented
 
 **In your words:** kick off Phase 4 Part 1 and run in full auto mode.
