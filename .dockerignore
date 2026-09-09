@@ -1,0 +1,18 @@
+# Repo-root .dockerignore — trims the Docker build context for the dev image builds
+# (Dockerfile.app / Dockerfile.worker both COPY . . from the repo root).
+# Excluding node_modules drops a ~1.3GB context transfer AND avoids
+# ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY (pnpm refusing to purge a copied-in
+# modules dir without a TTY). Source, prisma schema, pnpm-lock.yaml, package.json,
+# and tsconfig are intentionally NOT excluded — the builds need them.
+**/node_modules
+.git
+**/.next
+**/dist
+**/build
+test-artifacts
+screenshots
+**/*.log
+.env
+.env.*
+# ...but keep the committed example env in context.
+!.env.example

@@ -14,7 +14,9 @@ COPY . .
 
 # The worker imports @orqafy/db (OCR pipeline persists Document/DocumentReview),
 # so its Prisma client must be generated — same step as Dockerfile.app.
-RUN pnpm install --frozen-lockfile \
+# CI=true (install-scoped, not persistent ENV) lets pnpm purge any node_modules dir
+# that slips past .dockerignore without a TTY (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY).
+RUN CI=true pnpm install --frozen-lockfile \
   && pnpm --filter @orqafy/db exec prisma generate
 
 # tsx watch — the worker bootstrap (src/main.ts) starts every BullMQ consumer.
