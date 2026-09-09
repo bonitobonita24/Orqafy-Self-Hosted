@@ -1,15 +1,18 @@
-// Worker process entrypoint (Part 7 — the `worker` compose service runs this).
+// Worker process entrypoint (the `worker` compose service runs this).
 // Boots every BullMQ consumer against Valkey and holds the process open until a
-// termination signal, then drains in-flight jobs before exiting. Processor
-// bodies are the Part-4 stubs (see worker.ts) — the plumbing is production-shaped.
+// termination signal, then drains in-flight jobs before exiting. Processors are
+// the real ones — Prisma / storage / the OCR HTTP client are wired from env via
+// buildRuntimeDeps (throws early if OCR_URL is unset).
 
 import { connectionFromEnv } from './connection';
-import { createWorkers, closeWorkers, type WorkerRegistry } from './worker';
 import { QUEUE_NAMES } from './queues';
+import { buildRuntimeDeps } from './runtime-deps';
+import { createWorkers, closeWorkers, createProcessors, type WorkerRegistry } from './worker';
 
 function main(): void {
   const connection = connectionFromEnv();
-  const workers: WorkerRegistry = createWorkers(connection);
+  const deps = buildRuntimeDeps();
+  const workers: WorkerRegistry = createWorkers(connection, createProcessors(deps));
 
   const names = Object.values(QUEUE_NAMES).join(', ');
   // eslint-disable-next-line no-console
