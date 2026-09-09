@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import { Plus, Pencil, MapPin } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, CardTitle, KanbanBoard } from '@orqafy/ui';
 import type { KanbanColumn } from '@orqafy/ui';
+import { TaskStatus } from '@orqafy/db';
 import { trpc } from '@/trpc/react';
 import { TaskFormDialog } from '@/components/forms/task-form';
 import { MilestoneFormDialog } from '@/components/forms/milestone-form';
@@ -29,6 +30,34 @@ export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
   const project = trpc.projects.byId.useQuery({ id: params.id }, { enabled: params.id !== '' });
   const data = project.data;
+
+  const utils = trpc.useUtils();
+  // Cross-column drag → tasks.move, with an optimistic board update + rollback.
+  const move = trpc.tasks.move.useMutation({
+    async onMutate(vars) {
+      const key = { id: params.id };
+      await utils.projects.byId.cancel(key);
+      const previous = utils.projects.byId.getData(key);
+      utils.projects.byId.setData(key, (prev) => {
+        if (prev == null) return prev;
+        return {
+          ...prev,
+          tasks: prev.tasks.map((task) =>
+            task.id === vars.id ? { ...task, status: vars.status } : task,
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError(_err, _vars, context) {
+      if (context?.previous !== undefined) {
+        utils.projects.byId.setData({ id: params.id }, context.previous);
+      }
+    },
+    onSettled() {
+      void utils.projects.byId.invalidate({ id: params.id });
+    },
+  });
 
   const columns: KanbanColumn[] =
     data === undefined || data === null
@@ -72,7 +101,12 @@ export default function ProjectDetailPage() {
               />
             </CardHeader>
             <CardContent>
-              <KanbanBoard columns={columns} />
+              <KanbanBoard
+                columns={columns}
+                onCardMove={(cardId, toColumnId) =>
+                  move.mutate({ id: cardId, status: toColumnId as TaskStatus })
+                }
+              />
             </CardContent>
           </Card>
 
