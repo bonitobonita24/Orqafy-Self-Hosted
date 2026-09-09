@@ -16,3 +16,44 @@ export interface OcrClient {
   /** OCR one object's bytes. `contentType` lets the sidecar branch image vs PDF. */
   extract(input: { body: Uint8Array; contentType: string; filename: string }): Promise<OcrExtraction>;
 }
+
+export interface OcrClientConfig {
+  /** Base URL of the OCR sidecar, e.g. `http://ocr:9003` (env `OCR_URL`). */
+  baseUrl: string;
+  /** Injectable for tests; defaults to global `fetch`. */
+  fetchImpl?: typeof fetch;
+  /** Abort the request after this many ms (default 120_000 — OCR is slow). */
+  timeoutMs?: number;
+}
+
+/** HTTP OCR client. Engine-agnostic: any sidecar honouring `POST /ocr` works. */
+export function createOcrClient(config: OcrClientConfig): OcrClient {
+  const doFetch = config.fetchImpl ?? fetch;
+  const timeoutMs = config.timeoutMs ?? 120_000;
+  const endpoint = `${config.baseUrl.replace(/\/$/, '')}/ocr`;
+
+  return {
+    async extract(input) {
+      const form = new FormData();
+      const blob = new Blob([input.body], { type: input.contentType });
+      form.append('file', blob, input.filename);
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await doFetch(endpoint, { method: 'POST', body: form, signal: controller.signal });
+        if (!res.ok) {
+          throw new Error(`OCR sidecar returned ${res.status} for ${input.filename}`);
+        }
+        const json = (await res.json()) as { text?: unknown; engine?: unknown; pages?: unknown };
+        return {
+          text: typeof json.text === 'string' ? json.text : '',
+          engine: typeof json.engine === 'string' ? json.engine : 'unknown',
+          pages: typeof json.pages === 'number' ? json.pages : 0,
+        };
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+  };
+}
