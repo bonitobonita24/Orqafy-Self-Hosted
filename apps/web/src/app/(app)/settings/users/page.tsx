@@ -5,7 +5,8 @@
 // EDITING a user with a ROLE ASSIGNMENT. The full permission-builder editor
 // (custom groups + per-user overrides UI) is a SEPARATE later chunk; the role /
 // permission data and mutations for it already exist on the API.
-import { Plus, Pencil } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Pencil, KeyRound, SlidersHorizontal } from 'lucide-react';
 import {
   Button,
   Card,
@@ -21,6 +22,7 @@ import {
 } from '@orqafy/ui';
 import { trpc } from '@/trpc/react';
 import { UserFormDialog } from '@/components/forms/user-form';
+import { UserOverridesDialog } from '@/components/forms/user-overrides-form';
 
 export default function UsersRolesPage() {
   const users = trpc.users.list.useQuery(undefined, { retry: false });
@@ -58,7 +60,7 @@ export default function UsersRolesPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Active</TableHead>
-                  <TableHead className="w-16" />
+                  <TableHead className="w-24" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -69,21 +71,36 @@ export default function UsersRolesPage() {
                     <TableCell>{u.role.name}</TableCell>
                     <TableCell>{u.isActive ? 'Yes' : 'No'}</TableCell>
                     <TableCell className="text-right">
-                      <UserFormDialog
-                        user={{
-                          id: u.id,
-                          name: u.name,
-                          email: u.email,
-                          roleId: u.roleId,
-                          phone: u.phone,
-                          isActive: u.isActive,
-                        }}
-                        trigger={
-                          <Button variant="ghost" size="icon" aria-label={`Edit ${u.name}`}>
-                            <Pencil />
-                          </Button>
-                        }
-                      />
+                      <div className="flex items-center justify-end gap-1">
+                        <UserOverridesDialog
+                          userId={u.id}
+                          userName={u.name}
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Permissions for ${u.name}`}
+                            >
+                              <SlidersHorizontal />
+                            </Button>
+                          }
+                        />
+                        <UserFormDialog
+                          user={{
+                            id: u.id,
+                            name: u.name,
+                            email: u.email,
+                            roleId: u.roleId,
+                            phone: u.phone,
+                            isActive: u.isActive,
+                          }}
+                          trigger={
+                            <Button variant="ghost" size="icon" aria-label={`Edit ${u.name}`}>
+                              <Pencil />
+                            </Button>
+                          }
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -94,8 +111,13 @@ export default function UsersRolesPage() {
       )}
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
           <CardTitle>Roles &amp; permission groups</CardTitle>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/settings/roles">
+              <KeyRound /> Manage groups
+            </Link>
+          </Button>
         </CardHeader>
         <CardContent className="space-y-2">
           {roles.data?.map((r) => (

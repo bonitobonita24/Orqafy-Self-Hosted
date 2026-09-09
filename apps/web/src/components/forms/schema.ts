@@ -138,6 +138,16 @@ export const userFormSchema = z.object({
 });
 export type UserFormValues = z.infer<typeof userFormSchema>;
 
+// ── Permission group (D-17 — custom-group builder) ────────────────────────────
+// `permissions` is a plain string[] here (the shape RHF collects from a grid of
+// same-name checkboxes). The atoms match `permissionEnum`, so the tRPC mutation
+// (`z.array(permissionEnum)`) accepts them; the dialog narrows the cast on submit.
+export const groupFormSchema = z.object({
+  name: z.string().min(1, 'A name is required'),
+  permissions: z.array(z.string()).default([]),
+});
+export type GroupFormValues = z.infer<typeof groupFormSchema>;
+
 /** '' | undefined → undefined; otherwise a Date built from the input value. */
 export function toDate(value: string | undefined): Date | undefined {
   if (value === undefined || value === '') return undefined;
