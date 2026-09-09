@@ -26,8 +26,13 @@
   --ring: 215 70% 42%;
 
   --radius: 0.625rem;
-  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Self-hosted faces are exposed by next/font/local as --font-plex-sans /
+   * --font-jetbrains-mono (app root, src/lib/fonts.ts). Consume them via the var()
+   * fallback form so that if an app hasn't wired next/font, the literal name + system
+   * stack is used instead — an undefined bare var() would invalidate the whole
+   * declaration, so the fallback MUST live inside var(), not after a comma. */
+  --font-sans: var(--font-plex-sans, 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif);
+  --font-mono: var(--font-jetbrains-mono, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
 }
 
 .dark {
