@@ -4,6 +4,15 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Document review-tray + OCR-text search UI
+
+**In your words:** finish the remaining web scope — the review-tray screen (so a human can confirm/reassign the documents the auto-filer wasn't sure about) and a way to search documents by their extracted (OCR) text. The pipeline already produces the data; build the screens.
+
+✅ Done — **Review tray** at `/review` (new sidebar entry): lists the documents awaiting review with their suggested filing + a confidence %, and lets you **Confirm** the suggestion or **Reassign** to a chosen project/client/category in one click. ✅ Done — **document search** on the Files page: a search box that filters documents by the text found inside them (case-insensitive). Both **verified working on the live app** (I logged in, reassigned the one pending document — it re-filed correctly and the tray emptied; searched "RANDOM"→1 result, "invoice"→2, a nonsense term→"no matches"), confirmed in the database and the server logs, screenshots saved.
+✅ Done (necessary fix) — the production build was silently broken by a pre-existing TypeScript error in the OCR code (a Blob typing issue that only shows up through the web app's compiler). Fixed it so the build compiles and type-checks again.
+💬 Note — the production `next build` **still fails at one more, unrelated, pre-existing step**: Next.js chokes generating its default "404" page (`<Html>` error). This never showed before because everything so far was verified in dev mode, never a full production build. It does **not** affect the feature (dev/live-verified) but it blocks a production/Docker image build. Logged as a HIGH agent-found item in TASK_QUEUE for a dedicated fix.
+⏳ Next — Expo mobile (Part 6) + Tauri desktop (own sessions); and the `<Html>` production-build blocker above.
+
 ## 2026-09-09 — Document OCR + doc-matching pipeline
 
 **In your words:** wire up the OCR + doc-matching processors so an uploaded document's text is extracted (offline, RapidOCR/Tesseract per R-5/D-13) and matched into the DocumentReview "match tray".

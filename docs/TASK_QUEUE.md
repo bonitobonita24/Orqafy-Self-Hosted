@@ -35,6 +35,16 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ### Agent-found (Phase 4 build)
 
+- 🔴 **[HIGH — blocks `next build` / prod+docker image] `<Html> should not be imported outside pages/_document`
+  on default `/404` static-gen.** `pnpm --filter @orqafy/web build` now clears compile + type-check (see the
+  ocr.ts fix `b59b086`) but dies at "Generating static pages" prerendering the framework-default `/404`
+  (`/_error`) with the `<Html>` error (chunk `935.js`). **Pre-existing, NOT from the review/search work** —
+  there is no `next/document`/`Html` import, no custom error/404/not-found page, and no stray `pages/` dir in
+  `apps/web/src`; a framework/dependency-level Next 15.5 static-gen issue. Never surfaced because all prior
+  verification ran in **dev mode** (`next dev` via `Dockerfile.app`), never a production `next build`. Likely
+  fixes to try: mark BullMQ/valkey external in `next.config` (its server graph is pulled into the error chunk),
+  a custom `app/not-found.tsx` + `app/global-error.tsx`, or a Next patch. Until fixed, dev-mode is the only
+  runnable build path. `<source: agent-found 2026-09-09>`
 - 🔴 **BullMQ `@valkey/valkey-glide` build warning** — since `apps/web` imports `@orqafy/jobs`, `next build`
   emits a benign "Module not found: @valkey/valkey-glide" warning (BullMQ's optional Glide client; we use the
   default ioredis path — runtime-verified working). Silence by marking it external in `next.config`.
@@ -59,6 +69,24 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **Document review-tray + OCR-text search UI** (2026-09-09, `feat/document-review-search`, tip `b59b086`).
+  The two remaining web surfaces over the D-13 OCR pipeline. **Review tray** (`/review`, new `Inbox` nav entry):
+  lists pending `DocumentReview` rows (`documents.reviewTray`) with per-row **Confirm** (accept the auto-filer
+  suggestion) and **Reassign** (pick project/client/category) → `documents.decideReview`; invalidates
+  reviewTray+list+unsortedCount+dashboard.summary; graceful FORBIDDEN/empty/loading. **OCR-text search**
+  (`/files`): `documents.list` gains optional `q` → case-insensitive `ocrText contains` (v1; tsvector+GIN is
+  the noted graduation path) + a search box. Verified LIVE on the dev stack (Playwright + DB + tRPC 200s):
+  reassign persisted (review=reassigned, doc re-filed to chosen project+category, pending 1→0); search
+  q=RANDOM→1, q=invoice→2 (case-insensitive), q=zzznomatch→empty. web+jobs tsc + web eslint + jobs 15 tests
+  green; AGPL guard clean; HARD HOLD local. ⚠ `next build` static-gen still blocked by a **pre-existing**
+  `<Html>`/404 issue (logged agent-found, HIGH) — feature is dev/runtime-verified, prod build is a separate
+  open blocker.
+- ✅ **Build-gate fix: OCR Blob typecheck under web DOM lib** (2026-09-09, `b59b086`). `new Blob([Uint8Array])`
+  failed the web app's stricter tsc (`Uint8Array<ArrayBufferLike>` ⊄ `BlobPart`) — blocked the `next build`
+  type gate though `@orqafy/jobs`' own tsc accepted it. Fixed with `input.body.slice().buffer as ArrayBuffer`
+  (valid in both libs, runtime-identical). Cross-scope (OCR-worker path, touched only to restore the shared
+  gate; worker rebuild picks it up, behaviour identical). Lesson
+  `typescript.monorepo.uint8array-blobpart-cross-tsconfig`.
 - ✅ **Document OCR + doc-matching pipeline (D-13 thin slice)** (2026-09-09, `feat/document-ocr-matching`, 8 commits, tip `af0d71d`). The `ocr` + `document-matching` BullMQ processors are now real: the worker fetches bytes via `@orqafy/storage`, POSTs to a **profile-gated offline RapidOCR HTTP sidecar** (`deploy/compose/ocr/` — no OCR lib in the TS repo, per R-5/D-13), persists `Document.ocrText`/`ocrStatus`, then runs a deterministic exact-ID matcher (`Project.code`/name, NO LLM) that auto-files a confident hit (`Document.projectId`/`clientId` + a `confirmed` DocumentReview @0.95) or writes a `pending` DocumentReview to the match tray. `createProcessors(deps)` DI seam; 15 vitest unit tests. Live e2e verified **from the committed containers** (worker+ocr, no host workaround): positive `PRJ-017`→confirmed 0.95 invoice + negative no-code→pending 0. Evidence: `test-artifacts/ocr-e2e-2026-09-09/`. AGPL guard clean, HARD HOLD local. Follow-up (agent-found): review-tray + full-text-search **UI** surfaces — data is correct, screens may not exist yet.
 - ✅ **Docker dev-build fixes (closed 2 known 🔴)** (2026-09-09, `af0d71d`). Root-caused `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`: no repo `.dockerignore` → host `node_modules` (~1.3GB) shipped into the `../../..` build context → pnpm refuses to purge without a TTY. Added repo-root `.dockerignore` (`**/node_modules`, `.git`, `.next`, `dist`, `test-artifacts`, `.env*` with `!.env.example`) + `CI=true` on the worker install line. **Cross-scope note:** the `.dockerignore` also fixes `Dockerfile.app`'s identical latent bug. Also added `libgl1 libglib2.0-0` to the OCR image (opencv/cv2 needs `libGL.so.1`). Both images build + boot clean, container-verified.
 - ✅ **Self-hosted brand fonts (woff2)** (2026-09-09, `feat/self-hosted-fonts` 0560001). Vendored IBM Plex
