@@ -4,6 +4,31 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Permission-builder editor UI (D-17)
+
+**In your words:** (autonomous loop) keep building the remaining web scope — next up was the permission-builder editor.
+
+✅ **Done**
+- Built the **permission-builder editor UI** — the piece that was still missing after Users/roles landed.
+  - A **Permission groups** page (`/settings/roles`): make your own custom permission groups, edit which
+    permissions each group grants, and delete custom ones. The 5 built-in roles can have their permissions
+    tuned but their names are locked and they can't be deleted.
+  - A **per-user Permissions** panel on each user row: override any of the 10 permissions on top of what their
+    role/groups already give — leave it inherited, force-grant, or force-revoke.
+- Verified it for real in the running app (not just a build): created a group, edited a built-in role,
+  set a per-user override and confirmed it stuck after a page reload, then cleaned up. All green.
+
+💬 **Notes**
+- The backend for this already existed — this was front-end only. One new small building block (a checkbox)
+  was added to the shared UI kit; no other library added.
+- Committed locally on `feat/web-permission-builder` (`701d6b4`). Nothing pushed (HARD HOLD).
+- The start-of-session RBAC-retrofit suggestion was declined again — it doesn't apply here (single-company
+  install, D-5).
+
+⏳ **Next**
+- Document upload/management (wire the file storage + a document details form), then the map picker, live
+  kanban drag-drop, realtime, and self-hosted fonts. Then the mobile + desktop apps as their own waves.
+
 ## 2026-09-09 — Resume + checkpoint (no code change)
 
 **In your words:** save session first, make a complete handoff.

@@ -1,6 +1,6 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-09 · **WEB CORE v1 COMPLETE + verified + documented (full-auto run). Phase 4 Parts 1–5, 7, 8 done + web usable-forms + Leave/Milestones/Users mgmt forms + dashboard/pgbouncer bugfix.** Current tip `feat/web-mgmt-forms` (`b614da5`). **NEXT = permission-builder editor UI (D-17)** — then remaining web scope (see "Next un-gated work"), then Expo mobile (Part 6) + Tauri desktop as later waves. Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
+**Last updated:** 2026-09-09 · **WEB CORE v1 COMPLETE + verified. Phase 4 Parts 1–5, 7, 8 + web usable-forms + Leave/Milestones/Users mgmt forms + dashboard/pgbouncer bugfix + permission-builder editor UI (D-17).** Current tip `feat/web-permission-builder` (`701d6b4`, off `feat/web-mgmt-forms`). **NEXT = Document upload/management** (core module, stubbed: `@orqafy/storage`+`jobs` wiring + Document metadata form) — then remaining web scope (Leaflet map picker · live kanban DnD · WS transport · self-hosted woff2 fonts), then Expo mobile (Part 6) + Tauri desktop as later waves. Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
 
 **Phase 4 Part 7 ✅ (branch `feat/phase4-part7`, local, HARD HOLD).** Dev Compose bundle `deploy/compose/dev/` (postgres+pgbouncer, valkey, minio+console+bucket-init, mailhog, pgadmin pre-wired, app, worker) + `start.sh` + `tools/dev-smoke.sh`; Rule-22 ports, named volumes `orqafy_dev_*`, NO `docker-publish.yml` (D-3/D-27). `docker compose config` valid. **Live-verified end-to-end**: migration applied (16 tables), web app booted, Playwright drove first-run→login→dashboard→Client/Project/Task CRUD, all persisted (UI reload + DB). Added worker entrypoint `packages/jobs/src/main.ts`. **Fixed a blocking Part-5 middleware bug** (`/api/trpc` was 307→/login for unauth'd requests, killing first-run) — see SESSION_LOG + lesson `nextjs.middleware.matcher-gates-api-trpc`. Agent-found open item: `/` on fresh install redirects to `/login` not `/setup` (TASK_QUEUE). Part 6 (Expo mobile) is a later wave (web-first, D-25/W-1).
 
@@ -54,10 +54,10 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 ## Next un-gated work
 
 1. ~~Mockup~~ ~~Phase 0~~ ~~Parts 1–5,7,8~~ ~~web create/edit forms~~ ~~/setup fix~~ ~~dashboard+pgbouncer bugfix~~ ~~LICENSE/README/CI~~ ✅ **DONE 2026-09-08 (full-auto).**
-2. **NEXT → remaining web scope** (finish web-first before mobile). Leave(apply/approve)/Milestones/Users
-   management forms ✅ done (`feat/web-mgmt-forms` 583efad, verified). Remaining:
-   **permission-builder editor UI** (D-17; custom groups + per-user overrides — API exists) · **Document
-   upload/management** (core module, currently stubbed) · **Leaflet map picker** (task geofence location) ·
+2. **NEXT → remaining web scope** (finish web-first before mobile). Leave/Milestones/Users forms ✅
+   (`feat/web-mgmt-forms` 583efad). **Permission-builder editor UI (D-17) ✅** (`feat/web-permission-builder`
+   701d6b4, runtime-verified). Remaining: **Document upload/management** (core module, stubbed — wire
+   `@orqafy/storage`+`jobs` + a Document metadata form) · **Leaflet map picker** (task geofence location) ·
    **live kanban drag-drop** · **websocket transport** for realtime (D-22) · **self-hosted woff2 fonts**.
    Each its own chunk; runtime-verify after each.
 3. **Part 6 (Expo mobile) + desktop (Tauri)** are later waves (web-first, D-25/W-1) — big enough for their own
@@ -65,6 +65,20 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
    live kanban drag-drop, WS transport, self-hosted woff2 fonts.
 4. **Deferred `[HOW]` follow-ups (TASK_QUEUE):** `Document.size` Int→BigInt if >2GB · ESLint 8→9 flat config.
    Plus the 3 BLOCKED (hardware/stack/tunnel) + POST-V1 cloud-storage.
+
+## Session note — 2026-09-09 (loop slot 11 — permission-builder editor UI, D-17)
+
+Loop wake. Re-derived the queue per ⚠RESCAN: 0 open `[WHAT]`, clean tree, un-gated work available → worked
+the top item. Built the **D-17 permission-builder editor UI** (branch `feat/web-permission-builder` off
+`feat/web-mgmt-forms`; scout-mapped the RBAC API + form idiom, then dispatched one Opus worker). Backend API
+already existed — front end only. Delivered: dependency-free `Checkbox` in `@orqafy/ui`; `/settings/roles`
+group builder (create/edit/delete custom groups, edit system-group permissions with name locked); per-user
+overrides dialog on the Users table (3-state override over the role+group base); shared permission labels.
+**PM runtime-verified via Playwright on the live dev stack** (infra in Docker + web on host): created a custom
+group (persisted), confirmed system-group name-lock, set+persisted a per-user override across a full reload,
+cleared it, deleted the custom group. typecheck/lint/`@orqafy/web build` green; only console error is a
+pre-existing favicon 404. One commit `701d6b4`, pre-commit asset guard clean. HARD HOLD — nothing pushed.
+**NEXT = Document upload/management.** RBAC-retrofit SessionStart note re-declined (superseded by D-5).
 
 ## Session note — 2026-09-09 (resume + save, slot 11 — no code change)
 

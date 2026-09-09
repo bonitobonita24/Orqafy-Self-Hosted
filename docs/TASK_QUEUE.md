@@ -44,9 +44,9 @@ exist yet. They are NOT actionable now; they gate a later phase._
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
 - 🟡 **Entity forms — PARTIAL** — ✅ Leave (apply/approve) · Milestones · Users (create/edit + role assign)
-  done (`feat/web-mgmt-forms` 583efad, runtime-verified). Remaining: **permission-builder editor UI** (D-17;
-  custom groups + per-user overrides — API already exists) + Document metadata form. Same pattern as the
-  shipped forms. `<source: agent-found 2026-09-08>`
+  done (`feat/web-mgmt-forms` 583efad). ✅ **Permission-builder editor UI (D-17)** done
+  (`feat/web-permission-builder` 701d6b4, runtime-verified). Remaining: **Document metadata form** (with the
+  document upload chunk below). Same pattern as the shipped forms. `<source: agent-found 2026-09-08>`
 - 🔴 **Stubbed web features** — document upload/OCR wiring (`@orqafy/storage`+`jobs`) · Leaflet map picker for
   task location · live kanban drag-drop · websocket transport for realtime (D-22) · self-hosted woff2 fonts.
   Each its own chunk, runtime-verify after each. `<source: agent-found 2026-09-08>`
@@ -55,6 +55,12 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **Permission-builder editor UI (D-17)** (2026-09-09, `feat/web-permission-builder` 701d6b4). Custom
+  permission groups (create/edit/delete on `/settings/roles`; system-group name locked, permissions editable,
+  no delete) + per-user overrides dialog on the Users table (3-state Inherit/Force-grant/Force-revoke over the
+  role+group base). New dependency-free `Checkbox` in `@orqafy/ui`; no server changes (API already existed).
+  Runtime-verified (Playwright+live DB): created/edited/deleted a custom group, confirmed system name-lock,
+  set+persisted+cleared a per-user override. typecheck/lint/build green, AGPL guard clean, HARD HOLD local.
 - ✅ **Web management UIs — Leave / Milestones / Users** (2026-09-08, `feat/web-mgmt-forms` 583efad). Leave
   apply + approve/reject (D-21) · Milestone create/edit on project detail · Users list/create/edit + role
   assignment (D-17, role-assign only — permission-builder deferred). Added a minimal `milestones` router.
