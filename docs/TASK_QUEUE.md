@@ -44,14 +44,25 @@ exist yet. They are NOT actionable now; they gate a later phase._
   `<source: agent-found 2026-09-08>`
 - 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
   legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. `<source: agent-found 2026-09-08>`
+- 🔴 **Dev Docker image rebuild broken** — `bash deploy/compose/start.sh dev up -d --build` fails at
+  `pnpm install --frozen-lockfile` in `deploy/compose/dev/Dockerfile.app` (+`.worker`) with
+  `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY` (pnpm 10 refuses to purge node_modules non-interactively).
+  Triggered when the lockfile changes (e.g. adding a dep) so the copied modules dir mismatches. Fix: set
+  `ENV CI=true` (or `--config.confirmModulesPurge=false`) before the install in both Dockerfiles.
+  Host hot-reload dev path is unaffected and is the supported dev mode. `<source: agent-found 2026-09-09>`
+- 🔴 **No `.dockerignore`** — repo has none, so host `node_modules` (and `.env*`) get sent into the Docker
+  build context; this is the root cause of the pnpm-purge failure above and bloats the build. Add a
+  `.dockerignore` excluding `**/node_modules`, `.env*`, `.git`, `.next`, framework brain dirs.
+  `<source: agent-found 2026-09-09>`
 
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
 - ✅ **Entity forms — DONE** — Leave (apply/approve) · Milestones · Users (create/edit + role assign)
   (`feat/web-mgmt-forms` 583efad) · **Permission-builder editor UI (D-17)** (`feat/web-permission-builder`
   701d6b4) · **Document upload + metadata form** (`feat/web-document-management` 206c66d). All runtime-verified.
-- 🔴 **Stubbed web features (remaining)** — live kanban drag-drop · websocket transport for realtime (D-22) ·
-  self-hosted woff2 fonts. Each its own chunk, runtime-verify after each. `<source: agent-found 2026-09-08>`
+- 🔴 **Stubbed web features (remaining)** — ~~live kanban drag-drop~~ ✅ (`feat/web-kanban-dnd` c43ed89) ·
+  websocket transport for realtime (D-22) · self-hosted woff2 fonts. Each its own chunk, runtime-verify
+  after each. `<source: agent-found 2026-09-08>`
 - 🔴 **Document OCR/matching processors** — the `ocr` + `document-matching` BullMQ processors in
   `@orqafy/jobs` are still stubs (return pending). Upload enqueues a real OCR job (verified `bull:ocr`), but
   the processing (RapidOCR/Tesseract clean lane per R-5/D-13, then the DocumentReview match tray) is a later
@@ -61,6 +72,13 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **Live kanban drag-drop** (2026-09-09, `feat/web-kanban-dnd` c43ed89). Replaced the static board stub
+  with real `@dnd-kit/core` DnD: droppable columns keyed to `TaskStatus`, draggable cards, Pointer+Keyboard
+  sensors, `onCardMove` fires only on cross-column drops → `tasks.move` mutation with react-query v5
+  optimistic update (snapshot + setData, onError rollback, onSettled invalidate). Kept the existing themed
+  look (subtle drag/over affordances only). Static gates green (ui/web typecheck, lint, build); Playwright
+  runtime-verified on the live stack — dragged a card To-do→Blocked, DB persisted `status=blocked`, survived
+  a full page reload. AGPL guard clean, HARD HOLD local.
 - ✅ **Leaflet map picker for task geofence** (2026-09-09, `feat/web-map-picker` 93008dc). Interactive MapPicker
   in `@orqafy/ui` (click/drag to set anchor, radius→circle preview, inline-SVG pin, env-configurable OSM tiles),
   ssr:false subpath-exported to dodge the server-side leaflet crash; task-form two-way bound (map writes lat/lng

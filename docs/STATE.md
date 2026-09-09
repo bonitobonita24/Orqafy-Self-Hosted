@@ -1,6 +1,6 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-09-09 · **WEB CORE v1 COMPLETE + verified. Phase 4 Parts 1–5, 7, 8 + web usable-forms + Leave/Milestones/Users mgmt forms + dashboard/pgbouncer bugfix + permission-builder editor UI (D-17) + document upload/management + Leaflet map picker.** Current tip `feat/web-map-picker` (`93008dc`, off `feat/web-document-management`). **NEXT = remaining web scope** (live kanban DnD · WS transport · self-hosted woff2 fonts), then Document OCR/matching processors (later chunk), then Expo mobile (Part 6) + Tauri desktop as later waves. Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
+**Last updated:** 2026-09-09 · **WEB CORE v1 COMPLETE + verified. Phase 4 Parts 1–5, 7, 8 + web usable-forms + Leave/Milestones/Users mgmt forms + dashboard/pgbouncer bugfix + permission-builder editor UI (D-17) + document upload/management + Leaflet map picker + live kanban drag-drop.** Current tip `feat/web-kanban-dnd` (`c43ed89`, off `feat/web-map-picker`). **NEXT = remaining web scope** (WS transport for realtime D-22 · self-hosted woff2 fonts), then Document OCR/matching processors (later chunk), then Expo mobile (Part 6) + Tauri desktop as later waves. ⚠ Dev Docker image rebuild is broken (pnpm-purge/no-`.dockerignore` — TASK_QUEUE); use the host hot-reload dev path (`.env.dev` is host-shaped: `pnpm --filter @orqafy/web dev` on 56483 against dockerized infra). Monorepo: 8 `@orqafy/*` packages + `apps/web` (Next.js+tRPC+Auth.js, plain shadcn/Kibo) + dev Compose bundle; framework brain LOCAL-ONLY (gitignored + guard-verified). **Live runtime-verified**: first-run→login→dashboard(KPIs)→Client/Project/Task created+edited via FORM UIs, persisted (Playwright+DB). LICENSE (AGPL-3.0) + README (honest status + quickstart) + `.github/workflows/ci.yml` (lint/typecheck/test/build, no publish) added. All typecheck/lint/build green; AGPL boundary verified after every step; **HARD HOLD — nothing pushed**.
 
 **Phase 4 Part 7 ✅ (branch `feat/phase4-part7`, local, HARD HOLD).** Dev Compose bundle `deploy/compose/dev/` (postgres+pgbouncer, valkey, minio+console+bucket-init, mailhog, pgadmin pre-wired, app, worker) + `start.sh` + `tools/dev-smoke.sh`; Rule-22 ports, named volumes `orqafy_dev_*`, NO `docker-publish.yml` (D-3/D-27). `docker compose config` valid. **Live-verified end-to-end**: migration applied (16 tables), web app booted, Playwright drove first-run→login→dashboard→Client/Project/Task CRUD, all persisted (UI reload + DB). Added worker entrypoint `packages/jobs/src/main.ts`. **Fixed a blocking Part-5 middleware bug** (`/api/trpc` was 307→/login for unauth'd requests, killing first-run) — see SESSION_LOG + lesson `nextjs.middleware.matcher-gates-api-trpc`. Agent-found open item: `/` on fresh install redirects to `/login` not `/setup` (TASK_QUEUE). Part 6 (Expo mobile) is a later wave (web-first, D-25/W-1).
 
@@ -57,14 +57,36 @@ D-5 + D-6 rationale and full consequences: `docs/DECISIONS_LOG.md`.
 2. **NEXT → remaining web scope** (finish web-first before mobile). Leave/Milestones/Users forms ✅
    (`feat/web-mgmt-forms` 583efad). **Permission-builder editor UI (D-17) ✅** (`feat/web-permission-builder`
    701d6b4). **Document upload/management ✅** (`feat/web-document-management` 206c66d). **Leaflet map picker ✅**
-   (`feat/web-map-picker` 93008dc, runtime-verified). Remaining: **live kanban drag-drop** · **websocket
-   transport** for realtime (D-22) · **self-hosted woff2 fonts**. Then **Document OCR/matching processors**
-   (`@orqafy/jobs` stubs). Each its own chunk; runtime-verify after each.
+   (`feat/web-map-picker` 93008dc, runtime-verified). **Live kanban drag-drop ✅** (`feat/web-kanban-dnd`
+   c43ed89, runtime-verified). Remaining: **websocket transport** for realtime (D-22) · **self-hosted woff2
+   fonts**. Then **Document OCR/matching processors** (`@orqafy/jobs` stubs). Each its own chunk; runtime-verify
+   after each.
 3. **Part 6 (Expo mobile) + desktop (Tauri)** are later waves (web-first, D-25/W-1) — big enough for their own
-   sessions. Stubs still open in web: live kanban drag-drop, WS transport, self-hosted woff2 fonts,
-   document OCR/matching processors.
+   sessions. Stubs still open in web: WS transport, self-hosted woff2 fonts, document OCR/matching processors.
 4. **Deferred `[HOW]` follow-ups (TASK_QUEUE):** `Document.size` Int→BigInt if >2GB · ESLint 8→9 flat config.
    Plus the 3 BLOCKED (hardware/stack/tunnel) + POST-V1 cloud-storage.
+
+## Session note — 2026-09-09 (Live kanban drag-drop — `feat/web-kanban-dnd`)
+
+Worked the top remaining web-scope stub: **live kanban drag-drop** on the project board (branch
+`feat/web-kanban-dnd` off `feat/web-map-picker`). Replaced the hand-rolled stub in
+`packages/ui/src/components/kibo/kanban.tsx` with a real `@dnd-kit/core@^6.3.1` board — `DndContext`,
+`useDroppable` columns keyed to the four `TaskStatus` values, `useDraggable` cards, Pointer (6px activation)
++ Keyboard sensors; `onCardMove(cardId, toColumnId)` fires only on a cross-column drop. Kept the existing
+themed column/card look (subtle grabbing-cursor + dragged-opacity + hovered-column ring only). Wired
+`apps/web/src/app/(app)/projects/[id]/page.tsx`: `trpc.tasks.move` mutation with react-query v5 optimistic
+update (onMutate cancels + snapshots + `setData` to move the card, onError rolls back, onSettled invalidates
+`projects.byId`). Column ids === `TaskStatus` values, so no mapping. Static gates green (ui/web typecheck,
+web lint, web build). **PM runtime-verified via Playwright on the live dev stack** (`admin@orqafy.local`,
+Harbourview project): note the well-known dnd-kit+Playwright `dragTo` limitation — the MCP `browser_drag`
+(HTML5-style) always resolved collision to the source column; a **stepped `page.mouse` pointer drag** (down →
+25 interpolated moves → up) worked, dnd-kit announced "dropped over droppable area blocked", the board moved
+the card optimistically (To-do 1→0, Blocked 0→1), `tasks.move` persisted `status=blocked` to Postgres (psql
+confirmed), and the move **survived a full page reload**. Reverted the test fixture (task back to `todo`).
+One commit `c43ed89`, AGPL guard clean (pre-commit hook), HARD HOLD local. **Two infra footguns found +
+logged to TASK_QUEUE (not fixed — out of scope):** dev Docker rebuild fails on pnpm-purge-no-TTY; no
+`.dockerignore` sends host node_modules into the build context. Verification used the host hot-reload dev
+path (the supported path — `.env.dev` is already host-shaped).
 
 ## Session note — 2026-09-09 (Leaflet map picker — `feat/web-map-picker`)
 

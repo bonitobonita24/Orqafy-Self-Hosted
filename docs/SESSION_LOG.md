@@ -4,6 +4,27 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Live kanban drag-drop on the project board
+
+**In your words:** (autonomous loop) keep building the remaining web scope — next up was wiring real
+drag-and-drop on the project board (it was a static placeholder).
+
+✅ **Done**
+- The project board is now **draggable**: you can pick up a task card and drag it into another column
+  (To do / In progress / Blocked / Done) to change its status. The card jumps to the new column
+  immediately (optimistic), and if the save ever failed it would snap back.
+- Verified for real in the running app: dragged a card from To do into Blocked, the move saved to the
+  database, and it stayed there after a full page reload. No errors.
+
+💬 **Notes**
+- Built on the `@dnd-kit` library (added to the shared UI package) reusing the existing board look — no
+  restyle, just the drag behaviour and subtle drag/hover cues. Uses the existing `tasks.move` API.
+- Committed locally on `feat/web-kanban-dnd` (`c43ed89`). Nothing pushed (HARD HOLD).
+- Two **infra footguns found while verifying** (logged, not fixed — out of scope): the Docker dev image
+  rebuild fails (`pnpm` refuses to purge node_modules with no TTY), and there is no `.dockerignore`, so
+  the host `node_modules` is copied into the build context. Verification used the host hot-reload dev
+  path instead (the supported path — `.env.dev` is already host-shaped).
+
 ## 2026-09-09 — Leaflet map picker for task geofence
 
 **In your words:** (autonomous loop) keep building the remaining web scope — next up was the Leaflet map picker.
