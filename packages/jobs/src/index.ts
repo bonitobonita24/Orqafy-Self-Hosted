@@ -5,3 +5,5 @@
 export * from './connection';
 export * from './queues';
 export * from './worker';
+export type { JobDeps } from './deps';
+export type { OcrClient, OcrExtraction } from './ocr';

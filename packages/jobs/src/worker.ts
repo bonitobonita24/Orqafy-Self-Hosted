@@ -5,6 +5,7 @@
 
 import { Worker, type ConnectionOptions, type Processor } from 'bullmq';
 
+import type { JobDeps } from './deps';
 import { QUEUE_NAMES, type JobTypeMap, type QueueKey } from './queues';
 
 /** A processor per queue key, each typed to that queue's data/result. */
@@ -46,6 +47,22 @@ export const defaultProcessors: ProcessorMap = {
   // cache the roll-up.
   progressRollup: () => Promise.resolve(),
 };
+
+/**
+ * Build the real processor map from injected deps. `ocr` and `documentMatching`
+ * are implemented in later tasks; the remaining four reuse the stubs until their
+ * own parts land.
+ */
+export function createProcessors(deps: JobDeps): ProcessorMap {
+  void deps;
+  return {
+    ...defaultProcessors,
+    // Task 3 replaces this body.
+    ocr: defaultProcessors.ocr,
+    // Task 5 replaces this body.
+    documentMatching: defaultProcessors.documentMatching,
+  };
+}
 
 /**
  * Start every worker against a shared connection. Returns the registry so the
