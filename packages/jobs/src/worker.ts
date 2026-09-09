@@ -54,11 +54,38 @@ export const defaultProcessors: ProcessorMap = {
  * own parts land.
  */
 export function createProcessors(deps: JobDeps): ProcessorMap {
-  void deps;
   return {
     ...defaultProcessors,
-    // Task 3 replaces this body.
-    ocr: defaultProcessors.ocr,
+    ocr: async (job): Promise<JobTypeMap['ocr']['result']> => {
+      const { documentId, storageKey } = job.data;
+      const doc = await deps.prisma.document.findUnique({ where: { id: documentId } });
+      if (doc === null) {
+        return { status: 'skipped' as const };
+      }
+      const isOcrable = doc.mimeType.startsWith('image/') || doc.mimeType === 'application/pdf';
+      if (!isOcrable) {
+        await deps.prisma.document.update({ where: { id: documentId }, data: { ocrStatus: 'skipped' } });
+        return { status: 'skipped' as const };
+      }
+      await deps.prisma.document.update({ where: { id: documentId }, data: { ocrStatus: 'processing' } });
+      try {
+        const obj = await deps.storage.getObject(storageKey);
+        const extraction = await deps.ocr.extract({
+          body: obj.body,
+          contentType: doc.mimeType,
+          filename: doc.name,
+        });
+        await deps.prisma.document.update({
+          where: { id: documentId },
+          data: { ocrText: extraction.text, ocrStatus: 'done' },
+        });
+        await deps.queues.documentMatching.add('document-matching', { documentId, ocrText: extraction.text });
+        return { status: 'done' as const, text: extraction.text };
+      } catch (err) {
+        await deps.prisma.document.update({ where: { id: documentId }, data: { ocrStatus: 'failed' } });
+        throw err;
+      }
+    },
     // Task 5 replaces this body.
     documentMatching: defaultProcessors.documentMatching,
   };
