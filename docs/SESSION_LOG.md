@@ -4,6 +4,29 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Self-hosted brand fonts
+
+**In your words:** (autonomous loop) keep building the remaining web scope — the app was showing the brand
+typefaces through a system-font fallback; bundle the real fonts into the app itself so there's no call out
+to Google Fonts (matters for an offline-first, self-hosted, AGPL public product).
+
+✅ **Done**
+- The two brand typefaces — **IBM Plex Sans** (all UI text) and **JetBrains Mono** (figures/codes) — are now
+  **bundled inside the app** and served from the app's own address. The page makes **zero external font
+  requests** now — it works fully offline and carries no Google Fonts dependency.
+- Only the font weights the UI actually uses were bundled (regular, medium, semibold), keeping the download
+  tiny (~136 KB total). Both fonts are open-licensed (OFL); their license text ships alongside them.
+- Verified end-to-end in a real browser: fonts load from the app's own server, nothing reaches out to Google
+  or a CDN, and the login screen renders in IBM Plex Sans as intended.
+
+💬 **Notes**
+- Committed locally on `feat/self-hosted-fonts` (`0560001`) — HARD HOLD, nothing pushed.
+- The SessionStart "3-tier RBAC retrofit" suggestion is a known false positive (Orqafy is single-org, D-5) —
+  ignored, as stood down earlier.
+
+⏳ **Next**
+- Document OCR / matching processors (the `@orqafy/jobs` stubs — uploads already enqueue the OCR job).
+
 ## 2026-09-09 — Realtime board updates (live across clients)
 
 **In your words:** (autonomous loop) keep building the remaining web scope — next was making the project

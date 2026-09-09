@@ -72,6 +72,15 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **Self-hosted brand fonts (woff2)** (2026-09-09, `feat/self-hosted-fonts` 0560001). Vendored IBM Plex
+  Sans + JetBrains Mono as latin-subset OFL woff2 (weights 400/500/600 — scoped to `font-medium`/
+  `font-semibold`/body; no 700 in the UI) under `apps/web/src/fonts`, loaded via `next/font/local`
+  (`apps/web/src/lib/fonts.ts`), classes applied to `<html>` in `layout.tsx`. Shared `@orqafy/ui`
+  `theme/globals.css` now consumes `--font-plex-sans`/`--font-jetbrains-mono` via the var() FALLBACK form.
+  Result: **no external font request** at build/runtime (D-3 offline-first + no Google Fonts in the AGPL
+  public repo). Verified: typecheck/lint/build green; Playwright — all 6 faces served from
+  `/_next/static/media/*.woff2` (200), zero googleapis/gstatic/jsdelivr requests, `--font-sans` resolves
+  fontSans-first + weights loaded. OFL license text vendored beside the fonts. HARD HOLD local.
 - ✅ **Realtime board updates over SSE (D-22)** (2026-09-09, `feat/web-realtime-sse` e3484e1). Wired the
   in-memory `realtimeBus` to a live carrier: tRPC v11 SSE over the existing Next.js fetch route handler
   (`force-dynamic`) + client `httpSubscriptionLink`/`splitLink` — no WS server / custom Next server needed

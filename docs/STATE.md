@@ -204,3 +204,26 @@ Verify: `pnpm install`; `pnpm typecheck` + `pnpm lint` green across all 8 packag
 clean; `pnpm test` → geofence 12/12. Layering respected (ui/storage/jobs/geofence → only `@orqafy/shared`;
 no `apps/*` imports). Asset guard `--staged` + `--tracked` clean; `git ls-files` shows NO framework IP /
 AdminCN slice. One commit (`98a0505`), HARD HOLD — LOCAL only, no push/PR/merge. **Next → Phase 4 Part 5.**
+
+## Session note — 2026-09-09 (self-hosted fonts — branch `feat/self-hosted-fonts`)
+
+Vendored the two brand faces as latin-subset OFL woff2 and wired self-hosting so the app makes NO external
+font request at build or runtime (D-3 offline-first; no Google Fonts in the AGPL public repo).
+
+- **Fonts:** `apps/web/src/fonts/{ibm-plex-sans,jetbrains-mono}-latin-{400,500,600}-normal.woff2` (weights
+  scoped to what the UI renders — `font-medium`=500, `font-semibold`=600, body=400; no 700). OFL 1.1 license
+  text vendored beside them (`LICENSE-*.txt`) + a `README.md`.
+- **Loader:** `apps/web/src/lib/fonts.ts` — `next/font/local` `fontSans`/`fontMono`, `display:swap`, system
+  fallbacks, exposed as `--font-plex-sans` / `--font-jetbrains-mono`; classes applied to `<html>` in
+  `layout.tsx`.
+- **Cross-scope:** shared `packages/ui/src/theme/globals.css` (@orqafy/ui, consumed only by apps/web) now
+  reads `--font-sans`/`--font-mono` via the var() FALLBACK form (`var(--font-plex-sans, 'IBM Plex Sans',
+  …)`) — a bare undefined var() would invalidate the whole declaration, so the literal+system fallback lives
+  inside var() for any consumer that hasn't wired next/font.
+
+Verify: `pnpm --filter @orqafy/web typecheck` + `lint` + `build` all green. Production `next start` + isolated
+Playwright: all 6 faces served from `/_next/static/media/*.woff2` (200); ZERO requests to fonts.googleapis /
+fonts.gstatic / jsdelivr; `--font-sans` resolves fontSans-first with IBM Plex Sans 400/500/600 `loaded`;
+`--font-mono` resolves fontMono; login renders in Plex (screenshot `screenshots/login-fonts-check.png`).
+One commit (`0560001`), asset guard clean, HARD HOLD — LOCAL only. **Next → Document OCR/matching processors
+(`@orqafy/jobs` stubs).**
