@@ -15,6 +15,16 @@ const nextConfig = {
     // Type errors MUST fail the build — this is a real static gate.
     ignoreBuildErrors: false,
   },
+  webpack: (config, { webpack }) => {
+    // BullMQ (pulled in via @orqafy/jobs) references an optional Valkey Glide
+    // client we never use — we run the default ioredis path. Ignore the module
+    // so the server build stops emitting a "Can't resolve @valkey/valkey-glide"
+    // warning. Runtime is unaffected (the code path is never taken).
+    config.plugins.push(
+      new webpack.IgnorePlugin({ resourceRegExp: /^@valkey\/valkey-glide$/ }),
+    );
+    return config;
+  },
 };
 
 export default nextConfig;
