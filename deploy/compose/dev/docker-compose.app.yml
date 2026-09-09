@@ -56,6 +56,28 @@ services:
       S3_ACCESS_KEY: ${MINIO_ROOT_USER}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       S3_BUCKET: ${S3_BUCKET}
+      # OCR sidecar (profile-gated). A queued OCR job just retries until it is up,
+      # so no depends_on: the default dev stack runs without the `ocr` profile.
+      OCR_URL: "http://ocr:9003"
+    networks:
+      - orqafy_dev_net
+
+  ocr:
+    build:
+      context: ../ocr
+      dockerfile: Dockerfile
+    container_name: orqafy_dev_ocr
+    restart: unless-stopped
+    profiles: ["ocr"]
+    ports:
+      - "${OCR_PORT:-9003}:9003"
+    # RapidOCR models (~500MB) download on first run; ~1GB RAM headroom.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9003/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
     networks:
       - orqafy_dev_net
 

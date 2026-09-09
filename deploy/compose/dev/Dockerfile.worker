@@ -12,7 +12,10 @@ RUN corepack enable
 WORKDIR /app
 COPY . .
 
-RUN pnpm install --frozen-lockfile
+# The worker imports @orqafy/db (OCR pipeline persists Document/DocumentReview),
+# so its Prisma client must be generated — same step as Dockerfile.app.
+RUN pnpm install --frozen-lockfile \
+  && pnpm --filter @orqafy/db exec prisma generate
 
 # tsx watch — the worker bootstrap (src/main.ts) starts every BullMQ consumer.
 CMD ["pnpm", "--filter", "@orqafy/jobs", "dev"]
