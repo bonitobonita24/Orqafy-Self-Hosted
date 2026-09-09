@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Orqafy",
+    "slug": "orqafy",
+    "scheme": "orqafy",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.powerbyte.orqafy"
+    },
+    "android": {
+      "package": "com.powerbyte.orqafy",
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Orqafy uses your location in the background to alert you when you arrive at a job site.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      "expo-task-manager",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Orqafy uses the camera to attach site photos to tasks."
+        }
+      ],
+      "expo-notifications",
+      "expo-secure-store",
+      "expo-sqlite"
+    ]
+  }
+}
