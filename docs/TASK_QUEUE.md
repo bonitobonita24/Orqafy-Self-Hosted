@@ -75,7 +75,12 @@ exist yet. They are NOT actionable now; they gate a later phase._
   (region/event-type mapping, iOS-20-cap arm selection) + module-scope `defineTask` (registration proven by
   unit test) + dwell via scheduled `TIME_INTERVAL` notification (arm-on-Enter/cancel-on-Exit, no double-fire) +
   `armGeofences`/`stopGeofences` permission+arming service; 43 vitest green (+12), tsc/lint/`expo config`/Rule-13/
-  asset-guard clean. NOT device-tested (hardware-blocked). **Remaining: chunk 5 core screens.**
+  asset-guard clean. NOT device-tested (hardware-blocked). ✅ **Security-review teardown fix** (`b30dc86`):
+  sign-out left geofences armed (previous user's sites kept alerting; a pending dwell could still fire) →
+  `teardownGeofencing()` wired into `signOut` + the token-invalid hydrate branch; 46 vitest. ✅ **Branches
+  consolidated** (`2e10551`, 2026-09-10): `fix/mobile-login-rate-limit` merged into the `feat/mobile-geofence`
+  tip; merged tree re-verified (web tsc + 13/13 vitest + eslint green). **Remaining: chunk 5 core screens.**
+  ⚠ Chunk-4 finding #4 (from the security review) was never surfaced — UNADJUDICATED, re-check before chunk 5.
   `<source: plan 2026-09-08>`
 - 🔴 **Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar (D-11/D-14).
   `<source: plan 2026-09-08>`

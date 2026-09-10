@@ -4,6 +4,15 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-10 (later) — Branch consolidation: rate-limit folded into the mobile tip
+
+**In your words:** (resumed from an empty handoff) — pick up where we left off; the standing next-step was "consolidate branches, then chunk 5."
+
+✅ Done — **the two in-flight mobile branches are now one line again.** The login rate-limit work was sitting on its own side branch; I merged it back onto the main mobile branch so everything — offline data, auth, the geofence engine, the sign-out safety fix, and now the login protection — lives on a single tip (`2e10551`). The task queue's own edit history overlapped, but git reconciled it automatically with both sides' notes preserved.
+✅ Verified — **re-checked the combined result, not just each half.** Ran the web type-checker (clean), the test suite (13/13 passing), and the linter (clean) against the *merged* tree, so nothing broke in the join.
+💬 Note — the old side branch still exists locally (deleting it is blocked by the safety hook, and it's harmless once merged). Nothing pushed — HARD HOLD holds.
+⏳ Next — **mobile chunk 5: the actual screens** (My Tasks, photo capture, apply-leave, notifications, and the login UI), plus wiring the empty offline "what-to-send" registry. One safety rule carries in: the app must only watch job sites assigned to *you*, during *your* shift. Also flagged: one geofence security-review point was never written down — re-check it before chunk 5.
+
 ## 2026-09-10 — Login brute-force protection + the geofence engine (mobile chunk 4)
 
 **In your words:** resume the build → do the login rate-limit first → then start chunk 4.
