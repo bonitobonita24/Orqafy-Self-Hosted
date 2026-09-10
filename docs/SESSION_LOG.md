@@ -4,6 +4,24 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-10 — Login brute-force protection + the geofence engine (mobile chunk 4)
+
+**In your words:** resume the build → do the login rate-limit first → then start chunk 4.
+
+✅ Done — **the mobile login door now resists guessing attacks.** Before this, someone could hammer the phone-login endpoint with unlimited password guesses. Now it counts attempts two ways: per internet address (every try) and per email address (only *failed* tries, cleared the moment you log in successfully). Cross either line and it replies "too many attempts" and tells the caller how long to wait — and it does this *before* touching the database, so an attacker can't even make us do work. Two deliberate touches: checking your account never counts against you (so nobody can lock you out just by probing your email), and if the counter itself ever breaks, it lets you in rather than locking everyone out.
+✅ Done — **the geofence engine is built** — the piece that makes this product different. The app now tells the phone's operating system which job sites to watch, and the OS wakes the app when you arrive or leave. Because phones only report "arrived"/"left" and never "still here", I built the 3-minute "you actually arrived" delay on top: arriving quietly arms a 3-minute timer, leaving cancels it, and only if you're still there does it alert you. That means driving past a site won't ping you. It also only watches the 20 nearest sites (Apple's hard limit) and re-picks as you move.
+✅ Done — **fixed a privacy bug I found in review:** logging out was leaving the job-site monitoring switched on. A signed-out phone would have kept announcing "you've arrived on site" for the previous user's sites, and an already-armed 3-minute alert could still fire after logout. Signing out now fully shuts the monitoring down — and so does an expired login, which had the same hole.
+
+🔨 Partial — the mobile app itself: 4 of 5 build stages done (foundation, offline storage, login, geofencing). Stage 5 is the actual screens.
+
+⏳ Next — **stage 5: the screens** (My Tasks, photo capture, apply for leave, notifications, and the login screen). Then a housekeeping merge to fold two side-branches back together.
+
+💬 Notes / honest limits:
+- **None of the geofencing has been tested on a real phone** — there's no device or simulator on this machine. Everything is proven by automated tests and type-checking (46 tests passing), which catches wiring and logic mistakes but *cannot* prove the OS actually wakes the app on a real site visit. That real-world test is still waiting on physical iPhone + Android devices, and it stays on the blocked list.
+- The rate-limit counter currently lives in the app's memory, so it resets if the server restarts. That's fine while this runs as a single self-hosted process (it matches how the live-updates feature already works), and I logged the sturdier version as a later task if you ever run multiple copies.
+- A background security review flagged 4 items on the geofence work. I fixed the one real bug (the logout leak), and explained why two others were correct as built. **The 4th item's details were never actually shown to me**, so I could not review it — if you can pull up that full report, I'll go through it.
+- Everything is committed **locally only**. Nothing pushed, nothing deployed.
+
 ## 2026-09-10 — Mobile app: login / authentication (both ends)
 
 **In your words:** continue the mobile wave (chunk 3 — auth).
