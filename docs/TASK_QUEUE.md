@@ -63,14 +63,21 @@ exist yet. They are NOT actionable now; they gate a later phase._
   green, Rule 13 clean. ✅ **Chunk 2 offline data layer DONE + verified** (`1abc877`): pure outbox (idempotent
   by client UUID) + reconcile (record-level LWW + soft-conflict + tombstones) + drainOutbox (injected send
   seam), 29 vitest green, split from a typecheck-only expo-sqlite adapter (cache_records/outbox/tombstones/
-  sync_meta). Remaining chunks: 3 auth+tRPC transport · 4 geofence integration · 5 core screens.
+  sync_meta). ✅ **Chunk 3a auth server-side DONE + verified LIVE** (`3d2d78e`): mobile bearer-token path in
+  `apps/web` (jose HS256 alg-pinned, identity-only claim, per-request isActive re-check, header-only, uniform
+  401, `/api/mobile/login` Node route, `PUBLIC_PREFIXES` fix) + `createOrqafyClient` superjson+subscription
+  link; cookie path preserved; 7 unit + web build + **5 live tests** (login 200+token, bad-pw 401, bearer→
+  auth.me 200+10 perms, no/garbage bearer 401). 🟡 **Chunk 3b mobile-side IN PROGRESS** (SecureStore token +
+  authed client + login flow + outbox send seam). Remaining: 4 geofence integration · 5 core screens.
   `<source: plan 2026-09-08>`
 - 🔴 **Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar (D-11/D-14).
   `<source: plan 2026-09-08>`
-- 🔴 **[agent-found 2026-09-09] Enforce Rule 13 in apps/mobile via ESLint** — add `no-restricted-imports`
-  banning `@orqafy/ui` (barrel) + `@orqafy/{db,jobs,storage,sync,web}` while allowing `@orqafy/ui/theme`, so
-  the mobile layering boundary is compiler-enforced, not just documented (mobile depends on `@orqafy/ui`
-  workspace:* solely for the pure /theme token values). `<source: agent-found 2026-09-09>`
+- 🟡 **[agent-found 2026-09-09] Enforce Rule 13 in apps/mobile via ESLint** — `no-restricted-imports` banning
+  `@orqafy/ui` (barrel) + `@orqafy/{db,jobs,storage,sync,web}` while allowing `@orqafy/ui/theme`. Being added
+  in chunk 3b (verify on land). `<source: agent-found 2026-09-09>`
+- 🔴 **[agent-found 2026-09-10, security] Rate-limit `POST /api/mobile/login`** — the mobile bearer-login
+  endpoint (chunk 3a) has NO brute-force protection (per-IP + per-email lockout). `// TODO` in the route.
+  Required before the endpoint is reachable beyond localhost. `<source: agent-found 2026-09-10>`
 
 ## ✅ Done recently
 
