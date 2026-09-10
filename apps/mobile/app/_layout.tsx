@@ -42,6 +42,7 @@ function RootNavigator() {
       <Tabs.Screen name="index" options={{ title: 'My Tasks' }} />
       <Tabs.Screen name="calendar" options={{ title: 'Calendar' }} />
       <Tabs.Screen name="notifications" options={{ title: 'Notifications' }} />
+      <Tabs.Screen name="leave" options={{ title: 'Leave' }} />
     </Tabs>
   );
 }
