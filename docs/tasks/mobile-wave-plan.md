@@ -52,4 +52,27 @@ turbo tasks (`typecheck`/`lint`/`test`/`build`) · **Metro**: `watchFolders=[mon
 
 ## Log
 - 2026-09-09: wave promoted by owner; scout brief + context7 (SDK 54 config plugins, monorepo Metro) captured; plan written; chunk 1 starting on `feat/mobile-scaffold`.
+- 2026-09-10: CHUNK 2 (offline-first data layer) built + verified (uncommitted, HARD HOLD — PM to verify+commit).
+  New under `apps/mobile/src/offline/`: PURE TDD modules `types.ts` (OutboxEntry/Tombstone/SyncableRecord/
+  ReconcileResult/CacheStore/OutboxStore/TombstoneStore/SendFn), `outbox.ts` (idempotent enqueue, sortOutbox
+  FIFO, nextPending, immutable markSyncing/markSynced/markFailed+attempts), `reconcile.ts` (record-level LWW +
+  soft-conflict + tombstone-suppression + fullSync server-delete), `sync-engine.ts` (pure deterministic
+  drainOutbox with injected SendFn — no timers), `index.ts` (re-exports PURE api only). Typecheck-only expo
+  adapter in `sqlite/`: `db.ts` (openDatabaseAsync + migrate → cache_records/outbox/tombstones/sync_meta),
+  `stores.ts` (SqliteCache/Outbox/TombstoneStore over the confirmed SDK54 async API runAsync/getAllAsync/
+  getFirstAsync/withTransactionAsync), `sqlite/index.ts`. Tests co-located (vitest ^2.1.8, node env):
+  outbox.test (12) · reconcile.test (10) · sync-engine.test (7) = **29 green**. Added `vitest` devDep +
+  `vitest.config.ts` (excludes `src/offline/sqlite/**`) + `"test":"vitest run"`.
+  Verified green: `pnpm --filter @orqafy/mobile test` (29/29) · `typecheck` (exit 0, covers sqlite adapter types) ·
+  `lint` (exit 0) · `grep -rE "expo-|react-native" src/offline/*.ts` empty (pure logic has no native imports) ·
+  `grep -rE "@orqafy/(db|jobs|storage|sync|web)" src` empty (Rule 13). Pure logic imports nothing from any
+  `@orqafy/*` pkg (fully generic over `SyncableRecord`), so Rule 13 is trivially clean.
+  ⚠ **Record-level-LWW simplification (justified deviation from DESIGN §8's "per field" wording):** the
+  `@orqafy/shared` schemas carry a SINGLE `updatedAt` per record (no per-field timestamps), so per-field LWW is
+  not representable without a schema change. Chunk 2 implements **record-level LWW by `updatedAt`** instead: an
+  incoming server record wins only when strictly newer; a win that collides with a local pending/failed edit is
+  returned in `conflicts` (UI shows "updated on server since you edited" — never a silent clobber). The §8
+  "task completion is monotonic" nuance and true per-field merge are deferred to a later chunk if/when the schema
+  grows per-field metadata; noted here so the divergence is intentional and traceable. Photos = create-only
+  outbox entries, never flagged (verified by test). Deviations: none beyond this. Not committed.
 - 2026-09-09: CHUNK 1 (scaffold) done + verified (uncommitted, HARD HOLD). `apps/mobile` hand-authored; `npx expo install` pinned the SDK 54 line — expo ~54.0.37, expo-router ~6.0.24, expo-location ~19.0.8, expo-task-manager ~14.0.9, expo-camera ~17.0.10, expo-notifications ~0.32.17, expo-sqlite ~16.0.10, expo-secure-store ~15.0.8, expo-constants ~18.0.14, expo-linking ~8.0.12, expo-status-bar ~3.0.9, react-native-safe-area-context ~5.6.2, react-native-screens ~4.16.0, react 19.1.0, react-native 0.81.5. Verified green: `tsc --noEmit`, ESLint, `expo config` resolves, no forbidden imports, asset-guard clean. Deviations: (a) `@orqafy/ui` added as a workspace dep — required for the `@orqafy/ui/theme` VALUES import (Rule 13 carve-out; verify grep omits `ui`); (b) no `"type":"module"` on the mobile pkg (Expo app: CJS metro/babel + `expo-router/entry` main); (c) `.eslintrc.cjs` RN `env` key dropped — needs `eslint-plugin-react-native` (not in declared devDeps), only injects unused RN globals. TODO assets: no icon/splash/adaptive-icon binaries yet — `app.json` intentionally omits those fields; add + wire when brand assets exist (before a real native build).
