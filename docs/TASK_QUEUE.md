@@ -70,8 +70,13 @@ exist yet. They are NOT actionable now; they gate a later phase._
   auth.me 200+10 perms, no/garbage bearer 401). ✅ **Chunk 3b mobile-side DONE + verified** (`66ded68`):
   SecureStore token store + `createAuthedClient` (Bearer header) + `login()`/`logout()` + `useAuth()` context
   + outbox `SendFn` seam (typed registry, mappings deferred to chunk 5) + Rule-13 `no-restricted-imports`
-  eslint guard (probe-confirmed); tsc+lint+31 vitest green. **Chunk 3 (auth) WHOLE.** Remaining: 4 geofence
-  integration · 5 core screens. `<source: plan 2026-09-08>`
+  eslint guard (probe-confirmed); tsc+lint+31 vitest green. **Chunk 3 (auth) WHOLE.** ✅ **Chunk 4 geofence
+  integration DONE + verified** (`feat/mobile-geofence`): `apps/mobile/src/geofence/` — pure adapter
+  (region/event-type mapping, iOS-20-cap arm selection) + module-scope `defineTask` (registration proven by
+  unit test) + dwell via scheduled `TIME_INTERVAL` notification (arm-on-Enter/cancel-on-Exit, no double-fire) +
+  `armGeofences`/`stopGeofences` permission+arming service; 43 vitest green (+12), tsc/lint/`expo config`/Rule-13/
+  asset-guard clean. NOT device-tested (hardware-blocked). **Remaining: chunk 5 core screens.**
+  `<source: plan 2026-09-08>`
 - 🔴 **Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar (D-11/D-14).
   `<source: plan 2026-09-08>`
 - 🔴 **[agent-found 2026-09-10, security] Rate-limit `POST /api/mobile/login`** — the mobile bearer-login

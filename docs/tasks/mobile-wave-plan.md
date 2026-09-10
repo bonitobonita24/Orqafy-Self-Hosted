@@ -135,3 +135,23 @@ turbo tasks (`typecheck`/`lint`/`test`/`build`) · **Metro**: `watchFolders=[mon
   drainOutbox is wired to a real throwing seam. Deviation: `offline/send.ts` placed co-located in `src/offline/`
   (imports `./types`) rather than a separate dir — matches the item-6 title path; the spec's `../offline/types`
   was read as "the offline types module". Not committed.
+- 2026-09-10: CHUNK 4 (geofence integration) built + verified + committed (`feat/mobile-geofence`). Wires
+  `expo-location`/`expo-task-manager`/`expo-notifications` to the pure `@orqafy/geofence` package. All NEW under
+  `apps/mobile/src/geofence/`: `constants.ts` (`GEOFENCE_TASK='orqafy.geofence'` + `dwellNotificationId`) ·
+  `adapter.ts` PURE (`toLocationRegion` field map lat→latitude/lng→longitude/radiusMeters→radius +
+  notifyOnEnter/Exit; `toLocationRegions`=prioritizeRegions(cap 20)→map; `mapEventType(n)` 1→enter/2→exit/else
+  null via plain number so no runtime enum import; `arrivalNotificationContent`) · `notifications.ts` thin
+  native (setNotificationHandler SDK54 shouldShowBanner/List; requestPermissionsAsync; schedule/cancel dwell
+  keyed by the deterministic `dwell:<id>`) · `task.ts` module-scope `TaskManager.defineTask(GEOFENCE_TASK,
+  createGeofenceHandler(realDeps))` + injectable handler factory · `arming.ts` (`armGeofences`/`stopGeofences`
+  — fg+bg permission (bg-denied non-fatal), empty set → stop-if-started, else `startGeofencingAsync` = the
+  re-arm) · `adapter.test.ts` (6) + `task.registration.test.ts` (6, proves defineTask called once with
+  GEOFENCE_TASK + drives enter/exit/error/unknown/empty-id through the injected handler).
+  **Dwell mechanism ([HOW], PM-decided):** OS gives only Enter/Exit + a JS poll can't tick asleep, so the 3-min
+  app-side dwell is a scheduled `TIME_INTERVAL` local notification (armed on Enter, cancelled on Exit by the same
+  id) — the SINGLE source of a fired alert, no double-fire. Rich "N tasks here" grouping (needs the cached
+  read-model) DEFERRED to chunk 5; `arrivalNotificationContent(id)` keeps the id in its signature so chunk 5
+  enriches without a signature change. Verified green (re-run independently): `pnpm --filter @orqafy/mobile test`
+  43/43 (was 31; +12) · `typecheck` rc0 · `lint` rc0 · `expo config --json` resolves · Rule-13 grep empty ·
+  asset-guard clean. **NOT device/on-device-trigger tested** (hardware-blocked, out of scope per the done-bar).
+  app.json untouched (chunk-1 plugins already present). Remaining: chunk 5 core screens.
