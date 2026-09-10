@@ -105,3 +105,33 @@ turbo tasks (`typecheck`/`lint`/`test`/`build`) · **Metro**: `watchFolders=[mon
   connectionParams/query at chunk 4/5. (3) NEW vitest setup added to apps/web (it had none) — mirrors the mobile
   pkg's vitest ^2.1.8; `server-only` is aliased to a no-op stub for the node test env (it throws outside an RSC
   bundler). Deviations: none beyond (3). Not committed.
+- 2026-09-10: CHUNK 3b (mobile auth + tRPC transport) built + verified (uncommitted, HARD HOLD — PM to verify+commit).
+  Consumes the chunk-3a server bearer path + extended api-client. All NEW under `apps/mobile/src/`:
+  `config.ts` (resolves `EXPO_PUBLIC_API_URL`, default `http://localhost:56483`, trailing-slash-stripped;
+  exports `API_URL`/`TRPC_URL`/`MOBILE_LOGIN_URL`) · `auth/token-store.ts` (expo-secure-store wrapper,
+  `TOKEN_KEY='orqafy.mobile.token'`, `save/get/clearToken`; get returns null on missing/unreadable) ·
+  `auth/auth.ts` (`login()` → POST mobile-login, `saveToken`, returns `AuthUser`; typed `AuthError`
+  'Invalid credentials' on 401 / 'Login failed' otherwise; defensive fetch+JSON; `logout()`=clearToken;
+  `AuthUser={id,name,email}`) · `api/client.ts` (`createAuthedClient(token)` → `createOrqafyClient({url:TRPC_URL,
+  headers: token!==null ? {Authorization:'Bearer …'} : {}})`; `getAuthedClient()` reads token then builds;
+  documents the rebuild-after-token-change contract since the client captures headers at creation) ·
+  `auth/AuthContext.tsx` (React-only provider + `useAuth()`; exposes `{user,loading,signIn,signOut,client}`;
+  on mount reads token → hydrates `user` via `client.auth.me.query()` wrapped in try/catch — expired/invalid
+  token clears token + signed-out; `me.name/email` are `string|null` → coerced `?? ''`; client REBUILT never
+  mutated) · `offline/send.ts` (`createOutboxSend(client):SendFn` — typed `${entityType}/${op}` dispatch
+  registry with a throwing default `No outbox mapping for …`; registry left EMPTY with a `// chunk 5: fill
+  mappings` note — no router procedure mapped, exact input contracts unknown until screens exist) ·
+  `offline/send.test.ts` (2 vitest, throw-on-unmapped proven with a stub client).
+  MODIFIED: `app/_layout.tsx` (AuthProvider wraps the Tabs so `useAuth` is app-wide; placeholder screens kept,
+  no login UI — that's chunk 5) · `.eslintrc.cjs` (Rule-13 hardening: `@typescript-eslint/no-restricted-imports`
+  — `paths` bans the exact `@orqafy/ui` barrel while ALLOWING `@orqafy/ui/theme`; `patterns` bans
+  `@orqafy/{db,jobs,storage,sync,web}` + `/*` subpaths; core `no-restricted-imports` turned off per the
+  extension-rule contract).
+  Verified green: `pnpm --filter @orqafy/mobile typecheck` exit 0 · `lint` exit 0 (rule live-checked — flags the
+  ui barrel + `@orqafy/db`, does NOT flag `@orqafy/ui/theme`) · `test` 31/31 (29 prior + 2 new send) ·
+  `grep -rnE "@orqafy/(db|jobs|storage|sync|web)" apps/mobile/src` empty · `grep -rn "from '@orqafy/ui" src`
+  = only `@orqafy/ui/theme`. NO `npx expo install` needed (secure-store/constants already present; URL via
+  `process.env.EXPO_PUBLIC_API_URL`, expo-constants unused). Outbox registry maps NOTHING yet (chunk 5 fills it);
+  drainOutbox is wired to a real throwing seam. Deviation: `offline/send.ts` placed co-located in `src/offline/`
+  (imports `./types`) rather than a separate dir — matches the item-6 title path; the spec's `../offline/types`
+  was read as "the offline types module". Not committed.
