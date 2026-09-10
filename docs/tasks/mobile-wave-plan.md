@@ -172,3 +172,6 @@ turbo tasks (`typecheck`/`lint`/`test`/`build`) · **Metro**: `watchFolders=[mon
   site set. Recorded as a chunk-5 constraint.
   ⚠ Only a summary of the review was surfaced (3 named files + "+1 more"); the 4th finding's detail was not
   available, so it is NOT adjudicated here.
+- 2026-09-10 chunk 5 hardening: config.ts warns on non-https non-localhost API_URL (cleartext bearer/token
+  risk under D-15 LAN-first — any non-LAN exposure MUST be https, terminated at the Pangolin/Traefik tunnel);
+  token-store pins keychainAccessible=AFTER_FIRST_UNLOCK.

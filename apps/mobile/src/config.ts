@@ -22,6 +22,54 @@ export const API_URL = stripTrailingSlash(
   configured !== undefined && configured.length > 0 ? configured : DEFAULT_API_URL,
 );
 
+/**
+ * True when `url` points at a non-local host over a non-https protocol — i.e. the
+ * bearer token + password would cross the network in cleartext. localhost /
+ * 127.0.0.1 (any protocol) and any https URL are considered safe.
+ *
+ * Parses protocol + host manually rather than via the `URL` global, whose support
+ * is patchy under Hermes. Robust to `http://192.168.1.10:56483`, userinfo
+ * (`user:pass@host`), ports, and trailing path/query/hash.
+ */
+export function isInsecureRemote(url: string): boolean {
+  const schemeSplit = url.indexOf('://');
+  if (schemeSplit === -1) {
+    return false;
+  }
+  const protocol = url.slice(0, schemeSplit).toLowerCase();
+  if (protocol === 'https') {
+    return false;
+  }
+
+  // Authority = everything up to the first '/', '?' or '#'.
+  let authority = url.slice(schemeSplit + 3);
+  const end = authority.search(/[/?#]/);
+  if (end !== -1) {
+    authority = authority.slice(0, end);
+  }
+
+  // Drop any `userinfo@` prefix, then any `:port` suffix.
+  const at = authority.lastIndexOf('@');
+  if (at !== -1) {
+    authority = authority.slice(at + 1);
+  }
+  const colon = authority.indexOf(':');
+  const host = (colon === -1 ? authority : authority.slice(0, colon)).toLowerCase();
+
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  return !isLocal;
+}
+
+// Warn (dev only) when the configured backend would send credentials in the clear.
+if (typeof __DEV__ !== 'undefined' && __DEV__ && isInsecureRemote(API_URL)) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[orqafy] API_URL "${API_URL}" is a non-localhost host over http — the bearer ` +
+      'token and password will traverse the network in CLEARTEXT. Use https for any ' +
+      'non-localhost / LAN-exposed backend (terminate TLS at the Pangolin/Traefik tunnel).',
+  );
+}
+
 /** tRPC HTTP endpoint the typed client batches against. */
 export const TRPC_URL = `${API_URL}/api/trpc`;
 

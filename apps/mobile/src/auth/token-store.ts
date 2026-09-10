@@ -11,7 +11,12 @@ export const TOKEN_KEY = 'orqafy.mobile.token';
 
 /** Persist the bearer token. */
 export async function saveToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
+  // AFTER_FIRST_UNLOCK: the token stays readable for background geofence work
+  // after a reboot (once the user unlocks once), but is never accessible while
+  // the device has never been unlocked — the standard bearer-at-rest posture.
+  await SecureStore.setItemAsync(TOKEN_KEY, token, {
+    keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+  });
 }
 
 /** Read the bearer token, or `null` if absent / unreadable. */
