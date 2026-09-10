@@ -60,8 +60,11 @@ exist yet. They are NOT actionable now; they gate a later phase._
   `feat/mobile-scaffold`). ✅ **Chunk 1 scaffold DONE + verified** (`dc138a4`): `apps/mobile` Expo SDK 54
   (expo ~54.0.37 / expo-location ~19.0.8 / expo-task-manager ~14.0.9), config-plugin bg-geofence permissions,
   monorepo Metro, expo-router tab shell, RN theme from `@orqafy/ui/theme` values; tsc+eslint+`expo config`
-  green, Rule 13 clean. Remaining chunks: 2 offline data layer (SQLite + outbound queue) · 3 auth+tRPC
-  transport · 4 geofence integration · 5 core screens. `<source: plan 2026-09-08>`
+  green, Rule 13 clean. ✅ **Chunk 2 offline data layer DONE + verified** (`1abc877`): pure outbox (idempotent
+  by client UUID) + reconcile (record-level LWW + soft-conflict + tombstones) + drainOutbox (injected send
+  seam), 29 vitest green, split from a typecheck-only expo-sqlite adapter (cache_records/outbox/tombstones/
+  sync_meta). Remaining chunks: 3 auth+tRPC transport · 4 geofence integration · 5 core screens.
+  `<source: plan 2026-09-08>`
 - 🔴 **Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar (D-11/D-14).
   `<source: plan 2026-09-08>`
 - 🔴 **[agent-found 2026-09-09] Enforce Rule 13 in apps/mobile via ESLint** — add `no-restricted-imports`

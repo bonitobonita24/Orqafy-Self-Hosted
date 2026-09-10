@@ -4,6 +4,15 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-09 — Mobile app: offline-first data layer
+
+**In your words:** continue the mobile wave (chunk 2).
+
+✅ Done — the mobile app can now **work with no signal and sync when it reconnects** — the core of "offline-first" for field staff. Built and tested: a durable **outbound queue** (every change you make offline — mark a task done, apply for leave, capture a photo — is saved locally with a unique id so the server never double-applies it and nothing is lost), and the **reconcile logic** that safely merges server updates back in (newest change wins; if the server changed something you'd also edited offline, it's flagged as a soft conflict rather than silently overwriting your work; deletes don't "come back from the dead"). All of this is **covered by 29 automated tests, all passing**.
+✅ Done — the local-database layer (SQLite on the phone) is written and type-checks; it can't be *run* here without a device, but the logic that matters is the tested part above.
+💬 Note — one honest simplification: the design doc asked for conflict resolution "per field", but our data only timestamps whole records, so I did it per-record and documented that. Revisit only if we later add per-field timestamps.
+⏳ Next — chunk 3: mobile login. This needs a small **server-side** addition (the web app only supports browser-cookie login today; phones need a token), plus a tweak to the shared API client. Both were flagged earlier; I'll build them next.
+
 ## 2026-09-09 — Started the Expo mobile app (scaffold)
 
 **In your words:** start the Expo mobile wave.
