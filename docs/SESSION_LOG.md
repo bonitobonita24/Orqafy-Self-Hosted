@@ -4,6 +4,16 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-10 — Mobile app: login / authentication (both ends)
+
+**In your words:** continue the mobile wave (chunk 3 — auth).
+
+✅ Done — **phones can now securely log in.** The web server got a new mobile-login door that hands back a signed token; the phone stores that token in the device's secure keychain and sends it on every request. Because phones can't use browser cookies (how the website logs in), this is the piece that makes the mobile app possible. The website's own login is completely untouched.
+✅ Done — I built this carefully because it's security-sensitive: the token proves *who you are* but carries no powers of its own (your permissions are always looked up fresh from the database), it's cryptographically locked to one algorithm so it can't be forged, a deactivated user is rejected on every request, and wrong passwords return the same generic error so the endpoint can't be used to discover which emails exist.
+✅ Done — **verified it for real, live**: I ran the app, logged in through the new mobile endpoint, got a token, used it to make an authorized request (came back with the user and their 10 permissions), and confirmed that no token or a fake token is refused. (No real password was ever shown on screen.) Plus 38 automated tests and a clean production build.
+💬 Note — one security to-do I logged: the mobile-login endpoint needs rate-limiting (lockout after repeated bad attempts) before it's exposed beyond your own machine. Not urgent for local dev; required before real deployment.
+⏳ Next — chunk 4: the geofencing itself — wiring the phone's background location to the arrival-alert engine we already built. This is the app's whole reason for being.
+
 ## 2026-09-09 — Mobile app: offline-first data layer
 
 **In your words:** continue the mobile wave (chunk 2).
