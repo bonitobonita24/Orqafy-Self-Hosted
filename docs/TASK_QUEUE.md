@@ -79,12 +79,26 @@ exist yet. They are NOT actionable now; they gate a later phase._
   `<source: plan 2026-09-08>`
 - 🔴 **Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar (D-11/D-14).
   `<source: plan 2026-09-08>`
-- 🔴 **[agent-found 2026-09-10, security] Rate-limit `POST /api/mobile/login`** — the mobile bearer-login
-  endpoint (chunk 3a) has NO brute-force protection (per-IP + per-email lockout). `// TODO` in the route.
-  Required before the endpoint is reachable beyond localhost. `<source: agent-found 2026-09-10>`
+- 🔴 **[POST-V1, security] Valkey-backed rate-limit store** — the mobile-login limiter is in-memory (resets on
+  restart, per-instance). Drop in a Valkey `RateLimitStore` adapter at the `getRateLimitStore()` SEAM for
+  restart-durable / multi-instance limiting when the app graduates past single-process. `<source: agent-found 2026-09-10>`
 
 ## ✅ Done recently
 
+- ✅ **Rate-limit `POST /api/mobile/login` (brute-force protection)** (2026-09-10, `fix/mobile-login-rate-limit`).
+  Closes the chunk-3a security follow-up (endpoint had no brute-force protection). New DI'd limiter
+  `apps/web/src/server/rate-limit.ts`: in-memory fixed-window store behind a `RateLimitStore` interface
+  (`incr`/`get`/`reset`), globalThis singleton, `clientIp()` (XFF-leftmost → x-real-ip, front-proxy-trust
+  documented), env-overridable limits (`MOBILE_LOGIN_IP_MAX`=20 · `MOBILE_LOGIN_EMAIL_MAX`=5 ·
+  `MOBILE_LOGIN_WINDOW_SEC`=900). Two dimensions: per-IP counter (every attempt) + per-email **failure**
+  counter (read-only in the check so checking never self-locks; incremented only on real failures; reset on
+  success). **Fail-open** on any store error (never block a legit login on limiter failure). Route returns
+  `429 {error:'Too many attempts'} + Retry-After` before the DB lookup; uniform 401 / no-enumeration preserved.
+  6 vitest cases (IP over-limit, email lockout, success-reset, window-expiry, fail-open, email canonicalization).
+  Verified: web test 13/13 · tsc · eslint · asset-guard all green (re-run independently). In-memory = accepted
+  single-process v1 posture (same precedent as the SSE bus); Valkey adapter is a documented `getRateLimitStore()`
+  SEAM, logged as POST-V1. NOT live-429-tested (endpoint is localhost-only until the exposure this guards).
+  AGPL guard clean, HARD HOLD local.
 - ✅ **Production `next build` is GREEN — HIGH `<Html>`/404 blocker resolved + valkey warning silenced**
   (2026-09-09, `fix/prod-build-clean`, `64f4806`). The previously-logged HIGH blocker (`<Html> should not be
   imported outside pages/_document` on default `/404` static-gen) **no longer reproduces**: two clean

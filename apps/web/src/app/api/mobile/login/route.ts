@@ -7,6 +7,13 @@ import { z } from 'zod';
 import { prisma } from '@orqafy/db';
 import { verifyPassword } from '@/lib/password';
 import { signMobileToken } from '@/lib/mobile-token';
+import {
+  checkLoginRateLimit,
+  clientIp,
+  getRateLimitStore,
+  recordLoginFailure,
+  recordLoginSuccess,
+} from '@/server/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -22,9 +29,9 @@ function invalid(): Response {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  // TODO: rate-limit this endpoint (per-IP + per-email lockout) before it is
-  // reachable beyond localhost — a stateless login has no brute-force protection
-  // otherwise. Tracked as a chunk-3a follow-up.
+  const store = getRateLimitStore();
+  const ip = clientIp(req);
+
   let body: unknown;
   try {
     body = await req.json();
@@ -33,14 +40,33 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const parsed = loginSchema.safeParse(body);
-  if (!parsed.success) return invalid();
+  const email = parsed.success ? parsed.data.email.trim().toLowerCase() : null;
 
-  const email = parsed.data.email.trim().toLowerCase();
+  // Brute-force gate BEFORE any DB work (per-IP always, per-email on failures).
+  const rl = await checkLoginRateLimit(store, { ip, email });
+  if (!rl.allowed) {
+    return Response.json(
+      { error: 'Too many attempts' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+    );
+  }
+
+  if (!parsed.success || email === null) return invalid();
+
   const user = await prisma.user.findUnique({ where: { email } });
-  if (user === null || !user.isActive) return invalid();
+  if (user === null || !user.isActive) {
+    await recordLoginFailure(store, email);
+    return invalid();
+  }
 
   const ok = await verifyPassword(parsed.data.password, user.passwordHash);
-  if (!ok) return invalid();
+  if (!ok) {
+    await recordLoginFailure(store, email);
+    return invalid();
+  }
+
+  // Success — clear the email failure counter (email is non-null here).
+  await recordLoginSuccess(store, email);
 
   const token = await signMobileToken(user.id);
   return Response.json({
