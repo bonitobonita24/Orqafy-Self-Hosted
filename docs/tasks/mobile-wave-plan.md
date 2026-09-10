@@ -175,3 +175,28 @@ turbo tasks (`typecheck`/`lint`/`test`/`build`) · **Metro**: `watchFolders=[mon
 - 2026-09-10 chunk 5 hardening: config.ts warns on non-https non-localhost API_URL (cleartext bearer/token
   risk under D-15 LAN-first — any non-LAN exposure MUST be https, terminated at the Pangolin/Traefik tunnel);
   token-store pins keychainAccessible=AFTER_FIRST_UNLOCK.
+- 2026-09-10: CHUNK 5 (core screens) built + verified + committed on `feat/mobile-chunk5-screens` (7b606ea
+  phase A + 597ade9 phase B; HARD HOLD, not pushed). Plan-first dispatch: scout brief → 2 phase-A workers
+  (login+gate+hardening ‖ outbox runtime+mappings) → 3 phase-B workers (My Tasks ‖ Notifications ‖ Apply-Leave),
+  all Opus, PM-verified on the combined tree.
+  PHASE A: `app/login.tsx` (new) + `app/_layout.tsx` RootNavigator gate (useAuth: loading→splash / null→login /
+  else Tabs) · `src/offline/runtime.ts` (new — getOutboxRuntime SqliteOutbox singleton + useOutbox(client) hook,
+  drain on mount + AppState 'active'; lazy native import so the pure barrel stays vitest-clean; UUID via
+  crypto.randomUUID w/ RFC-4122 fallback) · `src/offline/send.ts` registry filled (task/update→tasks.move,
+  notification/update→markRead, leave/create→submitRequest with Date revival; Prisma-native task status passed
+  through) · security hardening (finding #4): `config.ts` isInsecureRemote + __DEV__ non-https warn,
+  `token-store.ts` keychainAccessible=AFTER_FIRST_UNLOCK.
+  PHASE B: `app/index.tsx` My Tasks (tasks.myTasks + counts, mark-done via outbox task/update, pull-to-refresh)
+  · `app/notifications.tsx` (notifications.list/unreadCount, mark-read + mark-all via outbox, geofence_alert
+  styled distinct) · `app/leave.tsx` (new) + Leave tab (leave.types/myBalances/myRequests, in-house type picker,
+  YYYY-MM-DD validated dates end>=start, submit via outbox leave/create) · `src/geofence/task-geofencing.ts`
+  (new) PURE `selectArmableRegions(tasks, now)` = has-location ∩ active-window filter (the finding-#3 authz
+  carry: on-device half atop server assignee-filtering) + native `useTaskGeofencing(client, tasks)` hook
+  (expo-location origin → armGeofences, wrapped). All 3 screens mount `useOutbox(client)` so drain runs on the
+  active tab. Tests: `task-geofencing.test.ts` (8) + `config.test.ts` (5) + `send.test.ts` (2→7).
+  Verified green (combined tree): `pnpm --filter @orqafy/mobile typecheck` 0 · `lint` 0 · `test` 64/64 (9 files)
+  · `expo config --json` resolves · Rule-13 grep empty · asset-guard clean. **NOT device/on-device-trigger
+  tested** (hardware-blocked — the static+unit done-bar). **CARVED OUT: photo capture** → no server photos.create
+  endpoint + `/api/media` is manage_files-gated (field staff lack it) → deferred to a dedicated task (TASK_QUEUE
+  / ORQ-23) with a [WHAT]-adjacent RBAC question. **Chunk 5 = the mobile wave's last build chunk; wave build
+  COMPLETE except photo capture + the hardware-blocked device tests.**

@@ -46,6 +46,15 @@ exist yet. They are NOT actionable now; they gate a later phase._
   `<source: agent-found 2026-09-08>`
 - 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
   legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. `<source: agent-found 2026-09-08>`
+- 🔴 **[mobile][server] Site-photo capture upload path** (ORQ-23) — the chunk-5 photo-capture screen has NO
+  server write path: no `photos` tRPC router / photos.create, and `/api/media`→documents.create is
+  `manage_files`-gated (field staff likely lack it). Needs a minimal Photo-persist procedure + a [WHAT]-adjacent
+  RBAC decision (task-scoped upload vs assignee check). Camera capture + local outbox queue can build now; the
+  drain has no server target until this lands. `<source: agent-found 2026-09-10>`
+- 🔴 **[mobile][BLOCKED-hardware] On-device chunk-5 verification** — the chunk-5 screens + geofence arming are
+  static+unit verified only (no device here). Exercise login→My Tasks→mark-done→Leave→Notifications + live
+  geofence arm/dwell on a real device when hardware exists (ties to the existing BLOCKED-hardware geofence task).
+  `<source: agent-found 2026-09-10>`
 
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
@@ -56,8 +65,9 @@ exist yet. They are NOT actionable now; they gate a later phase._
   ~~realtime transport (D-22)~~ ✅ **SSE** (`feat/web-realtime-sse` e3484e1) · ~~self-hosted woff2 fonts~~ ✅
   (`feat/self-hosted-fonts` 0560001) · ~~OCR/matching processors~~ ✅ (`feat/document-ocr-matching` af0d71d).
   `<source: agent-found 2026-09-08>`
-- 🟡 **Expo mobile (Part 6)** — IN PROGRESS (wave plan: `docs/tasks/mobile-wave-plan.md`; branch
-  `feat/mobile-scaffold`). ✅ **Chunk 1 scaffold DONE + verified** (`dc138a4`): `apps/mobile` Expo SDK 54
+- 🟡 **Expo mobile (Part 6)** — BUILD COMPLETE except photo capture + hardware-blocked device tests (wave
+  plan: `docs/tasks/mobile-wave-plan.md`; tip branch `feat/mobile-chunk5-screens`). ✅ **Chunks 1–5 DONE +
+  verified** (static+unit bar; NO device). ✅ **Chunk 1 scaffold DONE + verified** (`dc138a4`): `apps/mobile` Expo SDK 54
   (expo ~54.0.37 / expo-location ~19.0.8 / expo-task-manager ~14.0.9), config-plugin bg-geofence permissions,
   monorepo Metro, expo-router tab shell, RN theme from `@orqafy/ui/theme` values; tsc+eslint+`expo config`
   green, Rule 13 clean. ✅ **Chunk 2 offline data layer DONE + verified** (`1abc877`): pure outbox (idempotent
@@ -79,8 +89,14 @@ exist yet. They are NOT actionable now; they gate a later phase._
   sign-out left geofences armed (previous user's sites kept alerting; a pending dwell could still fire) →
   `teardownGeofencing()` wired into `signOut` + the token-invalid hydrate branch; 46 vitest. ✅ **Branches
   consolidated** (`2e10551`, 2026-09-10): `fix/mobile-login-rate-limit` merged into the `feat/mobile-geofence`
-  tip; merged tree re-verified (web tsc + 13/13 vitest + eslint green). **Remaining: chunk 5 core screens.**
-  ⚠ Chunk-4 finding #4 (from the security review) was never surfaced — UNADJUDICATED, re-check before chunk 5.
+  tip; merged tree re-verified (web tsc + 13/13 vitest + eslint green). ✅ **Chunk-4 finding #4 ADJUDICATED**
+  (`fix config.ts`, 2026-09-10): the un-surfaced 4th finding = cleartext-transport of creds+bearer token when
+  API_URL is non-localhost http (D-15 LAN-first). ACCEPTED for v1 (beyond-LAN path is TLS-terminated by the
+  BLOCKED Pangolin tunnel) with 3 hardenings folded into chunk 5. ✅ **Chunk 5 core screens DONE + verified**
+  (`feat/mobile-chunk5-screens`, 7b606ea + 597ade9): login+gate · outbox runtime+mappings · My Tasks · Notifications
+  · Apply-Leave + Leave tab · geofence arming-caller (has-location ∩ active-window authz filter) · 3 security
+  hardenings. mobile tsc 0 · eslint 0 · vitest 64/64 · expo config resolves · Rule-13 clean. NOT device-tested.
+  **Photo capture carved out → separate task (ORQ-23): no server photos.create + manage_files RBAC question.**
   `<source: plan 2026-09-08>`
 - 🔴 **Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar (D-11/D-14).
   `<source: plan 2026-09-08>`

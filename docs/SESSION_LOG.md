@@ -4,6 +4,17 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-10 (chunk 5) — The mobile app's actual screens are built
+
+**In your words:** you noticed the next tasks weren't on the Squirlnote board — add them there first, then do them.
+
+✅ Done — **put the missing work on your board first.** Added three tasks to Squirlnote (the branch consolidation, chunk 5 core screens, and the loose security finding) plus a fourth for the photo-upload gap I found — all tagged, none moved into your Done lane.
+✅ Done — **closed the loose security thread that was blocking the screens.** The chunk-4 review had a 4th finding nobody wrote down. I re-reviewed the code and found it: the app could send your password and login token over plain (unencrypted) network if pointed at a non-secure address. Judgement: acceptable for v1 (the internet-facing path already forces encryption via the tunnel, which isn't live yet), and I added three small safeguards — a warning when the address isn't secure, a stricter phone-keychain setting for the stored token, and a note in the docs.
+✅ Done — **built the mobile app's core screens.** The app now has: a real login screen (before this there was none), a "My Tasks" list where a worker sees their assigned jobs and marks them done, a Notifications center, and an "Apply for Leave" screen — plus the offline plumbing so those actions still work with no signal and sync when it returns. I also wired the geofencing to only watch job sites *you're* assigned to during *your* shift — never every site.
+🔨 Partial — **photo capture is deferred, on purpose.** The camera screen needs a server endpoint that doesn't exist yet, plus a permission decision about whether field staff can upload photos. Logged as its own task (ORQ-23) rather than guessing.
+💬 Note — this was built by a team of sub-agents I directed (a scout to map the server contracts, then five builders), and I verified the combined result myself: type-checks, linting, and 64 automated tests all pass. **No real device was involved** (there's none here) — that testing waits on hardware. Everything is committed locally; nothing is pushed.
+⏳ Next — photo upload (ORQ-23), on-device testing when hardware exists, then the Tauri desktop app (a separate wave).
+
 ## 2026-09-10 (later) — Branch consolidation: rate-limit folded into the mobile tip
 
 **In your words:** (resumed from an empty handoff) — pick up where we left off; the standing next-step was "consolidate branches, then chunk 5."
