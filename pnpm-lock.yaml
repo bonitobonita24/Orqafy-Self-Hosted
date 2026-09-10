@@ -153,6 +153,9 @@ importers:
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
+      jose:
+        specifier: ^6.2.12
+        version: 6.2.12
       lucide-react:
         specifier: ^0.469.0
         version: 0.469.0(react@19.2.8)
@@ -202,6 +205,9 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(lightningcss@1.33.0)(terser@5.51.2)
 
   packages/api-client:
     dependencies:
@@ -211,6 +217,9 @@ importers:
       '@trpc/client':
         specifier: ^11.0.0
         version: 11.18.0(@trpc/server@11.18.0(typescript@5.9.3))(typescript@5.9.3)
+      superjson:
+        specifier: ^2.2.6
+        version: 2.2.6
     devDependencies:
       '@orqafy/web':
         specifier: workspace:*

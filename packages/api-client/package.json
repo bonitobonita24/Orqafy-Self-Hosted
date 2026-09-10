@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@orqafy/shared": "workspace:*",
-    "@trpc/client": "^11.0.0"
+    "@trpc/client": "^11.0.0",
+    "superjson": "^2.2.6"
   },
   "devDependencies": {
     "@orqafy/web": "workspace:*",

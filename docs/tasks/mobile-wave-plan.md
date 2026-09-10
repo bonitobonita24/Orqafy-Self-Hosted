@@ -76,3 +76,32 @@ turbo tasks (`typecheck`/`lint`/`test`/`build`) · **Metro**: `watchFolders=[mon
   grows per-field metadata; noted here so the divergence is intentional and traceable. Photos = create-only
   outbox entries, never flagged (verified by test). Deviations: none beyond this. Not committed.
 - 2026-09-09: CHUNK 1 (scaffold) done + verified (uncommitted, HARD HOLD). `apps/mobile` hand-authored; `npx expo install` pinned the SDK 54 line — expo ~54.0.37, expo-router ~6.0.24, expo-location ~19.0.8, expo-task-manager ~14.0.9, expo-camera ~17.0.10, expo-notifications ~0.32.17, expo-sqlite ~16.0.10, expo-secure-store ~15.0.8, expo-constants ~18.0.14, expo-linking ~8.0.12, expo-status-bar ~3.0.9, react-native-safe-area-context ~5.6.2, react-native-screens ~4.16.0, react 19.1.0, react-native 0.81.5. Verified green: `tsc --noEmit`, ESLint, `expo config` resolves, no forbidden imports, asset-guard clean. Deviations: (a) `@orqafy/ui` added as a workspace dep — required for the `@orqafy/ui/theme` VALUES import (Rule 13 carve-out; verify grep omits `ui`); (b) no `"type":"module"` on the mobile pkg (Expo app: CJS metro/babel + `expo-router/entry` main); (c) `.eslintrc.cjs` RN `env` key dropped — needs `eslint-plugin-react-native` (not in declared devDeps), only injects unused RN globals. TODO assets: no icon/splash/adaptive-icon binaries yet — `app.json` intentionally omits those fields; add + wire when brand assets exist (before a real native build).
+- 2026-09-10: CHUNK 3a (server bearer auth + api-client transport) built + verified (uncommitted, HARD HOLD — PM to verify+live-test+commit). Resolves integration gaps 1 (auth transport) + 2 (thin api-client).
+  NEW: `apps/web/src/lib/mobile-token.ts` (`server-only`; `signMobileToken`/`verifyMobileToken`, jose HS256) ·
+  `apps/web/src/app/api/mobile/login/route.ts` (`runtime='nodejs'` POST; mirrors Auth.js `authorize()` exactly:
+  zod → lowercased email → isActive → bcrypt `verifyPassword`; uniform 401, no enumeration) ·
+  `apps/web/src/lib/mobile-token.test.ts` (vitest, 7 tests) · `apps/web/vitest.config.ts` +
+  `apps/web/test/server-only.stub.ts`.
+  MODIFIED: `apps/web/src/server/context.ts` (`createTRPCContext(req?)` — bearer PRE-branch before the unchanged
+  cookie `auth()` fallback; header-only; `isActive` re-checked from DB every request; permissions ALWAYS
+  DB-resolved, NEVER from the token) · `apps/web/src/app/api/trpc/[trpc]/route.ts` (`createTRPCContext(req)`) ·
+  `apps/web/src/middleware.ts` (`/api/mobile` added to `PUBLIC_PREFIXES`) ·
+  `packages/api-client/src/client.ts` (added `transformer: superjson` + `splitLink`/`httpSubscriptionLink`
+  mirroring providers.tsx; public `{url,headers}` signature unchanged, headers → httpBatchLink false-branch).
+  Deps: `jose@^6.2.12` + `vitest@^2.1.8` (apps/web), `superjson@^2.2.6` (packages/api-client); `pnpm install`
+  ran (lockfile touched, all resolved from store, no downloads).
+  Security properties enforced: HS256 alg-PINNED on sign+verify (alg:none / HS-tamper / foreign-secret / expired
+  / wrong-typ all → null, test-proven) · token claim = userId (subject) ONLY, zero permission/role data · caller
+  `isActive` re-checked from DB per request (stateless-token revocation) · bearer read ONLY from Authorization
+  header, never a cookie · uniform 401 on the login endpoint (no user-enumeration) · AUTH_SECRET read fails
+  CLOSED if unset.
+  Verified: `pnpm --filter @orqafy/web typecheck` exit 0 · `lint` exit 0 · `test` 7/7 green · `pnpm --filter
+  @orqafy/api-client typecheck && lint` exit 0. Diff-review confirmed the cookie path is byte-for-byte
+  preserved as the fallback and no permission is read from the token.
+  ⚠ FOLLOW-UPS: (1) rate-limit `/api/mobile/login` (per-IP + per-email lockout) before any non-localhost
+  exposure — marked `// TODO` in the route; a stateless login has no brute-force protection. (2) The api-client
+  `httpSubscriptionLink` carries NO auth headers (per spec — headers go to the batch branch only, mirroring
+  providers.tsx's cookie model); the mobile notification stream will need bearer auth wired via
+  connectionParams/query at chunk 4/5. (3) NEW vitest setup added to apps/web (it had none) — mirrors the mobile
+  pkg's vitest ^2.1.8; `server-only` is aliased to a no-op stub for the node test env (it throws outside an RSC
+  bundler). Deviations: none beyond (3). Not committed.

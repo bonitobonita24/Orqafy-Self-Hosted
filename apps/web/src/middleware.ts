@@ -15,7 +15,10 @@ const auth: NextAuthResult['auth'] = NextAuth(authConfig).auth;
 // not this middleware. Gating it here would 307-redirect every API call to the
 // HTML /login page — including the public first-run `setup.*` procedures — which
 // breaks first-run setup entirely (no user can ever be created).
-const PUBLIC_PREFIXES = ['/login', '/setup', '/api/auth', '/api/trpc'];
+// `/api/mobile` (the mobile login endpoint) is public at the EDGE: it
+// authenticates by definition (email + password → bearer token), so the edge
+// must not 307-redirect it to the HTML /login page.
+const PUBLIC_PREFIXES = ['/login', '/setup', '/api/auth', '/api/trpc', '/api/mobile'];
 
 // The auth() wrapper's return type references a non-portable internal path, so
 // the default export is annotated to Next's portable NextMiddleware type.

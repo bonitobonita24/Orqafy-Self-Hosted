@@ -1,5 +1,6 @@
-// tRPC HTTP endpoint (App Router fetch adapter). The context reads the Auth.js
-// session from cookies, so no auth headers are threaded here.
+// tRPC HTTP endpoint (App Router fetch adapter). The request is threaded into
+// the context so it can read a mobile `Authorization: Bearer` token; the context
+// falls back to the Auth.js cookie session when no valid bearer is present.
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { appRouter } from '@/server/root';
 import { createTRPCContext } from '@/server/context';
@@ -12,7 +13,7 @@ const handler = (req: Request): Promise<Response> =>
     endpoint: '/api/trpc',
     req,
     router: appRouter,
-    createContext: () => createTRPCContext(),
+    createContext: () => createTRPCContext(req),
   });
 
 export { handler as GET, handler as POST };
