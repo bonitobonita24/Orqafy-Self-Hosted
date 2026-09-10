@@ -83,3 +83,20 @@ export async function cancelDwellNotification(regionIdentifier: string): Promise
     console.warn('[geofence] failed to cancel dwell notification', regionIdentifier, err);
   }
 }
+
+/**
+ * Cancel EVERY pending scheduled notification. Used on sign-out: a dwell timer armed
+ * before logout must not fire afterwards (it would leak the previous user's site
+ * presence to whoever holds the device).
+ *
+ * ASSUMPTION: dwell notifications are currently the ONLY thing this app schedules, so
+ * cancel-all is exact. If another scheduled notification type is added later, switch
+ * to `getAllScheduledNotificationsAsync()` + filter on the `dwell:` id prefix.
+ */
+export async function cancelAllDwellNotifications(): Promise<void> {
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch (err) {
+    console.warn('[geofence] failed to cancel scheduled dwell notifications', err);
+  }
+}

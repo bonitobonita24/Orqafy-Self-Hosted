@@ -22,6 +22,7 @@ import type { OrqafyApiClient } from '@orqafy/api-client';
 import { createAuthedClient } from '@/api/client';
 import { clearToken, getToken } from '@/auth/token-store';
 import { login as loginRequest, logout as logoutRequest, type AuthUser } from '@/auth/auth';
+import { teardownGeofencing } from '@/geofence/arming';
 
 interface AuthContextValue {
   /** The signed-in user, or `null` when signed out. */
@@ -64,7 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setClient(authed);
         setUser({ id: me.id, name: me.name ?? '', email: me.email ?? '' });
       } catch {
+        // The stored token no longer authenticates — that ends the session, so tear
+        // down device monitoring too (see teardownGeofencing) before falling back to
+        // signed-out. Runs regardless of `active` so an unmounted provider still stops
+        // the OS-level geofencing it armed.
         await clearToken();
+        await teardownGeofencing();
         if (!active) {
           return;
         }
@@ -91,6 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async (): Promise<void> => {
+    // Stop OS-level geofence monitoring + drop pending dwell timers BEFORE dropping the
+    // credential. Clearing the token alone would leave the previous user's job sites
+    // armed and still raising arrival alerts on a signed-out device.
+    await teardownGeofencing();
     await logoutRequest();
     setClient(createAuthedClient(null));
     setUser(null);

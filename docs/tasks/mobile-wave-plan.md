@@ -155,3 +155,20 @@ turbo tasks (`typecheck`/`lint`/`test`/`build`) · **Metro**: `watchFolders=[mon
   43/43 (was 31; +12) · `typecheck` rc0 · `lint` rc0 · `expo config --json` resolves · Rule-13 grep empty ·
   asset-guard clean. **NOT device/on-device-trigger tested** (hardware-blocked, out of scope per the done-bar).
   app.json untouched (chunk-1 plugins already present). Remaining: chunk 5 core screens.
+- 2026-09-10: CHUNK 4 post-commit SECURITY REVIEW — 1 real defect FIXED, rest adjudicated.
+  **FIXED — session teardown (real defect):** `signOut` cleared only the token, leaving the OS monitoring the
+  previous user's armed regions and any armed dwell timer live — a signed-out device would keep raising
+  "you've arrived on site" alerts for that user's job sites, and a pending 3-min dwell could fire post-logout
+  (a presence leak under D-19). Added `cancelAllDwellNotifications()` (notifications.ts) + `teardownGeofencing()`
+  (arming.ts = stopGeofences + cancel-all), wired into `AuthContext.signOut` AND the mount-hydrate
+  token-invalid branch (an expired token ends the session too). Guarded by `arming.teardown.test.ts` (3 tests:
+  stops+cancels, skips stop when unarmed but still cancels, and still cancels when stop throws). 46/46 green.
+  **ACKNOWLEDGED, no change — fail-open handler (task.ts):** deliberate. A background geofence task that throws
+  risks the OS suspending task delivery, and a geofence alert is a convenience feature, not a security control —
+  "fail closed" has no safer meaning here. Documented in-file.
+  **DEFERRED TO CHUNK 5 — arming scope (raised against adapter.ts):** the adapter is pure mapping and has no
+  authorization concept, but the underlying point is valid at the CALLER: chunk 5 must only pass regions for
+  tasks currently ASSIGNED to the signed-in user and within their active window — never the whole project's
+  site set. Recorded as a chunk-5 constraint.
+  ⚠ Only a summary of the review was surfaced (3 named files + "+1 more"); the 4th finding's detail was not
+  available, so it is NOT adjudicated here.

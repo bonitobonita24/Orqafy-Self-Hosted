@@ -16,7 +16,11 @@ import type { GeofenceRegion, GeoPoint } from '@orqafy/geofence';
 
 import { toLocationRegions } from './adapter';
 import { GEOFENCE_TASK } from './constants';
-import { configureNotifications, ensureNotificationPermissions } from './notifications';
+import {
+  cancelAllDwellNotifications,
+  configureNotifications,
+  ensureNotificationPermissions,
+} from './notifications';
 
 import './task';
 
@@ -78,4 +82,19 @@ export async function stopGeofences(): Promise<void> {
   } catch (err) {
     console.warn('[geofence] failed to stop geofencing', err);
   }
+}
+
+/**
+ * Full session teardown — MUST run whenever the session ends (explicit sign-out, or a
+ * token that no longer authenticates).
+ *
+ * Clearing the token alone is NOT enough: the OS keeps monitoring the previous user's
+ * armed regions and the background task keeps firing, so a signed-out device would go
+ * on raising "you've arrived on site" alerts for that user's job sites — and any dwell
+ * timer already armed would still fire. This stops monitoring AND drops pending dwell
+ * notifications. Never throws (both halves are individually wrapped).
+ */
+export async function teardownGeofencing(): Promise<void> {
+  await stopGeofences();
+  await cancelAllDwellNotifications();
 }
