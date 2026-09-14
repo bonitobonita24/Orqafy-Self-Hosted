@@ -19,7 +19,7 @@ exist yet. They are NOT actionable now; they gate a later phase._
   Measure idle and sync-load RAM/CPU on a desktop-as-server box already running Postgres + Valkey + MinIO
   before the choice is locked. Done: figures recorded in the winning engine's decision doc.
   `<source: agent-found 2026-09-06>`
-- 🔴 **[BLOCKED-infra] Pangolin throughput test — BLOCKING before any customer install** — needs a live
+- 🔴 **[BLOCKED-infra] Pangolin throughput test — BLOCKING before any customer install** — needs a live `gate: owner (HARD HOLD — needs live tunnel deploy)`
   tunnel deploy (HARD HOLD). Newt/Gerbil has maintainer-acknowledged sequential-packet processing:
   historically ~1–6 MB/s single-stream, reaching ~180 Mbit/s only with **Newt ≥1.16.0 +
   `USE_NATIVE_MAIN_INTERFACE=true` + host networking**. Those settings are mandatory in our bundle.
