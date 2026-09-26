@@ -18,6 +18,7 @@ import { TRPCError } from '@trpc/server';
 import { isValidPhotoKey } from '@orqafy/storage';
 import { router, permissionProcedure } from '../trpc';
 import { PHOTO_FORBIDDEN_MESSAGE, canAttachPhoto } from '../photo-policy';
+import { isUniqueViolation } from '../util';
 
 export const photosRouter = router({
   create: permissionProcedure('upload_photo')
@@ -85,11 +86,4 @@ function ownedOrForbidden<T extends { capturedBy: string }>(row: T, userId: stri
     throw new TRPCError({ code: 'FORBIDDEN', message: PHOTO_FORBIDDEN_MESSAGE });
   }
   return row;
-}
-
-/** Prisma unique-constraint violation (P2002), duck-typed so tests need no client. */
-function isUniqueViolation(err: unknown): boolean {
-  return (
-    typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === 'P2002'
-  );
 }

@@ -326,7 +326,7 @@ model Milestone {
 model Document {
   id              String           @id @default(cuid())
   name            String
-  storageKey      String
+  storageKey      String           @unique // one Document per object (ORQ-26)
   projectId       String?
   clientId        String?
   category        DocumentCategory

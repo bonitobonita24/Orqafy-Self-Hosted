@@ -11,9 +11,15 @@ import { TRPCError } from '@trpc/server';
 import { documentCategoryEnum, documentReviewStatusEnum } from '@orqafy/shared';
 import { isDocumentKey } from '@orqafy/storage';
 import { router, protectedProcedure, permissionProcedure } from '../trpc';
-import { omitUndefined } from '../util';
+import { isUniqueViolation, omitUndefined } from '../util';
 import { enqueueOcr } from '../queues';
 import { getStorageAdapter } from '../storage';
+
+/**
+ * Generic refusal for a storageKey that already backs a Document (ORQ-26). It
+ * deliberately says nothing about the other row (id, name, SPI flag).
+ */
+const KEY_ALREADY_COMMITTED = 'This upload has already been committed. Upload the file again.';
 
 export const documentsRouter = router({
   list: protectedProcedure
@@ -125,18 +131,46 @@ export const documentsRouter = router({
       if (!isDocumentKey(input.storageKey)) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid document storageKey.' });
       }
-      const doc = await ctx.prisma.document.create({
-        data: {
-          name: input.name,
-          category: input.category,
-          storageKey: input.storageKey,
-          size: input.size,
-          mimeType: input.mimeType,
-          isSPI: input.isSPI ?? false,
-          uploadedBy: ctx.userId,
-          ...omitUndefined({ projectId: input.projectId, clientId: input.clientId }),
-        },
+      // ORQ-26: one Document per storageKey. /api/media mints a fresh
+      // `documents/<uuid>/<name>` key per upload, so a legitimate commit never
+      // reuses one; a reused key means someone is re-registering an existing
+      // object (e.g. an SPI document with isSPI:false to bypass view_finances,
+      // and whose delete would also remove the original's bytes). The DB
+      // @unique on Document.storageKey is the real guarantee (P2002 below);
+      // this pre-check just answers the common case without a failed insert.
+      const taken = await ctx.prisma.document.findFirst({
+        where: { storageKey: input.storageKey },
+        select: { id: true },
       });
+      if (taken !== null) {
+        throw new TRPCError({ code: 'CONFLICT', message: KEY_ALREADY_COMMITTED });
+      }
+      // The bytes must actually exist — no rows for objects never uploaded.
+      if (!(await getStorageAdapter().objectExists(input.storageKey))) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Uploaded file not found.' });
+      }
+
+      let doc;
+      try {
+        doc = await ctx.prisma.document.create({
+          data: {
+            name: input.name,
+            category: input.category,
+            storageKey: input.storageKey,
+            size: input.size,
+            mimeType: input.mimeType,
+            isSPI: input.isSPI ?? false,
+            uploadedBy: ctx.userId,
+            ...omitUndefined({ projectId: input.projectId, clientId: input.clientId }),
+          },
+        });
+      } catch (err) {
+        // A concurrent commit of the same key won the race.
+        if (isUniqueViolation(err)) {
+          throw new TRPCError({ code: 'CONFLICT', message: KEY_ALREADY_COMMITTED });
+        }
+        throw err;
+      }
 
       try {
         await enqueueOcr({ documentId: doc.id, revisionId: '0', storageKey: doc.storageKey });
