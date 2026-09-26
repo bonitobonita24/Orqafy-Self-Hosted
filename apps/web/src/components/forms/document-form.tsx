@@ -29,6 +29,7 @@ import {
 } from '@orqafy/ui';
 import { trpc } from '@/trpc/react';
 import { documentFormSchema, type DocumentFormValues, blankToUndef } from './schema';
+import { conflictMessage, isConflictError } from './conflict-error';
 
 // Human labels for the 9 document categories (documentCategoryEnum). Keyed by
 // the canonical enum value so the two never drift.
@@ -132,6 +133,9 @@ export function DocumentFormDialog({
     if (picked === undefined) return;
     setFile(picked);
     setUploadError(null);
+    // ORQ-33: choosing a fresh file is the retry path after a CONFLICT — clear
+    // the stale create error so the re-upload starts clean.
+    create.reset();
     // Prefill the display name from the filename (full name — extension kept).
     setValue('name', picked.name, { shouldValidate: true });
   }
@@ -171,12 +175,24 @@ export function DocumentFormDialog({
         setUploading(false);
       }
 
-      await create.mutateAsync({
-        ...metadata,
-        storageKey: upload.storageKey,
-        size: upload.size,
-        mimeType: upload.mimeType,
-      });
+      try {
+        await create.mutateAsync({
+          ...metadata,
+          storageKey: upload.storageKey,
+          size: upload.size,
+          mimeType: upload.mimeType,
+        });
+      } catch (err) {
+        // ORQ-33: a CONFLICT means this storageKey was already committed (or a
+        // racing P2002 won). Abandon the just-uploaded object and drop the
+        // staged file so the user re-selects and the next submit uploads a
+        // fresh object (a new /api/media key) — never reusing the taken one.
+        // The friendly guidance renders from create.error via conflictMessage();
+        // every other error keeps the form's generic inline handling. Either
+        // way we return so the dialog stays open (no invalidate, no close).
+        if (isConflictError(err)) setFile(null);
+        return;
+      }
     }
 
     await Promise.all([
@@ -196,6 +212,9 @@ export function DocumentFormDialog({
   }
 
   const busy = isSubmitting || uploading;
+  // ORQ-33: a friendly, actionable message for the already-committed case,
+  // shown in place of the raw tRPC CONFLICT text. null for every other error.
+  const conflictMsg = conflictMessage(create.error);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -272,7 +291,9 @@ export function DocumentFormDialog({
             </label>
           </FormItem>
 
-          {mutationError ? (
+          {conflictMsg ? (
+            <p className="text-sm text-destructive">{conflictMsg}</p>
+          ) : mutationError ? (
             <p className="text-sm text-destructive">
               {mutationError.message || 'Something went wrong. Please try again.'}
             </p>
