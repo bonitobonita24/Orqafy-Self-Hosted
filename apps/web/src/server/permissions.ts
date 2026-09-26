@@ -16,12 +16,12 @@ export async function resolveUserPermissions(userId: string): Promise<Set<Permis
   const effective = new Set<Permission>();
   if (user === null) return effective;
 
-  for (const perm of user.role.permissions) effective.add(perm as Permission);
+  for (const perm of user.role.permissions) effective.add(perm);
   for (const group of user.groups) {
-    for (const perm of group.permissions) effective.add(perm as Permission);
+    for (const perm of group.permissions) effective.add(perm);
   }
   for (const override of user.overrides) {
-    const perm = override.permission as Permission;
+    const perm = override.permission;
     if (override.granted) effective.add(perm);
     else effective.delete(perm);
   }

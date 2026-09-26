@@ -49,15 +49,15 @@ interface Harness {
 function harness(opts: {
   status?: number;
   body?: unknown;
-  fetchRejects?: unknown;
-  mutateRejects?: unknown;
+  fetchRejects?: Error;
+  mutateRejects?: Error;
   fileExists?: boolean;
   token?: string | null;
   deleteThrows?: boolean;
   /** photos.existsByClientId result (missing-file recovery). Default: not committed. */
   existsByClientId?: boolean;
   /** When set, the existence query itself rejects (transient/offline). */
-  existsByClientIdRejects?: unknown;
+  existsByClientIdRejects?: Error;
 } = {}): Harness {
   const order: string[] = [];
   const parts: Array<[string, string | RnFilePart]> = [];

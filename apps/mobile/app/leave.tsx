@@ -100,7 +100,7 @@ function toDisplay(row: ServerRequestRow): DisplayRequest {
     typeName: row.leaveType.name,
     startDate: new Date(row.startDate),
     endDate: new Date(row.endDate),
-    status: row.status as RequestStatus,
+    status: row.status,
     optimistic: false,
   };
 }

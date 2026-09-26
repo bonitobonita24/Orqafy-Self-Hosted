@@ -22,6 +22,6 @@ export function omitUndefined<T extends Record<string, unknown>>(obj: T): NoUnde
 /** Prisma unique-constraint violation (P2002), duck-typed so tests need no client. */
 export function isUniqueViolation(err: unknown): boolean {
   return (
-    typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === 'P2002'
+    typeof err === 'object' && err !== null && 'code' in err && err.code === 'P2002'
   );
 }

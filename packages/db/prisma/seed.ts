@@ -54,7 +54,7 @@ async function seedOrganization(): Promise<void> {
 
 async function seedSystemRoles(): Promise<void> {
   for (const role of SYSTEM_ROLE_ORDER) {
-    const systemKey = role as SystemRole;
+    const systemKey = role;
     const name = SYSTEM_ROLE_LABEL[role];
     const permissions = SYSTEM_ROLE_PERMISSIONS[role] as Permission[];
     await prisma.permissionGroup.upsert({

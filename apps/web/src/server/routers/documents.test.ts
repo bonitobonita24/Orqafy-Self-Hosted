@@ -21,7 +21,7 @@ type CallerOpts = {
   /** A Document row already referencing the key (found by the pre-check). */
   existing?: { id: string } | null;
   /** Error thrown by document.create (e.g. a P2002 from a concurrent commit). */
-  createError?: unknown;
+  createError?: Error;
 };
 
 function caller(opts: CallerOpts = {}) {
