@@ -18,19 +18,10 @@ const auth: NextAuthResult['auth'] = NextAuth(authConfig).auth;
 // `/api/mobile` (the mobile login endpoint) is public at the EDGE: it
 // authenticates by definition (email + password → bearer token), so the edge
 // must not 307-redirect it to the HTML /login page.
-// `/api/photos` (D-28 site-photo upload) is public at the EDGE for the same
-// reason as `/api/trpc`: the mobile app calls it with a BEARER token and no
-// cookie, which this cookie-only middleware would 307 to /login. The route
-// handler itself enforces auth (cookie OR bearer → 401), `upload_photo` and the
-// task-assignee check (→ 403).
-const PUBLIC_PREFIXES = [
-  '/login',
-  '/setup',
-  '/api/auth',
-  '/api/trpc',
-  '/api/mobile',
-  '/api/photos',
-];
+// The byte-upload/download routes `/api/photos` and `/api/media` (+ `/api/media/[id]`)
+// are NOT listed here: they are excluded from the matcher entirely (see `config`
+// below) because middleware caps request bodies at 10 MB (ORQ-31).
+const PUBLIC_PREFIXES = ['/login', '/setup', '/api/auth', '/api/trpc', '/api/mobile'];
 
 // The auth() wrapper's return type references a non-portable internal path, so
 // the default export is annotated to Next's portable NextMiddleware type.
@@ -55,6 +46,20 @@ const middleware = auth((req) => {
 export default middleware;
 
 export const config = {
-  // Run on everything except Next internals and static assets.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webp)$).*)'],
+  // Run on everything except Next internals, static assets, and the upload
+  // routes. ORQ-31: whenever middleware runs, Next clones + buffers the request
+  // body and keeps only the first `experimental.middlewareClientMaxBodySize`
+  // bytes (default 10 MB) — the rest is dropped without an error, so a 12 MiB
+  // photo reached /api/photos truncated (→ 400) and >10 MB documents broke
+  // /api/media. Those handlers authenticate themselves (photos: cookie OR
+  // bearer + upload_photo + assignee; media: auth() + manage_files; media/[id]:
+  // auth() + view_finances for SPI) and this middleware adds no headers, so
+  // they lose nothing by skipping it. Unauthenticated callers now get a JSON
+  // 401 from the handler instead of a 307 to the HTML /login page.
+  // `(?:/|$)` keeps look-alikes such as /api/photosX on the middleware.
+  // Regression test: src/middleware.test.ts. Must stay a static literal (Next
+  // parses it at build time).
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|api/photos(?:/|$)|api/media(?:/|$)|.*\\.(?:png|jpg|jpeg|svg|ico|webp)$).*)',
+  ],
 };

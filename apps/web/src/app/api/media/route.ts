@@ -5,6 +5,9 @@
 // credentials stay server-side and the S3/MinIO/local paths behave identically.
 // The response returns the storage key + verified metadata the caller then
 // commits via the documents.create tRPC mutation.
+//
+// Edge middleware does NOT run here (excluded from its matcher — it would cap
+// the body at 10 MB, ORQ-31); this handler is the auth boundary.
 import { NextResponse } from 'next/server';
 import { buildDocumentKey } from '@orqafy/storage';
 import { auth } from '@/auth';

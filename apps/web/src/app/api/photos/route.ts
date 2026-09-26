@@ -5,8 +5,9 @@
 // note on MIME trust (any future photo-serving path must sniff bytes or serve
 // with `X-Content-Type-Options: nosniff` + `Content-Disposition: attachment`).
 //
-// The edge middleware lets /api/photos through unauthenticated (a bearer-only
-// mobile request carries no cookie); THIS handler is the auth boundary.
+// The edge middleware does not run on /api/photos at all (excluded from its
+// matcher: a bearer-only mobile request carries no cookie, and middleware caps
+// bodies at 10 MB — ORQ-31); THIS handler is the auth boundary.
 import { prisma } from '@orqafy/db';
 import { resolveRequestUserId } from '@/server/request-auth';
 import { resolveUserPermissions } from '@/server/permissions';
