@@ -4,6 +4,14 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-27 — Merge verified V1 wave → main (owner-actioned)
+
+**In your words:** action one of the owner-gated items — you chose to merge the finished build into main.
+
+✅ Done — **clean fast-forward** of `docs/tauri-wave-plan` (tip `811d60d`) into `main`. The whole project history — Phase 0 → scaffold → web core → mobile wave → OCR → every Full-Auto fix — now lives on `main` for the first time (previously just the init commit). Tree clean, checked out on `main`.
+💬 Chose FF over squash (would have destroyed 100+ commits) and over `--no-ff` (the line was already linear, so no merge commit was needed).
+💬 **HARD HOLD** — `main` has no upstream and nothing is pushed. Any push of `main` remains your explicit call.
+
 ## 2026-09-26 (late) — Full-Auto wave: RBAC drift, photo download, outbox hygiene, Files UX, ESLint 9, offline retry, Tauri plan
 
 **In your words:** keep going in Full Auto through the ORQ lineup (grant drift → photo download → outbox hygiene → Files CONFLICT → ESLint 9 → Tauri scout).
