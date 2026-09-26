@@ -46,13 +46,19 @@ exist yet. They are NOT actionable now; they gate a later phase._
   drawings are usually well under, so Int is fine for v1 — revisit if large-file uploads surface.
   `<source: agent-found 2026-09-08>`
 - 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
-  legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. `<source: agent-found 2026-09-08>`
+  legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. Board ORQ-34.
+  `<source: agent-found 2026-09-08>`
+- 🔴 **[web] Files form: handle `documents.create` CONFLICT gracefully** — since ORQ-26, `documents.create`
+  returns CONFLICT for an already-used storageKey (and a racing P2002). The Files upload/metadata form should
+  show a friendly error + let the user retry with a fresh upload, not a raw tRPC error. Done: friendly message
+  on CONFLICT repro; web tsc/eslint/vitest green. Board ORQ-33. `<source: agent-found 2026-09-26>`
 - 🔴 **[server][security] Scoped photo READ path** — no photo read procedure exists (a `listByTask` draft was
   removed pre-commit: unscoped = IDOR on GPS data). When the web/mobile needs to view photos, add it as
   assignee-OR-oversight scoped (existing atom, e.g. `view_all_projects`), uniform FORBIDDEN for missing/denied,
   plus a scoped download route. Discrepancy noted: `tasks.byId`/`listByProject` reads are themselves unscoped
   `protectedProcedure` — decide whether that is intended for a single-org install. UPDATE (`c494f98`, F2): the
-  photo rows inside `tasks.byId` and `dashboard.summary` are now scoped; still open = a byte-download route.
+  photo rows inside `tasks.byId` and `dashboard.summary` are now scoped; still open = a byte-download route
+  (reuse `canViewTaskPhotos`; `nosniff` + `Content-Disposition` per F4) + web task-view thumbnails. Board ORQ-32.
   `<source: agent-found 2026-09-26>`
 - 🔴 **[rbac] Seed vs first-run role grants drift** — `packages/db/prisma/seed.ts` and
   `apps/web/src/server/roles.ts` (used by first-run `setup`) disagree on default grants (e.g. project_manager:
@@ -72,7 +78,8 @@ exist yet. They are NOT actionable now; they gate a later phase._
   entries have no UI / manual retry (photo files of permanently-failed entries stay in documents/photos);
   (3) a capture enqueued DURING an in-flight drain waits for the next mount/foreground trigger; (4) if a drain
   deletes the local file but crashes before persisting `synced`, the re-drain fails permanently on "missing
-  file" although the photo IS committed server-side (benign, but mislabelled); (5) a `photo/create` entry that
+  file" although the photo IS committed server-side (benign, but mislabelled — fix: on missing file call
+  `photos.create` with the deterministic key instead of failing); (5) a `photo/create` entry that
   stays retryable for 25 drains (e.g. signed out for days) goes terminal `failed` — no UI to revive it.
   `<source: agent-found 2026-09-26>`
 
