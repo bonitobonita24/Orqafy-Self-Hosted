@@ -50,7 +50,9 @@ exist yet. They are NOT actionable now; they gate a later phase._
   removed pre-commit: unscoped = IDOR on GPS data). When the web/mobile needs to view photos, add it as
   assignee-OR-oversight scoped (existing atom, e.g. `view_all_projects`), uniform FORBIDDEN for missing/denied,
   plus a scoped download route. Discrepancy noted: `tasks.byId`/`listByProject` reads are themselves unscoped
-  `protectedProcedure` — decide whether that is intended for a single-org install. `<source: agent-found 2026-09-26>`
+  `protectedProcedure` — decide whether that is intended for a single-org install. UPDATE (`c494f98`, F2): the
+  photo rows inside `tasks.byId` and `dashboard.summary` are now scoped; still open = a byte-download route.
+  `<source: agent-found 2026-09-26>`
 - 🔴 **[rbac] Seed vs first-run role grants drift** — `packages/db/prisma/seed.ts` and
   `apps/web/src/server/roles.ts` (used by first-run `setup`) disagree on default grants (e.g. project_manager:
   seed = create_project+manage_files; roles.ts adds view_all_projects+export_data; accountant manage_files).
@@ -69,7 +71,17 @@ exist yet. They are NOT actionable now; they gate a later phase._
   entries have no UI / manual retry (photo files of permanently-failed entries stay in documents/photos);
   (3) a capture enqueued DURING an in-flight drain waits for the next mount/foreground trigger; (4) if a drain
   deletes the local file but crashes before persisting `synced`, the re-drain fails permanently on "missing
-  file" although the photo IS committed server-side (benign, but mislabelled). `<source: agent-found 2026-09-26>`
+  file" although the photo IS committed server-side (benign, but mislabelled); (5) a `photo/create` entry that
+  stays retryable for 25 drains (e.g. signed out for days) goes terminal `failed` — no UI to revive it.
+  `<source: agent-found 2026-09-26>`
+- 🔴 **[security][web] documents.create can re-commit a known SPI document key with isSPI:false, bypassing
+  view_finances** — pre-existing. Fix: reject a `storageKey` already referenced by any Document, or bind keys to
+  the upload session. `<source: agent-found 2026-09-26>`
+- 🔴 **[security][mobile] Outbox clientId falls back to Math.random** — `apps/mobile/src/offline/uuid.ts` uses
+  `crypto.randomUUID()` only if the runtime has it (Hermes may not) and says the id is "not a secret"; the F1
+  photo-upload hardening assumes clientIds are unguessable (an uncommitted clientId's object is last-writer-wins
+  across users). Fix: add `expo-crypto` (`randomUUID`) or `react-native-get-random-values`; update the comment.
+  `<source: agent-found 2026-09-26>`
 
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
@@ -127,6 +139,11 @@ exist yet. They are NOT actionable now; they gate a later phase._
   errors — retryable now stays pending up to 25 attempts, previously every failure was terminal) + `723dc3f`
   (capture screen, hidden route, My Tasks "Photo" action). Static+unit only: tsc 0 · eslint 0 · vitest 122/122 ·
   `expo config` resolves the camera plugin. On-device pending under the BLOCKED-hardware chunk-5 item.
+  **COMPLETE — merged tip `c494f98`** (merge of `fix/photo-upload-hardening` `a5317c0`, F1–F5: committed-clientId
+  immutability 403/409, assignee-or-oversight photo reads in `tasks.byId`/`dashboard.summary`, Content-Length
+  411/413 gate before `formData()`, per-user upload rate limit, MIME-trust note). Combined re-verify 2026-09-26:
+  tsc 0 ×6 pkgs · eslint web+mobile 0 · vitest web 80 / storage 23 / mobile 122 · web build 0 · `expo config` 0 ·
+  asset guard clean. Server live-verified pre-hardening only; on-device BLOCKED-hardware.
 
 - ✅ **Rate-limit `POST /api/mobile/login` (brute-force protection)** (2026-09-10, `fix/mobile-login-rate-limit`).
   Closes the chunk-3a security follow-up (endpoint had no brute-force protection). New DI'd limiter
