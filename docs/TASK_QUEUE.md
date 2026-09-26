@@ -6,7 +6,7 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 ## 🔴 / 🟡 Open
 
-- 🔴 **[URGENT][branding] Official logo + favicon adoption** — app has no favicon/brand-logo assets yet. Blocked on a [WHAT]: Orqafy is a productized app, so sidebar/login/favicon = the PRODUCT's identity (no Orqafy logo source provided), while the Powerbyte company mark fits only the white-label footer credit. Canonical kit source: Branding-Marketing-Framework/brand-assets/official-logo/. `gate: owner (branding [WHAT] — see PENDING_DECISIONS.md)` `source: owner 2026-09-21`
+- 🟡 **[branding] Orqafy product wordmark + favicon + Powerbyte footer** — [WHAT] RESOLVED → **D-29 (A)**: Orqafy product-branded chrome; Powerbyte mark in footer only; asset = text wordmark placeholder. BUILT + verified on `feat/orqafy-wordmark-branding` (`e31b64e`): `<OrqafyWordmark>` in sidebar + login, App-Router `icon.svg` favicon, sidebar footer (version tag + Powerbyte credit link). typecheck/lint/build green. `gate: owner (merge→main + dev rebuild; footer shows v0.0.0 until package.json version set)` `source: owner 2026-09-21`
 
 _The three below are BLOCKED — they require real hardware / a running stack / a live tunnel, none of which
 exist yet. They are NOT actionable now; they gate a later phase._
