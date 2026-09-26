@@ -12,9 +12,9 @@
 // rather than throwing — an unavailable store degrades to "nothing queued/drained"
 // instead of crashing a screen.
 //
-// UUIDs come from the pure `./uuid` (crypto.randomUUID, else RFC-4122 v4
-// fallback) — the clientId doubles as the server idempotency key and, for
-// photo/create, the upload's `clientId` (must be a UUID).
+// UUIDs come from `./uuid-native` (expo-crypto CSPRNG, no weak fallback) — the
+// clientId doubles as the server idempotency key and, for photo/create, the
+// upload's `clientId`, which F1/D-28 treats as an unguessable capability key.
 //
 // Photo upload deps (D-28) — fetch/FormData/token/file-system — are also
 // loaded lazily inside `drain` (`../photos/upload-deps`) for the same reason.
@@ -26,7 +26,7 @@ import { enqueue as pureEnqueue } from './outbox';
 import { createOutboxSend, type OutboxSendDeps } from './send';
 import { drainOutbox } from './sync-engine';
 import type { OutboxEntry, OutboxOp, OutboxStore } from './types';
-import { newUuid } from './uuid';
+import { newUuid } from './uuid-native';
 
 /** The app-facing outbox surface a screen consumes. */
 export interface OutboxRuntime {
@@ -69,7 +69,7 @@ async function getStore(): Promise<OutboxStore | null> {
 
 // --- non-tRPC send deps (lazy) ------------------------------------------------
 
-/** Device upload seams for photo/create. Missing -> photo entries fail permanently. */
+/** Device upload seams for photo/create. Missing -> photo entries fail RETRYABLY (send.ts), bounded by drainOutbox maxAttempts (25). */
 async function getSendDeps(): Promise<OutboxSendDeps> {
   try {
     const { createPhotoUploadDeps } = await import('../photos/upload-deps');

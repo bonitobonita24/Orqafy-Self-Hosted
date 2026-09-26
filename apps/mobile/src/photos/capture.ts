@@ -7,7 +7,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Location from 'expo-location';
 
-import { newUuid } from '@/offline/uuid';
+import { newUuid } from '@/offline/uuid-native';
 
 import { resolveWithin } from './timeout';
 

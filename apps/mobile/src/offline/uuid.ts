@@ -1,18 +1,34 @@
 // UUID minting for outbox clientIds and local photo filenames. PURE module.
 //
-// `expo-crypto` is not a dependency, so prefer `globalThis.crypto.randomUUID()`
-// when the runtime exposes it and fall back to a Math.random RFC-4122 v4
-// generator (Hermes may lack `crypto`). The value is an idempotency key / file
-// name, not a secret, so the fallback's lack of cryptographic strength is fine.
-// Both paths yield a v4-shaped UUID that the server's zod `.uuid()` accepts.
+// SECURITY: an outbox clientId is a capability key, not just an idempotency
+// token. The server's photo-overwrite protection (F1, D-28) treats a known
+// clientId as the right to re-submit that photo row, so ids MUST be
+// unguessable. The generator therefore takes an injected CSPRNG source
+// (expo-crypto `randomUUID`, wired in ./uuid-native) and has NO weak fallback:
+// with no source it throws rather than silently degrading.
+//
+// The native import lives in ./uuid-native so this module stays importable by
+// vitest (same split as runtime.ts's lazy native imports).
 
-/** A fresh RFC-4122 v4 UUID. */
-export function newUuid(): string {
-  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
-  if (c?.randomUUID) return c.randomUUID();
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
-    const r = (Math.random() * 16) | 0;
-    const v = ch === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+/** A CSPRNG-backed RFC-4122 v4 UUID source (e.g. expo-crypto `randomUUID`). */
+export type UuidSource = () => string;
+
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+/**
+ * Build a UUID generator over a CSPRNG source. Output is normalized to
+ * lowercase (iOS NSUUID yields uppercase) and must match RFC-4122 v4, which the
+ * server's zod `.uuid()` accepts. Throws if no source is provided.
+ */
+export function createUuidGenerator(source: UuidSource | undefined): () => string {
+  if (typeof source !== 'function') {
+    throw new Error('No CSPRNG UUID source available; refusing to mint a guessable clientId');
+  }
+  return () => {
+    const id = source().toLowerCase();
+    if (!UUID_V4.test(id)) {
+      throw new Error('CSPRNG source did not return an RFC-4122 v4 UUID');
+    }
+    return id;
+  };
 }
