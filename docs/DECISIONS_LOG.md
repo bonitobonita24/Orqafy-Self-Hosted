@@ -379,3 +379,22 @@ edit/delete other people's documents.
 - Rejected (c) grant field staff `manage_files` — far too broad.
 **Consequence:** Unblocks the mobile photo-capture piece (ORQ-23); build proceeds on `feat/mobile-photo-capture`.
 **PRODUCT.md back-port candidate:** Roles & Permissions — field staff may upload site photos to their assigned tasks (D-28). Owner to back-port.
+
+## 2026-09-27 — Resume session
+
+### D-29 · Product branding for sidebar / login / favicon (ORQ-37) (owner, 2026-09-27)
+**Decision:** Option (A) — Orqafy carries its **own product brand**. A distinct Orqafy product logo + favicon
+are used for the sidebar, login screen, and favicon. The **Powerbyte** mark appears ONLY in the "Developed by
+Powerbyte IT Solutions" white-label footer (per `~/.claude/rules/design-defaults.md` Entry 3).
+**Why:** Orqafy-Self-Hosted is a distinct, customer-facing **AGPL-3.0 public product**. Applying the Powerbyte
+*company* brand to the product's own chrome (sidebar/login/favicon) would misbrand the product. This scopes the
+2026-09-21 official-Powerbyte-logo broadcast to the footer credit only, for this repo.
+- Rejected (B) Powerbyte-branded everywhere — misbrands a public product.
+- Rejected (C) defer — owner chose to resolve.
+**Open sub-gate (asset source):** the repo has NO Orqafy product logo/favicon asset yet, and the commercial
+Orqafy `logo.png` is a separate product (read-only reference, not to be lifted). The Orqafy-Self-Hosted logo
+asset source is still to be settled with the owner before the UI wiring can proceed.
+**Consequence:** No UI change lands until the asset source is decided; ORQ-37 stays open in TASK_QUEUE.md as
+the asset-source sub-gate. HARD HOLD (local only).
+**PRODUCT.md back-port candidate:** Branding — Orqafy uses its own product logo/favicon; Powerbyte mark only in
+the footer credit (D-29). Owner to back-port.

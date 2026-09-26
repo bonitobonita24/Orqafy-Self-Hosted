@@ -35,18 +35,21 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       much). Recommendation: (a). Blocks the photo-capture piece of the mobile wave. Back-port to PRODUCT.md +
       DECISIONS_LOG once answered.
 
+## ✅ Resolved (2026-09-27, resume session)
+
+- [x] **[WHAT] Orqafy branding: product logo vs Powerbyte company logo** → **D-29**: option (A) —
+      Orqafy carries its OWN product logo + favicon (sidebar/login/favicon); the Powerbyte mark appears
+      only in the "Developed by Powerbyte IT Solutions" footer (owner, 2026-09-27). Scopes the 2026-09-21
+      official-Powerbyte-logo broadcast to the footer credit for this public AGPL product.
+      **⚠ Asset-source sub-gate still open** — the repo has no Orqafy logo/favicon asset yet, and the
+      commercial Orqafy logo is a separate product (read-only, not to be lifted). The UI wiring cannot
+      proceed until the owner settles where the Orqafy-Self-Hosted logo comes from (owner-supplied file /
+      generate a new mark / text wordmark placeholder). Tracked in `docs/TASK_QUEUE.md` (ORQ-37).
+
 ## 🔴 Open
 
-- [ ] **[WHAT] Orqafy branding: product logo vs Powerbyte company logo for sidebar/login/favicon**
-      (surfaced 2026-09-21, URGENT broadcast) — The 2026-09-21 URGENT broadcast says adopt the official
-      Powerbyte logo/favicon kit. Orqafy-Self-Hosted has no logo/favicon assets yet. Since Orqafy is a
-      distinct customer-facing product (AGPL-3.0 public), applying the Powerbyte *company* brand to the
-      product's sidebar/login/favicon would misbrand the product. Options: (A) source/create an Orqafy
-      product logo + favicon for sidebar/login/favicon, and place the Powerbyte mark only in the
-      "Developed by Powerbyte IT Solutions" white-label footer; (B) treat this deployment as
-      Powerbyte-branded and apply the Powerbyte kit everywhere per the broadcast; (C) N/A defer.
-      Recommendation: (A). Needs owner's word + an Orqafy logo asset source if (A). Tracked in
-      `docs/TASK_QUEUE.md`.
+_(none — the only open item is the D-29 asset-source sub-gate above, awaiting the owner's word on the
+logo asset.)_
 
 ## ✅ Resolved (2026-09-06, v1-scope resolution)
 
