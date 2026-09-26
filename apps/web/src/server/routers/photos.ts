@@ -16,7 +16,7 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { isValidPhotoKey } from '@orqafy/storage';
-import { router, permissionProcedure } from '../trpc';
+import { router, permissionProcedure, protectedProcedure } from '../trpc';
 import { PHOTO_FORBIDDEN_MESSAGE, canAttachPhoto } from '../photo-policy';
 import { isUniqueViolation } from '../util';
 
@@ -78,6 +78,25 @@ export const photosRouter = router({
         if (raced === null) throw err;
         return ownedOrForbidden(raced, ctx.userId);
       }
+    }),
+
+  // Recovery aid for the mobile outbox (ORQ-28 item 4): lets a device confirm its
+  // OWN photo already committed when the local file is gone (crash after
+  // photos.create succeeded + the file was deleted, before the outbox row was
+  // pruned). Bytes-free — keyed on clientId, so no upload/storageKey is needed.
+  // CAPTURER-SCOPED (capturedBy = the caller): a user can only confirm the
+  // existence of their own capture, which is exactly the recovery case and leaks
+  // nothing — it is never a general existence oracle. clientId is canonicalised to
+  // lower case to match how `create` stores it (an upper-case retry hits one row).
+  existsByClientId: protectedProcedure
+    .input(z.object({ clientId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const clientId = input.clientId.toLowerCase();
+      const row = await ctx.prisma.photo.findFirst({
+        where: { clientId, capturedBy: ctx.userId },
+        select: { id: true },
+      });
+      return { exists: row !== null };
     }),
 });
 

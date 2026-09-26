@@ -51,6 +51,13 @@ function fakePrisma(
     photo: {
       findUnique: ({ where }: { where: { clientId: string } }) =>
         Promise.resolve(photos.get(where.clientId) ?? null),
+      findFirst: ({ where }: { where: { clientId: string; capturedBy: string } }) => {
+        const row = photos.get(where.clientId);
+        if (row === undefined || row.capturedBy !== where.capturedBy) {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve({ id: row.id });
+      },
       create: ({ data }: { data: Omit<FakePhoto, 'id'> }) => {
         if (opts.raceRow !== undefined && !raced) {
           raced = true;
@@ -222,5 +229,22 @@ describe('photos.create', () => {
       code: 'FORBIDDEN',
       message: PHOTO_FORBIDDEN_MESSAGE,
     });
+  });
+});
+
+describe('photos.existsByClientId', () => {
+  it('true for the caller’s OWN committed photo', async () => {
+    const { caller } = makeCaller('u1', ['upload_photo'], TASKS, { seed: [existingRow('u1')] });
+    expect(await caller.existsByClientId({ clientId: CLIENT_ID })).toEqual({ exists: true });
+  });
+
+  it('false when the clientId belongs to ANOTHER user (capturer scope enforced)', async () => {
+    const { caller } = makeCaller('u1', ['upload_photo'], TASKS, { seed: [existingRow('u2')] });
+    expect(await caller.existsByClientId({ clientId: CLIENT_ID })).toEqual({ exists: false });
+  });
+
+  it('false when no photo with that clientId exists', async () => {
+    const { caller } = makeCaller('u1', ['upload_photo'], TASKS);
+    expect(await caller.existsByClientId({ clientId: CLIENT_ID })).toEqual({ exists: false });
   });
 });

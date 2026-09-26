@@ -40,6 +40,7 @@ interface Harness {
   client: OrqafyApiClient;
   fetch: ReturnType<typeof vi.fn>;
   mutate: ReturnType<typeof vi.fn>;
+  existsQuery: ReturnType<typeof vi.fn>;
   deleteFile: ReturnType<typeof vi.fn>;
   parts: Array<[string, string | RnFilePart]>;
   order: string[];
@@ -53,6 +54,10 @@ function harness(opts: {
   fileExists?: boolean;
   token?: string | null;
   deleteThrows?: boolean;
+  /** photos.existsByClientId result (missing-file recovery). Default: not committed. */
+  existsByClientId?: boolean;
+  /** When set, the existence query itself rejects (transient/offline). */
+  existsByClientIdRejects?: unknown;
 } = {}): Harness {
   const order: string[] = [];
   const parts: Array<[string, string | RnFilePart]> = [];
@@ -74,6 +79,11 @@ function harness(opts: {
     if (opts.mutateRejects !== undefined) return Promise.reject(opts.mutateRejects);
     return Promise.resolve({ id: 'photo-row' });
   });
+  const existsQuery = vi.fn(() => {
+    order.push('exists');
+    if (opts.existsByClientIdRejects !== undefined) return Promise.reject(opts.existsByClientIdRejects);
+    return Promise.resolve({ exists: opts.existsByClientId ?? false });
+  });
   const deleteFile = vi.fn(() => {
     order.push('delete');
     if (opts.deleteThrows === true) return Promise.reject(new Error('EACCES'));
@@ -92,8 +102,10 @@ function harness(opts: {
     fileExists: () => Promise.resolve(opts.fileExists ?? true),
     deleteFile,
   };
-  const client = { photos: { create: { mutate } } } as unknown as OrqafyApiClient;
-  return { deps, client, fetch, mutate, deleteFile, parts, order };
+  const client = {
+    photos: { create: { mutate }, existsByClientId: { query: existsQuery } },
+  } as unknown as OrqafyApiClient;
+  return { deps, client, fetch, mutate, existsQuery, deleteFile, parts, order };
 }
 
 describe('buildPhotoPayload', () => {
@@ -275,12 +287,31 @@ describe('sendPhotoCreate — failures', () => {
     expect(h.deleteFile).not.toHaveBeenCalled();
   });
 
-  it('missing local file ⇒ permanent, no upload attempted', async () => {
-    const h = harness({ fileExists: false });
+  it('missing local file, never committed ⇒ permanent, no upload attempted', async () => {
+    const h = harness({ fileExists: false, existsByClientId: false });
     await expect(sendPhotoCreate(h.client, makeEntry(), h.deps)).rejects.toBeInstanceOf(
       PermanentSendError,
     );
+    expect(h.existsQuery).toHaveBeenCalledWith({ clientId: CLIENT_ID });
     expect(h.fetch).not.toHaveBeenCalled();
+  });
+
+  it('missing local file but ALREADY committed server-side ⇒ resolves (post-crash recovery), no upload/mutate/delete', async () => {
+    const h = harness({ fileExists: false, existsByClientId: true });
+    await expect(sendPhotoCreate(h.client, makeEntry(), h.deps)).resolves.toBeUndefined();
+    expect(h.existsQuery).toHaveBeenCalledWith({ clientId: CLIENT_ID });
+    expect(h.fetch).not.toHaveBeenCalled();
+    expect(h.mutate).not.toHaveBeenCalled();
+    expect(h.deleteFile).not.toHaveBeenCalled();
+  });
+
+  it('missing local file + existence check itself fails ⇒ retryable (never permanently fail an unconfirmed photo)', async () => {
+    const h = harness({ fileExists: false, existsByClientIdRejects: new TypeError('offline') });
+    await expect(sendPhotoCreate(h.client, makeEntry(), h.deps)).rejects.toBeInstanceOf(
+      RetryableSendError,
+    );
+    expect(h.fetch).not.toHaveBeenCalled();
+    expect(h.mutate).not.toHaveBeenCalled();
   });
 
   it('a 200 whose storageKey is not this clientId’s key ⇒ permanent, no mutate', async () => {

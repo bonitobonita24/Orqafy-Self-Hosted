@@ -3,7 +3,10 @@
 // (`PhotoUploadDeps`) — the device wiring lives in `src/photos/upload-deps.ts`.
 //
 // Flow per entry (offline-first, D-15):
-//   1. local file must still exist, else PERMANENT (it was purged/deleted).
+//   1. local file must still exist. If it's gone, first ask the server whether
+//      this photo already committed (photos.existsByClientId, capturer-scoped) —
+//      TRUE -> success/done (post-crash recovery, ORQ-28 item 4); FALSE ->
+//      PERMANENT (bytes genuinely lost); check itself failing -> RETRYABLE.
 //   2. multipart POST ${apiUrl}/api/photos { taskId, clientId, file } with the
 //      bearer token. clientId = the OUTBOX entry's clientId, so a retried upload
 //      overwrites the same object (server is idempotent per clientId).
@@ -194,6 +197,28 @@ export async function sendPhotoCreate(
     exists = false;
   }
   if (!exists) {
+    // The local bytes are gone, so we can't re-upload. But the photo may ALREADY
+    // be committed: a crash after photos.create succeeded + the file was deleted,
+    // before this outbox row could be pruned (ORQ-28 item 4). Confirm server-side
+    // by clientId (bytes-free, capturer-scoped) before failing permanently.
+    let committed: boolean;
+    try {
+      const res = await client.photos.existsByClientId.query({ clientId: entry.clientId });
+      committed = res.exists;
+    } catch (err) {
+      // The existence check ITSELF failed (offline/transient). Don't permanently
+      // fail a photo that may well be committed — retry when we can confirm.
+      throw new RetryableSendError(
+        `Cannot confirm photo commit for a missing local file: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    if (committed) {
+      // Already on the server — nothing to upload, nothing to delete (file is
+      // gone). The entry drains to 'synced' and Pass A prunes it.
+      return;
+    }
     throw new PermanentSendError(`Local photo is missing: ${p.localUri}`);
   }
 
