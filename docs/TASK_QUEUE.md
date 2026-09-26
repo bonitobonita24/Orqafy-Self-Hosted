@@ -52,17 +52,7 @@ exist yet. They are NOT actionable now; they gate a later phase._
   (`POST /api/photos` + `photos.create`) → local file deleted; confirm RN multipart sends a Content-Length
   (server returns 411 otherwise — source-level evidence says yes on both platforms, unverified).
   `<source: agent-found 2026-09-10>`
-- 🔴 **[mobile] Pending-photo badge on My Tasks** — `useOutbox` exposes no entry list, so a per-task count of
-  pending `photo/create` entries needs new runtime plumbing (list + change notification). Done: badge shows N
-  queued photos per task, clears after drain. `<source: agent-found 2026-09-26>`
-- 🔴 **[mobile] Outbox hygiene follow-ups** — (1) `synced` entries are never pruned from sqlite; (2) `failed`
-  entries have no UI / manual retry (photo files of permanently-failed entries stay in documents/photos);
-  (3) a capture enqueued DURING an in-flight drain waits for the next mount/foreground trigger; (4) if a drain
-  deletes the local file but crashes before persisting `synced`, the re-drain fails permanently on "missing
-  file" although the photo IS committed server-side (benign, but mislabelled — fix: on missing file call
-  `photos.create` with the deterministic key instead of failing); (5) a `photo/create` entry that
-  stays retryable for 25 drains (e.g. signed out for days) goes terminal `failed` — no UI to revive it.
-  `<source: agent-found 2026-09-26>`
+<!-- ORQ-28 (pending-photo badge + the 5 outbox-hygiene follow-ups) DONE this session — see ✅ Done recently (`d375fdf`/`a66a055`). -->
 
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
@@ -73,7 +63,8 @@ exist yet. They are NOT actionable now; they gate a later phase._
   ~~realtime transport (D-22)~~ ✅ **SSE** (`feat/web-realtime-sse` e3484e1) · ~~self-hosted woff2 fonts~~ ✅
   (`feat/self-hosted-fonts` 0560001) · ~~OCR/matching processors~~ ✅ (`feat/document-ocr-matching` af0d71d).
   `<source: agent-found 2026-09-08>`
-- 🟡 **Expo mobile (Part 6)** — BUILD COMPLETE except photo capture + hardware-blocked device tests (wave
+- 🟡 **[BLOCKED-hardware remainder] Expo mobile (Part 6)** — BUILD COMPLETE incl. photo capture (ORQ-23/D-28);
+  only hardware-blocked on-device tests remain (see the BLOCKED on-device item). Originally noted as (wave
   plan: `docs/tasks/mobile-wave-plan.md`; tip branch `feat/mobile-chunk5-screens`). ✅ **Chunks 1–5 DONE +
   verified** (static+unit bar; NO device). ✅ **Chunk 1 scaffold DONE + verified** (`dc138a4`): `apps/mobile` Expo SDK 54
   (expo ~54.0.37 / expo-location ~19.0.8 / expo-task-manager ~14.0.9), config-plugin bg-geofence permissions,
@@ -106,7 +97,9 @@ exist yet. They are NOT actionable now; they gate a later phase._
   hardenings. mobile tsc 0 · eslint 0 · vitest 64/64 · expo config resolves · Rule-13 clean. NOT device-tested.
   **Photo capture carved out → separate task (ORQ-23): no server photos.create + manage_files RBAC question.**
   `<source: plan 2026-09-08>`
-- 🔴 **Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar (D-11/D-14).
+- 🔴 **[DEFERRED-owner-gated] Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar
+  (D-11/D-14). ✅ Wave PLAN written: `docs/planning/R7a_TAURI_WAVE_PLAN.md` (chunks 1–7 + 7 open [WHAT]s).
+  BUILD is owner-gated (D-3 later track) — not un-gated; start only when the owner greenlights the track.
   `<source: plan 2026-09-08>`
 - 🔴 **[POST-V1, security] Valkey-backed rate-limit store** — the mobile-login limiter is in-memory (resets on
   restart, per-instance). Drop in a Valkey `RateLimitStore` adapter at the `getRateLimitStore()` SEAM for
