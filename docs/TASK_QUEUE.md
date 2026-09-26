@@ -46,14 +46,6 @@ exist yet. They are NOT actionable now; they gate a later phase._
   `<source: agent-found 2026-09-08>`
 - 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
   legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. `<source: agent-found 2026-09-08>`
-- 🟡 **[mobile][server] Site-photo capture upload path** (ORQ-23) — the chunk-5 photo-capture screen has NO
-  server write path: no `photos` tRPC router / photos.create, and `/api/media`→documents.create is
-  `manage_files`-gated (field staff likely lack it). Needs a minimal Photo-persist procedure + a [WHAT]-adjacent
-  RBAC decision (task-scoped upload vs assignee check). Camera capture + local outbox queue can build now; the
-  drain has no server target until this lands. `<source: agent-found 2026-09-10>`
-  Decision D-28 (2026-09-26): option (a) — narrow task-scoped photos.create + photo permission. Build IN PROGRESS on feat/mobile-photo-capture.
-  2026-09-26: SERVER half DONE + unit + live verified (`upload_photo` perm, `Photo.clientId`, `POST /api/photos`,
-  `photos.create`, documents.create key guard). Remaining: mobile capture + outbox drain to these endpoints.
 - 🔴 **[server][security] Scoped photo READ path** — no photo read procedure exists (a `listByTask` draft was
   removed pre-commit: unscoped = IDOR on GPS data). When the web/mobile needs to view photos, add it as
   assignee-OR-oversight scoped (existing atom, e.g. `view_all_projects`), uniform FORBIDDEN for missing/denied,
@@ -66,7 +58,18 @@ exist yet. They are NOT actionable now; they gate a later phase._
 - 🔴 **[mobile][BLOCKED-hardware] On-device chunk-5 verification** — the chunk-5 screens + geofence arming are
   static+unit verified only (no device here). Exercise login→My Tasks→mark-done→Leave→Notifications + live
   geofence arm/dwell on a real device when hardware exists (ties to the existing BLOCKED-hardware geofence task).
+  ALSO (ORQ-23, 2026-09-26): My Tasks "Photo" → camera permission/denied → capture offline → drain uploads
+  (`POST /api/photos` + `photos.create`) → local file deleted; confirm RN multipart sends a Content-Length
+  (server returns 411 otherwise — source-level evidence says yes on both platforms, unverified).
   `<source: agent-found 2026-09-10>`
+- 🔴 **[mobile] Pending-photo badge on My Tasks** — `useOutbox` exposes no entry list, so a per-task count of
+  pending `photo/create` entries needs new runtime plumbing (list + change notification). Done: badge shows N
+  queued photos per task, clears after drain. `<source: agent-found 2026-09-26>`
+- 🔴 **[mobile] Outbox hygiene follow-ups** — (1) `synced` entries are never pruned from sqlite; (2) `failed`
+  entries have no UI / manual retry (photo files of permanently-failed entries stay in documents/photos);
+  (3) a capture enqueued DURING an in-flight drain waits for the next mount/foreground trigger; (4) if a drain
+  deletes the local file but crashes before persisting `synced`, the re-drain fails permanently on "missing
+  file" although the photo IS committed server-side (benign, but mislabelled). `<source: agent-found 2026-09-26>`
 
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
@@ -117,6 +120,13 @@ exist yet. They are NOT actionable now; they gate a later phase._
   restart-durable / multi-instance limiting when the app graduates past single-process. `<source: agent-found 2026-09-10>`
 
 ## ✅ Done recently
+
+- ✅ **Site-photo capture upload path** (ORQ-23 / D-28) (2026-09-26, `feat/mobile-photo-capture`). Server half
+  `f845130`…`1daeb4f`; mobile half `5c6763a` (outbox `photo/create` drain: multipart `/api/photos` → `photos.create`
+  with the outbox clientId, revived Date, delete-after-commit; 409+storageKey reuse; typed Permanent/Retryable send
+  errors — retryable now stays pending up to 25 attempts, previously every failure was terminal) + `723dc3f`
+  (capture screen, hidden route, My Tasks "Photo" action). Static+unit only: tsc 0 · eslint 0 · vitest 122/122 ·
+  `expo config` resolves the camera plugin. On-device pending under the BLOCKED-hardware chunk-5 item.
 
 - ✅ **Rate-limit `POST /api/mobile/login` (brute-force protection)** (2026-09-10, `fix/mobile-login-rate-limit`).
   Closes the chunk-3a security follow-up (endpoint had no brute-force protection). New DI'd limiter
