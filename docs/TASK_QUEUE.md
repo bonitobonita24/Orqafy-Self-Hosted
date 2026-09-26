@@ -52,14 +52,6 @@ exist yet. They are NOT actionable now; they gate a later phase._
   returns CONFLICT for an already-used storageKey (and a racing P2002). The Files upload/metadata form should
   show a friendly error + let the user retry with a fresh upload, not a raw tRPC error. Done: friendly message
   on CONFLICT repro; web tsc/eslint/vitest green. Board ORQ-33. `<source: agent-found 2026-09-26>`
-- 🔴 **[server][security] Scoped photo READ path** — no photo read procedure exists (a `listByTask` draft was
-  removed pre-commit: unscoped = IDOR on GPS data). When the web/mobile needs to view photos, add it as
-  assignee-OR-oversight scoped (existing atom, e.g. `view_all_projects`), uniform FORBIDDEN for missing/denied,
-  plus a scoped download route. Discrepancy noted: `tasks.byId`/`listByProject` reads are themselves unscoped
-  `protectedProcedure` — decide whether that is intended for a single-org install. UPDATE (`c494f98`, F2): the
-  photo rows inside `tasks.byId` and `dashboard.summary` are now scoped; still open = a byte-download route
-  (reuse `canViewTaskPhotos`; `nosniff` + `Content-Disposition` per F4) + web task-view thumbnails. Board ORQ-32.
-  `<source: agent-found 2026-09-26>`
 - 🔴 **[mobile][BLOCKED-hardware] On-device chunk-5 verification** — the chunk-5 screens + geofence arming are
   static+unit verified only (no device here). Exercise login→My Tasks→mark-done→Leave→Notifications + live
   geofence arm/dwell on a real device when hardware exists (ties to the existing BLOCKED-hardware geofence task).
@@ -129,6 +121,16 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **[server][security] Scoped photo byte-download route + web thumbnails (ORQ-32)** — `GET /api/photos/[id]`
+  serves bytes only to viewers allowed by the shared photo-policy (`canReadStoredPhoto` → `canViewTaskPhotos`
+  assignee-OR-oversight for task photos; oversight-only for milestone photos). Missing + denied + bytes-gone are a
+  byte-identical 404 (no existence oracle on GPS rows); 401 only when unauthenticated; `nosniff` + inline
+  `Content-Disposition` + `private, no-store`; storageKey read only from the DB row. Logic in a testable
+  injected-deps handler (`photo-download.ts`) + 13-case allow/deny vitest matrix; web `TaskPhotoStrip` renders
+  scoped thumbnails in the task dialog (no storageKey exposed). Gates green: tsc/eslint clean, vitest web 121.
+  Live curl DEFERRED (no web server running; env step). Note: unscoped `tasks.byId`/`listByProject` METADATA
+  reads are intended for this single-org install (D-5: authenticated = org member); only GPS photo BYTES need
+  per-assignee scoping, now done. (`ec76903`, branch `fix/photo-download-scope`, 2026-09-26)
 - ✅ **[rbac] Single canonical role-grant source — seed↔first-run drift closed (ORQ-27)** — grants moved to
   `@orqafy/shared/roles`; the db seed (`packages/db/prisma/seed.ts`) and web first-run (`setup.ts` via
   `apps/web/src/server/roles.ts` re-export) now consume ONE source. roles.ts's richer values canonical
