@@ -35,15 +35,6 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ### Agent-found (Phase 4 build)
 
-- 🔴 **[bug][api] Middleware truncates upload bodies at 10 MB → valid 10–15 MiB photos fail with 400** —
-  `apps/web/src/middleware.ts` matcher covers `/api/photos` + `/api/media`; Next 15.5 middleware buffers/clones
-  the body up to `middlewareClientMaxBodySize` (default 10 MB), logs "Request body exceeded 10MB … Only the first
-  10MB will be available". Live repro: 12 MiB image/jpeg, own task, valid clientId → 400 "Expected
-  multipart/form-data." (policy cap is 15 MiB; mobile outbox treats 4xx as permanent → photo lost). Also means
-  the middleware buffers ≤10 MB before the F3 411/413 gates. `/api/media` >10 MB likely same (untested). Fix:
-  exclude `/api/photos` + `/api/media` from the middleware matcher (handlers self-authenticate) or raise
-  `middlewareClientMaxBodySize` ≥ 16 MiB. Done: 12 MiB photo → 200 live; 17 MiB still 413; a >10 MB document
-  upload succeeds. Evidence: `test-artifacts/photo-upload-2026-09-26/post-hardening.md`. `<source: agent-found 2026-09-26>`
 
 - 🟡 **[BENIGN] `jose`/Auth.js Edge-runtime `CompressionStream` build warning** — `next build` emits a single
   "A Node.js API is used (CompressionStream) which is not supported in the Edge Runtime" warning from
@@ -84,9 +75,6 @@ exist yet. They are NOT actionable now; they gate a later phase._
   file" although the photo IS committed server-side (benign, but mislabelled); (5) a `photo/create` entry that
   stays retryable for 25 drains (e.g. signed out for days) goes terminal `failed` — no UI to revive it.
   `<source: agent-found 2026-09-26>`
-- 🔴 **[security][web] documents.create can re-commit a known SPI document key with isSPI:false, bypassing
-  view_finances** — pre-existing. Fix: reject a `storageKey` already referenced by any Document, or bind keys to
-  the upload session. `<source: agent-found 2026-09-26>`
 
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
@@ -137,6 +125,16 @@ exist yet. They are NOT actionable now; they gate a later phase._
   restart-durable / multi-instance limiting when the app graduates past single-process. `<source: agent-found 2026-09-10>`
 
 ## ✅ Done recently
+
+- ✅ **Middleware 10 MB body cap on upload routes (ORQ-31)** — the middleware `matcher` now skips `/api/photos` and
+  `/api/media` (+ `/api/media/[id]`); their handlers authenticate themselves. Matcher regression test with Next's own
+  matcher compiler. Live: 12 MiB photo → 200 + `photos.create` 200, 17 MiB → 413, chunked → 411, 20 MiB document →
+  200 + `documents.create` 200; unauthenticated upload/download → 401 (no redirect). (`47cf2ca`, 2026-09-26)
+- ✅ **One Document per storageKey — SPI re-commit bypass closed (ORQ-26)** — `Document.storageKey @unique`
+  (additive migration; dev DB had no duplicates) + `documents.create` rejects a used key (CONFLICT, generic message),
+  maps a racing P2002 to CONFLICT, and requires the object to exist in storage. Live: re-committing an SPI key as
+  non-SPI → 409 for owner and project_manager; project_manager still gets 403 on the SPI download. (`4a4f04c`, 2026-09-26)
+  Evidence for both: `test-artifacts/photo-upload-2026-09-26/orq31-orq26.md`.
 
 - ✅ **Re-run live photo-upload tests POST-hardening (ORQ-29)** — all 14 checks pass live: bearer and cookie
   paths, 409/403 clientId immutability, 411/413/415/400, 429 + Retry-After, F2 read scoping, and a web
