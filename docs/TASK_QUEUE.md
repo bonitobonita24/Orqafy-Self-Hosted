@@ -35,11 +35,15 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ### Agent-found (Phase 4 build)
 
-- 🔴 **[test][api] Re-run live photo-upload tests POST-hardening** — server was live-tested only BEFORE F1–F5
-  (ad-hoc containers). Blocked this session by host Docker Desktop port publishing (`/forwards/expose … 500`) —
-  owner restarts Docker Desktop first. Cover bearer AND cookie paths, happy path, 403/409 clientId immutability,
-  411 missing Content-Length, 413 oversize, 429 rate limit. Done: curl transcripts in
-  `test-artifacts/photo-upload-2026-09-26/`. `<source: agent-found 2026-09-26>`
+- 🔴 **[bug][api] Middleware truncates upload bodies at 10 MB → valid 10–15 MiB photos fail with 400** —
+  `apps/web/src/middleware.ts` matcher covers `/api/photos` + `/api/media`; Next 15.5 middleware buffers/clones
+  the body up to `middlewareClientMaxBodySize` (default 10 MB), logs "Request body exceeded 10MB … Only the first
+  10MB will be available". Live repro: 12 MiB image/jpeg, own task, valid clientId → 400 "Expected
+  multipart/form-data." (policy cap is 15 MiB; mobile outbox treats 4xx as permanent → photo lost). Also means
+  the middleware buffers ≤10 MB before the F3 411/413 gates. `/api/media` >10 MB likely same (untested). Fix:
+  exclude `/api/photos` + `/api/media` from the middleware matcher (handlers self-authenticate) or raise
+  `middlewareClientMaxBodySize` ≥ 16 MiB. Done: 12 MiB photo → 200 live; 17 MiB still 413; a >10 MB document
+  upload succeeds. Evidence: `test-artifacts/photo-upload-2026-09-26/post-hardening.md`. `<source: agent-found 2026-09-26>`
 
 - 🟡 **[BENIGN] `jose`/Auth.js Edge-runtime `CompressionStream` build warning** — `next build` emits a single
   "A Node.js API is used (CompressionStream) which is not supported in the Edge Runtime" warning from
@@ -133,6 +137,11 @@ exist yet. They are NOT actionable now; they gate a later phase._
   restart-durable / multi-instance limiting when the app graduates past single-process. `<source: agent-found 2026-09-10>`
 
 ## ✅ Done recently
+
+- ✅ **Re-run live photo-upload tests POST-hardening (ORQ-29)** — all 14 checks pass live: bearer and cookie
+  paths, 409/403 clientId immutability, 411/413/415/400, 429 + Retry-After, F2 read scoping, and a web
+  Files/dashboard regression. Found the 10 MB middleware truncation bug (see Open). Evidence:
+  `test-artifacts/photo-upload-2026-09-26/post-hardening.md` (2026-09-26)
 
 - ✅ **[security][mobile] Outbox clientId no longer falls back to Math.random** (2026-09-26, `5b02b29`) —
   `expo-crypto` ~15.0.9 `randomUUID` injected into a pure `createUuidGenerator` (`uuid.ts`, lowercases +
