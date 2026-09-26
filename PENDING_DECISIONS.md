@@ -37,7 +37,16 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
 
 ## 🔴 Open
 
-_None._
+- [ ] **[WHAT] Orqafy branding: product logo vs Powerbyte company logo for sidebar/login/favicon**
+      (surfaced 2026-09-21, URGENT broadcast) — The 2026-09-21 URGENT broadcast says adopt the official
+      Powerbyte logo/favicon kit. Orqafy-Self-Hosted has no logo/favicon assets yet. Since Orqafy is a
+      distinct customer-facing product (AGPL-3.0 public), applying the Powerbyte *company* brand to the
+      product's sidebar/login/favicon would misbrand the product. Options: (A) source/create an Orqafy
+      product logo + favicon for sidebar/login/favicon, and place the Powerbyte mark only in the
+      "Developed by Powerbyte IT Solutions" white-label footer; (B) treat this deployment as
+      Powerbyte-branded and apply the Powerbyte kit everywhere per the broadcast; (C) N/A defer.
+      Recommendation: (A). Needs owner's word + an Orqafy logo asset source if (A). Tracked in
+      `docs/TASK_QUEUE.md`.
 
 ## ✅ Resolved (2026-09-06, v1-scope resolution)
 

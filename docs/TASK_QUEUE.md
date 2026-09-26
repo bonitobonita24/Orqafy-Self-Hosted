@@ -6,6 +6,8 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 ## 🔴 / 🟡 Open
 
+- 🔴 **[URGENT][branding] Official logo + favicon adoption** — app has no favicon/brand-logo assets yet. Blocked on a [WHAT]: Orqafy is a productized app, so sidebar/login/favicon = the PRODUCT's identity (no Orqafy logo source provided), while the Powerbyte company mark fits only the white-label footer credit. Canonical kit source: Branding-Marketing-Framework/brand-assets/official-logo/. `gate: owner (branding [WHAT] — see PENDING_DECISIONS.md)` `source: owner 2026-09-21`
+
 _The three below are BLOCKED — they require real hardware / a running stack / a live tunnel, none of which
 exist yet. They are NOT actionable now; they gate a later phase._
 
