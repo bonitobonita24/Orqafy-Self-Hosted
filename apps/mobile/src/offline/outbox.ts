@@ -3,7 +3,7 @@
 //
 // PURE module: no native (Expo / RN / SQLite) imports.
 
-import type { OutboxEntry } from './types';
+import type { OutboxEntry, OutboxOp } from './types';
 
 /** FIFO order: `createdAt` asc, then `clientId` as a stable tiebreak. */
 export function sortOutbox(entries: OutboxEntry[]): OutboxEntry[] {
@@ -57,4 +57,70 @@ export function markFailed(
     attempts: e.attempts + 1,
     ...(err !== undefined ? { lastError: err } : {}),
   }));
+}
+
+// --- Hygiene selectors (ORQ-28) ---------------------------------------------
+// Read-only queries + immutable transforms used by the runtime to keep the queue
+// tidy (drop synced rows, surface a failed dead-letter, revive on manual retry).
+
+/**
+ * Count `pending` entries, optionally narrowed by `entityType` and/or `op`.
+ * `countPending(list, 'photo', 'create')` = the pending-photo-upload badge value.
+ */
+export function countPending(
+  entries: OutboxEntry[],
+  entityType?: string,
+  op?: OutboxOp,
+): number {
+  return entries.filter(
+    (e) =>
+      e.status === 'pending' &&
+      (entityType === undefined || e.entityType === entityType) &&
+      (op === undefined || e.op === op),
+  ).length;
+}
+
+/** The `failed` (dead-letter) entries in FIFO order. */
+export function failedEntries(entries: OutboxEntry[]): OutboxEntry[] {
+  return sortOutbox(entries).filter((e) => e.status === 'failed');
+}
+
+/**
+ * Split a just-drained list: `prune` = the `synced` rows (safe to delete from the
+ * store), `retain` = everything else (pending kept for retry, failed kept as the
+ * dead-letter). Order within each group is preserved (input order).
+ */
+export function partitionDrained(entries: OutboxEntry[]): {
+  prune: OutboxEntry[];
+  retain: OutboxEntry[];
+} {
+  const prune: OutboxEntry[] = [];
+  const retain: OutboxEntry[] = [];
+  for (const e of entries) {
+    if (e.status === 'synced') prune.push(e);
+    else retain.push(e);
+  }
+  return { prune, retain };
+}
+
+/**
+ * Manual retry: return a `failed` entry to `pending` with `attempts` reset to 0
+ * and `lastError` cleared. No-op (input returned unchanged) if the id is absent
+ * or the entry is not `failed`.
+ */
+export function reviveEntry(entries: OutboxEntry[], clientId: string): OutboxEntry[] {
+  return entries.map((e) => {
+    if (e.clientId !== clientId || e.status !== 'failed') return e;
+    // Rebuild WITHOUT lastError (exactOptionalPropertyTypes: omit, never set undefined).
+    const revived: OutboxEntry = {
+      clientId: e.clientId,
+      entityType: e.entityType,
+      op: e.op,
+      payload: e.payload,
+      createdAt: e.createdAt,
+      status: 'pending',
+      attempts: 0,
+    };
+    return revived;
+  });
 }

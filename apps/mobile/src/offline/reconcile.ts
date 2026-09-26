@@ -4,7 +4,7 @@
 //
 // PURE module: no native (Expo / RN / SQLite) imports.
 
-import type { ReconcileResult, SyncableRecord, Tombstone } from './types';
+import type { OutboxEntry, ReconcileResult, SyncableRecord, Tombstone } from './types';
 
 /** Normalise `updatedAt` (ISO string or epoch number) to comparable epoch ms. */
 function toMillis(value: string | number): number {
@@ -70,4 +70,48 @@ export function reconcile<T extends SyncableRecord>(opts: {
   }
 
   return { merged, conflicts, removed };
+}
+
+// --- Orphan-photo-file sweep (ORQ-28) ---------------------------------------
+// A captured photo lives at `<documents>/photos/<uuid>.jpg` and is referenced by
+// its outbox `photo/create` entry's `payload.localUri`. Once that entry syncs the
+// file is deleted (photo.ts); but a discarded/lost entry can leave the file behind.
+// This pure diff names the files no live entry references AND that are old enough
+// to be safe to delete — the runtime does the actual (native) listing + deletion.
+
+/** Default minimum file age before it is a delete candidate: 1 hour. */
+const DEFAULT_ORPHAN_MIN_AGE_MS = 3_600_000;
+
+/** Narrow an outbox `payload` to its `localUri` string, or null. */
+function payloadLocalUri(payload: unknown): string | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const uri = (payload as Record<string, unknown>).localUri;
+  return typeof uri === 'string' ? uri : null;
+}
+
+/**
+ * Return the photo-file paths that are orphaned: NOT referenced by any
+ * `photo/create` outbox entry's `payload.localUri`, AND older than `minAgeMs`
+ * (default 1h) measured as `now - modifiedAt`. The age guard prevents deleting a
+ * just-captured file that has not been enqueued yet (a capture→enqueue race).
+ */
+export function orphanPhotoFiles(input: {
+  photoFiles: { path: string; modifiedAt: number }[];
+  entries: OutboxEntry[];
+  now: number;
+  minAgeMs?: number;
+}): string[] {
+  const { photoFiles, entries, now } = input;
+  const minAgeMs = input.minAgeMs ?? DEFAULT_ORPHAN_MIN_AGE_MS;
+
+  const referenced = new Set<string>();
+  for (const e of entries) {
+    if (e.entityType !== 'photo' || e.op !== 'create') continue;
+    const uri = payloadLocalUri(e.payload);
+    if (uri !== null) referenced.add(uri);
+  }
+
+  return photoFiles
+    .filter((f) => !referenced.has(f.path) && now - f.modifiedAt > minAgeMs)
+    .map((f) => f.path);
 }

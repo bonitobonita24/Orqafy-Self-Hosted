@@ -22,7 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { OrqafyApiClient } from '@orqafy/api-client';
 
 import { useAuth } from '@/auth/AuthContext';
-import { useOutbox } from '@/offline';
+import { useOutbox, useOutboxStatus } from '@/offline';
 import { useTaskGeofencing } from '@/geofence/task-geofencing';
 import { colors } from '@/theme/colors';
 
@@ -61,6 +61,8 @@ function formatDue(due: Date | null, nowMs: number): { label: string; overdue: b
 export default function MyTasksScreen() {
   const { user, client } = useAuth();
   const outbox = useOutbox(client);
+  const { pendingPhotoCount, failedCount, retryAllFailed, discardAllFailed } =
+    useOutboxStatus(client);
 
   const [tasks, setTasks] = useState<MyTask[]>([]);
   const [counts, setCounts] = useState<TaskCounts>(EMPTY_COUNTS);
@@ -210,14 +212,54 @@ export default function MyTasksScreen() {
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.greeting}>
-              {user !== null ? `Hi, ${user.name.split(' ')[0] ?? user.name}` : 'My Tasks'}
-            </Text>
+            <View style={styles.greetingRow}>
+              <Text style={styles.greeting}>
+                {user !== null ? `Hi, ${user.name.split(' ')[0] ?? user.name}` : 'My Tasks'}
+              </Text>
+              {pendingPhotoCount > 0 ? (
+                <View
+                  style={styles.pendingBadge}
+                  accessibilityRole="text"
+                  accessibilityLabel={`${pendingPhotoCount} photos waiting to upload`}
+                >
+                  <Text style={styles.pendingBadgeText}>
+                    {pendingPhotoCount > 99 ? '99+' : pendingPhotoCount} ↑
+                  </Text>
+                </View>
+              ) : null}
+            </View>
             <View style={styles.statsRow}>
               <StatPill label="Overdue" value={counts.overdue} tone={colors.destructive} />
               <StatPill label="Due" value={counts.due} tone={colors.accent} />
               <StatPill label="Total" value={counts.total} tone={colors.primary} />
             </View>
+            {failedCount > 0 ? (
+              <View style={styles.failedBanner}>
+                <Text style={styles.failedBannerText}>
+                  {failedCount === 1
+                    ? '1 photo upload failed'
+                    : `${failedCount} photo uploads failed`}
+                </Text>
+                <View style={styles.failedActions}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Retry failed uploads"
+                    style={styles.failedRetry}
+                    onPress={() => void retryAllFailed()}
+                  >
+                    <Text style={styles.failedRetryText}>Retry</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Dismiss failed uploads"
+                    style={styles.failedDismiss}
+                    onPress={() => void discardAllFailed()}
+                  >
+                    <Text style={styles.failedDismissText}>Dismiss</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -257,8 +299,50 @@ const styles = StyleSheet.create({
   listContent: { padding: 16, paddingBottom: 32, gap: 12, flexGrow: 1 },
 
   header: { marginBottom: 4, gap: 14 },
-  greeting: { fontSize: 26, fontWeight: '700', color: colors.foreground, letterSpacing: -0.5 },
+  greetingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  greeting: { flexShrink: 1, fontSize: 26, fontWeight: '700', color: colors.foreground, letterSpacing: -0.5 },
+  pendingBadge: {
+    minHeight: 24,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    backgroundColor: colors.muted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingBadgeText: { fontSize: 12, fontWeight: '700', color: colors.mutedForeground },
   statsRow: { flexDirection: 'row', gap: 10 },
+  failedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.destructive,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  failedBannerText: { flexShrink: 1, fontSize: 13, fontWeight: '600', color: colors.destructive },
+  failedActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  failedRetry: {
+    minHeight: 36,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  failedRetryText: { fontSize: 13, fontWeight: '600', color: colors.primaryForeground },
+  failedDismiss: {
+    minHeight: 36,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  failedDismissText: { fontSize: 13, fontWeight: '600', color: colors.mutedForeground },
   statPill: {
     flex: 1,
     backgroundColor: colors.card,

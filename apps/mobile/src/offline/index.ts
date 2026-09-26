@@ -19,4 +19,11 @@ export * from './sync-engine';
 export * from './errors';
 export * from './uuid';
 export { buildPhotoPayload, type PhotoCreatePayload, type PhotoMimeType } from './photo';
-export { getOutboxRuntime, useOutbox, drain, type OutboxRuntime } from './runtime';
+export {
+  getOutboxRuntime,
+  useOutbox,
+  drain,
+  type OutboxRuntime,
+  type OutboxStatusSnapshot,
+} from './runtime';
+export { useOutboxStatus, type OutboxStatus } from './use-outbox-status';
