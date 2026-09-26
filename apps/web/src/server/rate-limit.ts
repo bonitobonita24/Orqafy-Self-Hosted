@@ -1,4 +1,5 @@
-// Brute-force rate limiting for the mobile bearer-login endpoint.
+// Rate limiting for the mobile bearer-login endpoint (brute force) and the
+// site-photo upload endpoint (per-user volume).
 //
 // v1 posture: a single-process, in-memory fixed-window limiter behind a small
 // dependency-injected interface — the same precedent as the in-memory SSE
@@ -160,6 +161,33 @@ export async function recordLoginFailure(store: RateLimitStore, email: string): 
     await store.incr(emailKey(email), WINDOW_SEC);
   } catch (err) {
     console.warn('[rate-limit] recordLoginFailure failed:', err);
+  }
+}
+
+// ── Site-photo upload limiter (F3) ─────────────────────────────────────────
+// Per authenticated user: bounds how many (up to ~16 MiB) bodies one account
+// can push through POST /api/photos per window. Same store, distinct key space.
+const PHOTO_UPLOAD_MAX = Number(process.env.PHOTO_UPLOAD_MAX) || 60;
+const PHOTO_UPLOAD_WINDOW_SEC = Number(process.env.PHOTO_UPLOAD_WINDOW_SEC) || 600;
+
+/**
+ * Count one photo-upload attempt for `userId` and decide whether it may
+ * proceed. Called after auth, BEFORE the body is buffered. FAIL-OPEN like the
+ * login limiter: a store error never blocks a legitimate upload.
+ */
+export async function checkPhotoUploadRateLimit(
+  store: RateLimitStore,
+  userId: string,
+): Promise<{ allowed: boolean; retryAfterSec: number }> {
+  try {
+    const count = await store.incr(`rl:photo:user:${userId}`, PHOTO_UPLOAD_WINDOW_SEC);
+    if (count > PHOTO_UPLOAD_MAX) {
+      return { allowed: false, retryAfterSec: PHOTO_UPLOAD_WINDOW_SEC };
+    }
+    return { allowed: true, retryAfterSec: 0 };
+  } catch (err) {
+    console.warn('[rate-limit] checkPhotoUploadRateLimit failed open:', err);
+    return { allowed: true, retryAfterSec: 0 };
   }
 }
 

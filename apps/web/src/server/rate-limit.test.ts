@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   checkLoginRateLimit,
+  checkPhotoUploadRateLimit,
   createMemoryStore,
   recordLoginFailure,
   recordLoginSuccess,
@@ -118,5 +119,44 @@ describe('rate-limit', () => {
     });
     expect(rl.allowed).toBe(true);
     expect(rl.retryAfterSec).toBe(0);
+  });
+});
+
+// Photo-upload limiter (F3): per-user, defaults 60 per 600 s.
+const PHOTO_MAX = 60;
+const PHOTO_WINDOW_SEC = 600;
+
+describe('checkPhotoUploadRateLimit', () => {
+  it('allows PHOTO_MAX uploads per user and blocks the next with Retry-After', async () => {
+    const store = frozenStore();
+    for (let i = 0; i < PHOTO_MAX; i++) {
+      expect((await checkPhotoUploadRateLimit(store, 'u1')).allowed).toBe(true);
+    }
+    const blocked = await checkPhotoUploadRateLimit(store, 'u1');
+    expect(blocked).toEqual({ allowed: false, retryAfterSec: PHOTO_WINDOW_SEC });
+  });
+
+  it('counts each user separately', async () => {
+    const store = frozenStore();
+    for (let i = 0; i < PHOTO_MAX + 1; i++) await checkPhotoUploadRateLimit(store, 'u1');
+    expect((await checkPhotoUploadRateLimit(store, 'u2')).allowed).toBe(true);
+  });
+
+  it('does not share counters with the login limiter', async () => {
+    const store = frozenStore();
+    for (let i = 0; i < PHOTO_MAX + 1; i++) await checkPhotoUploadRateLimit(store, 'u1');
+    expect((await checkLoginRateLimit(store, { ip: 'u1', email: null })).allowed).toBe(true);
+  });
+
+  it('fails open when the store throws', async () => {
+    const throwingStore: RateLimitStore = {
+      incr: () => Promise.reject(new Error('store down')),
+      get: () => Promise.reject(new Error('store down')),
+      reset: () => Promise.reject(new Error('store down')),
+    };
+    expect(await checkPhotoUploadRateLimit(throwingStore, 'u1')).toEqual({
+      allowed: true,
+      retryAfterSec: 0,
+    });
   });
 });

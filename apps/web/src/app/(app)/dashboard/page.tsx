@@ -133,7 +133,7 @@ export default function DashboardPage() {
                     <div
                       key={photo.id}
                       className="flex aspect-square items-center justify-center rounded-md border bg-muted text-[10px] text-muted-foreground"
-                      title={photo.storageKey}
+                      title={new Date(photo.capturedAt).toLocaleString()}
                     >
                       photo
                     </div>
