@@ -52,10 +52,6 @@ exist yet. They are NOT actionable now; they gate a later phase._
 - 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
   legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. Board ORQ-34.
   `<source: agent-found 2026-09-08>`
-- 🔴 **[web] Files form: handle `documents.create` CONFLICT gracefully** — since ORQ-26, `documents.create`
-  returns CONFLICT for an already-used storageKey (and a racing P2002). The Files upload/metadata form should
-  show a friendly error + let the user retry with a fresh upload, not a raw tRPC error. Done: friendly message
-  on CONFLICT repro; web tsc/eslint/vitest green. Board ORQ-33. `<source: agent-found 2026-09-26>`
 - 🔴 **[mobile][BLOCKED-hardware] On-device chunk-5 verification** — the chunk-5 screens + geofence arming are
   static+unit verified only (no device here). Exercise login→My Tasks→mark-done→Leave→Notifications + live
   geofence arm/dwell on a real device when hardware exists (ties to the existing BLOCKED-hardware geofence task).
@@ -125,6 +121,12 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **[web] Friendly `documents.create` CONFLICT handling + retry in the Files form (ORQ-33)** — pure testable
+  mapper `conflict-error.ts` (`isConflictError`/`conflictMessage`); on tRPC CONFLICT the form shows "This file
+  was already uploaded. Please choose the file again to retry." (app's inline `text-destructive` convention),
+  drops the staged file + `create.reset()` so a fresh upload mints a new storageKey; other errors unchanged;
+  server/upload pipeline untouched. Gates green: web tsc/eslint + vitest 130 (conflict-error 6). Live browser
+  repro deferred (no web server). (`07d53f5`, branch `fix/files-conflict-ux`, 2026-09-26)
 - ✅ **[mobile] Outbox hygiene + pending-photo badge (ORQ-28)** — Pass A (`d375fdf`, branch
   `fix/mobile-outbox-hygiene`): prune synced rows post-drain (failed kept as dead-letter); close single-flight
   gap (re-drain when a capture lands during an in-flight drain, bounded ×3); revive/retryAllFailed; discard +
