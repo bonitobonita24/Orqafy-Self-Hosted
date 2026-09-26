@@ -42,6 +42,10 @@ exist yet. They are NOT actionable now; they gate a later phase._
   used for JWE `zip`-compressed tokens, which Auth.js does NOT use for its default JWT sessions. Pre-existing,
   third-party, no runtime effect. Left as-is (any suppression would be a hack into a dependency's Edge path).
   Do NOT re-investigate. `<source: agent-found 2026-09-09>`
+- 🔴 **[mobile] Offline non-photo mutations fail on first attempt** — `send.ts` error classification leaves an
+  offline task/update `create`/`update`/`delete` failing on the first drain rather than staying `pending`
+  (only photo/create currently classifies network errors as retryable). Make transport/offline errors
+  retryable for all entity ops so queued edits survive being made offline. `<source: agent-found 2026-09-26>`
 - 🔴 **`Document.size` Int→BigInt** if single files >2GB are expected (Prisma schema + Zod). Construction
   drawings are usually well under, so Int is fine for v1 — revisit if large-file uploads surface.
   `<source: agent-found 2026-09-08>`
@@ -121,6 +125,16 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **[mobile] Outbox hygiene + pending-photo badge (ORQ-28)** — Pass A (`d375fdf`, branch
+  `fix/mobile-outbox-hygiene`): prune synced rows post-drain (failed kept as dead-letter); close single-flight
+  gap (re-drain when a capture lands during an in-flight drain, bounded ×3); revive/retryAllFailed; discard +
+  free lingering local photo file; age-guarded orphan-photo-file sweep; pure countPending/failedEntries/
+  partitionDrained/reviveEntry/orphanPhotoFiles selectors; My Tasks pending-photo badge + failed-upload
+  retry/dismiss banner via reactive useOutboxStatus. Pass B (`a66a055`, branch `fix/photo-idempotent-recovery`,
+  item 4): capturer-scoped `photos.existsByClientId` (bytes-free, no oracle) — a missing-local-file drain now
+  confirms server-side commit by clientId and marks done, permanent only when never committed / retryable when
+  the check itself fails. Gates green: web tsc/eslint + vitest 124; mobile tsc/eslint + vitest 145 + `expo
+  config`. Static+unit bar (no device — post-crash sequence + badge render deferred to device). 2026-09-26.
 - ✅ **[server][security] Scoped photo byte-download route + web thumbnails (ORQ-32)** — `GET /api/photos/[id]`
   serves bytes only to viewers allowed by the shared photo-policy (`canReadStoredPhoto` → `canViewTaskPhotos`
   assignee-OR-oversight for task photos; oversight-only for milestone photos). Missing + denied + bytes-gone are a
