@@ -16,7 +16,7 @@
 // Pure module: the api-client import is type-only.
 import type { OrqafyApiClient } from '@orqafy/api-client';
 
-import { RetryableSendError } from './errors';
+import { RetryableSendError, classifyTrpcError } from './errors';
 import { sendPhotoCreate, type PhotoUploadDeps } from './photo';
 import type { OutboxEntry, OutboxOp, SendFn } from './types';
 
@@ -111,6 +111,15 @@ const registry: Partial<Record<RegistryKey, OutboxHandler>> = {
 /**
  * Build the SendFn `drainOutbox` consumes. Unmapped `entityType/op` throws a
  * clear error (surfaced as a failed attempt on the entry, not a silent drop).
+ *
+ * Every mapped handler's throw is routed through `classifyTrpcError` (ORQ-35) so
+ * a TRANSPORT/OFFLINE failure or a retryable HTTP status (401/408/429/5xx) becomes
+ * a `RetryableSendError` — the entry stays `pending` and is re-sent next drain
+ * (bounded by drainOutbox maxAttempts) — while a genuine 4xx rejection stays a
+ * `PermanentSendError`. This single-sources the classification the photo handler
+ * already applies internally (its typed errors pass through unchanged); the
+ * unmapped-key case above is a code defect, not a transport failure, so it stays
+ * an untyped error (-> `failed`, never retried).
  */
 export function createOutboxSend(
   client: OrqafyApiClient,
@@ -122,6 +131,10 @@ export function createOutboxSend(
     if (handler === undefined) {
       throw new Error(`No outbox mapping for ${entry.entityType}/${entry.op}`);
     }
-    await handler(client, entry, deps);
+    try {
+      await handler(client, entry, deps);
+    } catch (err) {
+      throw classifyTrpcError(err);
+    }
   };
 }

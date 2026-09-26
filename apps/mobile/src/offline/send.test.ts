@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { OrqafyApiClient } from '@orqafy/api-client';
 
-import { RetryableSendError } from './errors';
+import { PermanentSendError, RetryableSendError } from './errors';
 import { createOutboxSend } from './send';
 import type { OutboxEntry } from './types';
 
@@ -184,6 +184,94 @@ describe('createOutboxSend', () => {
       );
       const arg = firstArg<Record<string, unknown>>(submitRequest);
       expect('reason' in arg).toBe(false);
+    });
+  });
+
+  // ORQ-35 — a TRANSPORT/OFFLINE failure (fetch throwing, no HTTP status) or a
+  // retryable HTTP status (401/408/429/5xx) on ANY non-photo op must surface as a
+  // RetryableSendError so drainOutbox keeps the entry `pending` for the next drain
+  // (bounded by maxAttempts=25); genuine 4xx rejections stay PermanentSendError.
+  // Classification lives in the shared createOutboxSend wrapper, so it is
+  // op-agnostic — the update (task/update) + create (leave/create) cases below
+  // prove every mapped op routes through the same path (delete has no mapping yet;
+  // once added it inherits the identical wrapper). The RetryableSendError ->
+  // `pending` and PermanentSendError -> `failed` consequences are proven in
+  // sync-engine.test.ts (drainOutbox); here we assert the classification itself.
+  describe('transport/offline classification (ORQ-35)', () => {
+    /** A tRPC-shaped error carrying data.httpStatus (what classifyTrpcError reads). */
+    function httpError(status: number): Error {
+      const err = new Error(`server said HTTP ${status}`);
+      (err as unknown as { data: { httpStatus: number } }).data = { httpStatus: status };
+      return err;
+    }
+
+    /** A transport/offline failure: fetch rejected, so there is NO HTTP status. */
+    function networkError(): Error {
+      return new TypeError('Network request failed');
+    }
+
+    /** Spy client whose task.move + leave.submitRequest both reject with `err`. */
+    function makeRejectingClient(err: unknown) {
+      const move = vi.fn().mockRejectedValue(err);
+      const submitRequest = vi.fn().mockRejectedValue(err);
+      const client = {
+        tasks: { move: { mutate: move } },
+        leave: { submitRequest: { mutate: submitRequest } },
+      } as unknown as OrqafyApiClient;
+      return { client, move, submitRequest };
+    }
+
+    it('network throw on a task/update (offline edit) is RETRYABLE — entry stays pending', async () => {
+      const { client } = makeRejectingClient(networkError());
+      const send = createOutboxSend(client);
+      await expect(
+        send(makeEntry({ op: 'update', payload: { id: 't1', status: 'done' } })),
+      ).rejects.toBeInstanceOf(RetryableSendError);
+    });
+
+    it('network throw on a leave/create (offline create) is RETRYABLE — entry stays pending', async () => {
+      const { client } = makeRejectingClient(networkError());
+      const send = createOutboxSend(client);
+      await expect(
+        send(
+          makeEntry({
+            entityType: 'leave',
+            op: 'create',
+            payload: { leaveTypeId: 'lt1', startDate: 0, endDate: 0 },
+          }),
+        ),
+      ).rejects.toBeInstanceOf(RetryableSendError);
+    });
+
+    it.each([401, 408, 429, 500, 503])(
+      'HTTP %i on a non-photo op is RETRYABLE (stays pending)',
+      async (status) => {
+        const { client } = makeRejectingClient(httpError(status));
+        const send = createOutboxSend(client);
+        await expect(
+          send(makeEntry({ op: 'update', payload: { id: 't1', status: 'done' } })),
+        ).rejects.toBeInstanceOf(RetryableSendError);
+      },
+    );
+
+    it.each([400, 403, 409, 422])(
+      'HTTP %i on a non-photo op is PERMANENT (-> failed, never re-sent)',
+      async (status) => {
+        const { client } = makeRejectingClient(httpError(status));
+        const send = createOutboxSend(client);
+        await expect(
+          send(makeEntry({ op: 'update', payload: { id: 't1', status: 'done' } })),
+        ).rejects.toBeInstanceOf(PermanentSendError);
+      },
+    );
+
+    it('a successful non-photo send still resolves (drains to synced)', async () => {
+      const { client, move } = makeSpyClient();
+      const send = createOutboxSend(client);
+      await expect(
+        send(makeEntry({ op: 'update', payload: { id: 't1', status: 'done' } })),
+      ).resolves.toBeUndefined();
+      expect(move).toHaveBeenCalledTimes(1);
     });
   });
 });
