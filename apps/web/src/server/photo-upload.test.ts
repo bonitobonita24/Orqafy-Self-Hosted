@@ -20,10 +20,12 @@ function harness(
     permissions?: Permission[];
     tasks?: Record<string, { assigneeId: string | null }>;
     photos?: Record<string, { capturedBy: string; storageKey: string }>;
+    rateLimit?: PhotoUploadDeps['rateLimit'];
   } = {},
 ): Harness {
   const puts: string[] = [];
   const deps: PhotoUploadDeps = {
+    rateLimit: opts.rateLimit ?? (() => Promise.resolve({ allowed: true, retryAfterSec: 0 })),
     resolveUserId: () => Promise.resolve(opts.userId === undefined ? 'u1' : opts.userId),
     resolvePermissions: () => Promise.resolve(new Set(opts.permissions ?? ['upload_photo'])),
     findTask: (id) => Promise.resolve((opts.tasks ?? { mine: { assigneeId: 'u1' } })[id] ?? null),
@@ -107,5 +109,87 @@ describe('handlePhotoUpload — clientId ownership (F1)', () => {
     const h = harness({ permissions: ['manage_files'] });
     const res = await handlePhotoUpload(await withLength(uploadRequest()), h.deps);
     expect(res.status).toBe(403);
+  });
+});
+
+/** A request whose body must never be parsed: formData() is counted. */
+function spiedRequest(contentLength: string | null): { req: Request; parsed: () => number } {
+  const headers = new Headers({ 'content-type': 'multipart/form-data; boundary=x' });
+  if (contentLength !== null) headers.set('content-length', contentLength);
+  const req = new Request('http://localhost/api/photos', { method: 'POST', headers });
+  let calls = 0;
+  Object.defineProperty(req, 'formData', {
+    value: () => {
+      calls++;
+      return Promise.reject(new Error('body must not be buffered'));
+    },
+  });
+  return { req, parsed: () => calls };
+}
+
+describe('handlePhotoUpload — Content-Length gate (F3)', () => {
+  it('411 when Content-Length is missing, before buffering the body', async () => {
+    const { req, parsed } = spiedRequest(null);
+    const res = await handlePhotoUpload(req, harness().deps);
+    expect(res.status).toBe(411);
+    expect(await res.json()).toEqual({ error: 'Content-Length required.' });
+    expect(parsed()).toBe(0);
+  });
+
+  it.each(['abc', '', '-5', '1.5', 'Infinity', '12abc'])(
+    '411 for an invalid Content-Length %j, before buffering',
+    async (value) => {
+      const { req, parsed } = spiedRequest(value);
+      const res = await handlePhotoUpload(req, harness().deps);
+      expect(res.status).toBe(411);
+      expect(parsed()).toBe(0);
+    },
+  );
+
+  it('413 when Content-Length exceeds 15 MiB + 1 MiB envelope, before buffering', async () => {
+    const { req, parsed } = spiedRequest(String(16 * 1024 * 1024 + 1));
+    const res = await handlePhotoUpload(req, harness().deps);
+    expect(res.status).toBe(413);
+    expect(parsed()).toBe(0);
+  });
+
+  it('accepts exactly 15 MiB + 1 MiB (reaches body parsing)', async () => {
+    const { req, parsed } = spiedRequest(String(16 * 1024 * 1024));
+    const res = await handlePhotoUpload(req, harness().deps);
+    expect(parsed()).toBe(1);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('handlePhotoUpload — per-user rate limit (F3)', () => {
+  it('429 + Retry-After when the limiter refuses, before buffering', async () => {
+    const seen: string[] = [];
+    const h = harness({
+      rateLimit: (userId) => {
+        seen.push(userId);
+        return Promise.resolve({ allowed: false, retryAfterSec: 600 });
+      },
+    });
+    const { req, parsed } = spiedRequest('1000');
+    const res = await handlePhotoUpload(req, h.deps);
+    expect(res.status).toBe(429);
+    expect(res.headers.get('Retry-After')).toBe('600');
+    expect(await res.json()).toEqual({ error: 'Too many uploads. Try again later.' });
+    expect(seen).toEqual(['u1']);
+    expect(parsed()).toBe(0);
+  });
+
+  it('does not consume the limiter for an unauthenticated request', async () => {
+    let calls = 0;
+    const h = harness({
+      userId: null,
+      rateLimit: () => {
+        calls++;
+        return Promise.resolve({ allowed: true, retryAfterSec: 0 });
+      },
+    });
+    const res = await handlePhotoUpload(spiedRequest('1000').req, h.deps);
+    expect(res.status).toBe(401);
+    expect(calls).toBe(0);
   });
 });

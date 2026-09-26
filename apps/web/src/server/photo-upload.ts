@@ -5,6 +5,9 @@
 // POST multipart/form-data { file, taskId, clientId }. Order of checks:
 //   1. auth (cookie session OR mobile bearer) → 401
 //   2. `upload_photo` permission → 403
+//   2a. per-user upload rate limit → 429 + Retry-After
+//   2b. Content-Length: missing/invalid → 411, > 15 MiB + 1 MiB envelope → 413,
+//       both BEFORE formData() buffers the body
 //   3. task assignee (uniform 403 for missing vs not-yours — no existence leak)
 //   4. clientId ownership: a clientId already COMMITTED (a Photo row exists) is
 //      immutable — another user's ⇒ uniform 403; the caller's own ⇒ 409 with the
@@ -30,6 +33,8 @@ import {
 } from './photo-policy';
 
 export interface PhotoUploadDeps {
+  /** Per-user upload limiter (fail-open); called after auth, before the body is read. */
+  rateLimit(userId: string): Promise<{ allowed: boolean; retryAfterSec: number }>;
   resolveUserId(req: Request): Promise<string | null>;
   resolvePermissions(userId: string): Promise<ReadonlySet<Permission>>;
   findTask(taskId: string): Promise<{ assigneeId: string | null } | null>;
@@ -63,11 +68,26 @@ export async function handlePhotoUpload(req: Request, deps: PhotoUploadDeps): Pr
     return json({ error: 'Missing permission: upload_photo' }, 403);
   }
 
-  // Cheap early refusal before buffering an obviously oversized body.
-  const declared = Number(req.headers.get('content-length') ?? '0');
-  if (Number.isFinite(declared) && declared > PHOTO_MAX_BYTES + ENVELOPE_BYTES) {
-    return tooLarge();
+  // Per-user volume cap — counted before any body bytes are read.
+  const rl = await deps.rateLimit(userId);
+  if (!rl.allowed) {
+    return json({ error: 'Too many uploads. Try again later.' }, 429, {
+      'Retry-After': String(rl.retryAfterSec),
+    });
   }
+
+  // formData() buffers the whole body, so the size must be known and bounded
+  // FIRST: require a plain decimal Content-Length (no chunked/unknown-length
+  // uploads) and refuse anything over the photo cap + multipart envelope.
+  const declaredRaw = req.headers.get('content-length');
+  if (declaredRaw === null || !/^\d+$/.test(declaredRaw.trim())) {
+    return json({ error: 'Content-Length required.' }, 411);
+  }
+  const declared = Number(declaredRaw.trim());
+  if (!Number.isSafeInteger(declared)) {
+    return json({ error: 'Content-Length required.' }, 411);
+  }
+  if (declared > PHOTO_MAX_BYTES + ENVELOPE_BYTES) return tooLarge();
 
   let form: FormData;
   try {

@@ -12,12 +12,14 @@ import { resolveRequestUserId } from '@/server/request-auth';
 import { resolveUserPermissions } from '@/server/permissions';
 import { getStorageAdapter } from '@/server/storage';
 import { handlePhotoUpload } from '@/server/photo-upload';
+import { checkPhotoUploadRateLimit, getRateLimitStore } from '@/server/rate-limit';
 
 // Buffer + the aws-sdk require the Node.js runtime (not the Edge runtime).
 export const runtime = 'nodejs';
 
 export function POST(req: Request): Promise<Response> {
   return handlePhotoUpload(req, {
+    rateLimit: (userId) => checkPhotoUploadRateLimit(getRateLimitStore(), userId),
     resolveUserId: resolveRequestUserId,
     resolvePermissions: resolveUserPermissions,
     findTask: (id) => prisma.task.findUnique({ where: { id }, select: { assigneeId: true } }),
