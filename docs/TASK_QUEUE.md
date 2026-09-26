@@ -60,10 +60,6 @@ exist yet. They are NOT actionable now; they gate a later phase._
   photo rows inside `tasks.byId` and `dashboard.summary` are now scoped; still open = a byte-download route
   (reuse `canViewTaskPhotos`; `nosniff` + `Content-Disposition` per F4) + web task-view thumbnails. Board ORQ-32.
   `<source: agent-found 2026-09-26>`
-- 🔴 **[rbac] Seed vs first-run role grants drift** — `packages/db/prisma/seed.ts` and
-  `apps/web/src/server/roles.ts` (used by first-run `setup`) disagree on default grants (e.g. project_manager:
-  seed = create_project+manage_files; roles.ts adds view_all_projects+export_data; accountant manage_files).
-  Unify to one source. `<source: agent-found 2026-09-26>`
 - 🔴 **[mobile][BLOCKED-hardware] On-device chunk-5 verification** — the chunk-5 screens + geofence arming are
   static+unit verified only (no device here). Exercise login→My Tasks→mark-done→Leave→Notifications + live
   geofence arm/dwell on a real device when hardware exists (ties to the existing BLOCKED-hardware geofence task).
@@ -132,6 +128,14 @@ exist yet. They are NOT actionable now; they gate a later phase._
   restart-durable / multi-instance limiting when the app graduates past single-process. `<source: agent-found 2026-09-10>`
 
 ## ✅ Done recently
+
+- ✅ **[rbac] Single canonical role-grant source — seed↔first-run drift closed (ORQ-27)** — grants moved to
+  `@orqafy/shared/roles`; the db seed (`packages/db/prisma/seed.ts`) and web first-run (`setup.ts` via
+  `apps/web/src/server/roles.ts` re-export) now consume ONE source. roles.ts's richer values canonical
+  (project_manager gains view_all_projects+export_data; accountant gains manage_files). Added
+  `packages/shared/src/roles.test.ts` parity/regression tripwire. tsc shared/db/web + eslint + vitest
+  (shared 13, web 101) green; photo-policy F2 drift comment updated. Static+unit verified; live seed/first-run
+  re-seed is an env step. (`d7e1e95`, branch `fix/rbac-grants-single-source`, 2026-09-26)
 
 - ✅ **Middleware 10 MB body cap on upload routes (ORQ-31)** — the middleware `matcher` now skips `/api/photos` and
   `/api/media` (+ `/api/media/[id]`); their handlers authenticate themselves. Matcher regression test with Next's own
