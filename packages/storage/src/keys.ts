@@ -64,3 +64,61 @@ export function buildDocumentKey(originalName: string): string {
   const id = randomUUID();
   return `documents/${id}/${sanitizeFilename(originalName)}`;
 }
+
+/**
+ * True only for a key of the exact shape {@link buildDocumentKey} produces:
+ * `documents/<uuid>/<single safe segment>`. `documents.create` uses this to
+ * refuse a metadata row pointing at any other object (e.g. a site photo, which
+ * would otherwise become downloadable through /api/media/[id]).
+ */
+export function isDocumentKey(key: string): boolean {
+  const parts = key.split('/');
+  if (parts.length !== 3) return false;
+  const [ns, id, name] = parts as [string, string, string];
+  return (
+    ns === 'documents' &&
+    UUID_RE.test(id) &&
+    name.length > 0 &&
+    !name.startsWith('.') &&
+    !name.includes('\\') &&
+    stripControlChars(name) === name
+  );
+}
+
+// ─────────────────────────── Site photos (D-28) ───────────────────────────
+
+/** Image extensions a site photo may be stored under (derived from MIME, never a filename). */
+export const PHOTO_EXTENSIONS = ['jpg', 'png', 'heic'] as const;
+export type PhotoExtension = (typeof PHOTO_EXTENSIONS)[number];
+
+/** Canonical 8-4-4-4-12 hex UUID (any version); the whole string must match. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Build the storage key for a site photo: `photos/<clientId>/photo.<ext>`.
+ *
+ * `clientId` is the idempotency key the mobile outbox mints, so it is
+ * attacker-influenced: anything that is not a canonical UUID is REJECTED
+ * (throws) — never sanitised — which makes traversal or namespace escape
+ * impossible. The key is deterministic so a retried upload overwrites the same
+ * object (idempotent).
+ */
+export function buildPhotoKey(clientId: string, ext: PhotoExtension): string {
+  if (!UUID_RE.test(clientId)) {
+    throw new Error('Invalid photo clientId: must be a UUID.');
+  }
+  if (!(PHOTO_EXTENSIONS as readonly string[]).includes(ext)) {
+    throw new Error('Invalid photo extension.');
+  }
+  return `photos/${clientId.toLowerCase()}/photo.${ext}`;
+}
+
+/**
+ * True only when `key` is exactly the photo key for `clientId` under one of the
+ * allowed extensions. Used to refuse a metadata commit that points at an object
+ * the caller did not upload under its own clientId. Never throws.
+ */
+export function isValidPhotoKey(key: string, clientId: string): boolean {
+  if (!UUID_RE.test(clientId)) return false;
+  return PHOTO_EXTENSIONS.some((ext) => buildPhotoKey(clientId, ext) === key);
+}

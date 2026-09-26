@@ -3,7 +3,7 @@
 // traversal, no separators, no empty/dot-only segment) is unit-pinned here.
 import { describe, expect, it } from 'vitest';
 
-import { buildDocumentKey } from './keys';
+import { buildDocumentKey, isDocumentKey } from './keys';
 
 /** Every key must be exactly `documents/<id>/<name>` with three clean segments. */
 function segments(key: string): string[] {
@@ -107,5 +107,29 @@ describe('buildDocumentKey', () => {
     const a = segments(buildDocumentKey('x.pdf'))[1];
     const b = segments(buildDocumentKey('x.pdf'))[1];
     expect(a).not.toBe(b);
+  });
+});
+
+describe('isDocumentKey', () => {
+  it('accepts every key buildDocumentKey produces', () => {
+    for (const name of ['report.pdf', 'a b c.png', '../../etc/passwd', '']) {
+      expect(isDocumentKey(buildDocumentKey(name))).toBe(true);
+    }
+  });
+
+  it('rejects a site-photo key (photos are not downloadable as documents)', () => {
+    expect(isDocumentKey('photos/3f2c9a4e-8b1d-4c7a-9e2f-1a2b3c4d5e6f/photo.jpg')).toBe(false);
+  });
+
+  it('rejects traversal, extra segments, dot names and a non-UUID id', () => {
+    const id = '3f2c9a4e-8b1d-4c7a-9e2f-1a2b3c4d5e6f';
+    expect(isDocumentKey(`documents/${id}/../x`)).toBe(false);
+    expect(isDocumentKey(`documents/${id}/..`)).toBe(false);
+    expect(isDocumentKey(`documents/${id}/.hidden`)).toBe(false);
+    expect(isDocumentKey(`documents/${id}/a/b`)).toBe(false);
+    expect(isDocumentKey(`documents/${id}/a\\b`)).toBe(false);
+    expect(isDocumentKey('documents/not-a-uuid/x.pdf')).toBe(false);
+    expect(isDocumentKey(`documents/${id}/`)).toBe(false);
+    expect(isDocumentKey('')).toBe(false);
   });
 });

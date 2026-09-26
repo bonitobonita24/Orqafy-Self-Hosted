@@ -5,4 +5,12 @@ export * from './adapter';
 export { S3StorageAdapter } from './s3-adapter';
 export { LocalDiskStorageAdapter } from './local-disk-adapter';
 export { createStorageAdapter, createStorageAdapterFromRaw } from './factory';
-export { buildDocumentKey, sanitizeFilename } from './keys';
+export {
+  PHOTO_EXTENSIONS,
+  buildDocumentKey,
+  buildPhotoKey,
+  isDocumentKey,
+  isValidPhotoKey,
+  sanitizeFilename,
+  type PhotoExtension,
+} from './keys';
