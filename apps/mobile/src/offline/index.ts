@@ -16,4 +16,7 @@ export * from './types';
 export * from './outbox';
 export * from './reconcile';
 export * from './sync-engine';
+export * from './errors';
+export * from './uuid';
+export { buildPhotoPayload, type PhotoCreatePayload, type PhotoMimeType } from './photo';
 export { getOutboxRuntime, useOutbox, drain, type OutboxRuntime } from './runtime';

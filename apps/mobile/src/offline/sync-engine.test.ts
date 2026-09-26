@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { PermanentSendError, RetryableSendError } from './errors';
 import { drainOutbox } from './sync-engine';
 import type { OutboxEntry } from './types';
 
@@ -14,6 +15,38 @@ function entry(over: Partial<OutboxEntry> & { clientId: string }): OutboxEntry {
     ...over,
   };
 }
+
+describe('drainOutbox — retryable vs permanent (photo/create, D-28)', () => {
+  it('keeps a RetryableSendError entry PENDING (re-drained later), bumping attempts', async () => {
+    const send = vi.fn().mockRejectedValue(new RetryableSendError('HTTP 503'));
+    const out = await drainOutbox([entry({ clientId: 'a', attempts: 2 })], send);
+    expect(out[0]).toMatchObject({ status: 'pending', attempts: 3, lastError: 'HTTP 503' });
+  });
+
+  it('marks a PermanentSendError entry FAILED (never retried)', async () => {
+    const send = vi.fn().mockRejectedValue(new PermanentSendError('HTTP 415'));
+    const out = await drainOutbox([entry({ clientId: 'a' })], send);
+    expect(out[0]).toMatchObject({ status: 'failed', attempts: 1, lastError: 'HTTP 415' });
+  });
+
+  it('gives up (failed) once a retryable entry reaches maxAttempts', async () => {
+    const send = vi.fn().mockRejectedValue(new RetryableSendError('offline'));
+    const out = await drainOutbox([entry({ clientId: 'a', attempts: 4 })], send, {
+      maxAttempts: 5,
+    });
+    expect(out[0]).toMatchObject({ status: 'failed', attempts: 5 });
+  });
+
+  it('a retried-then-successful entry ends synced', async () => {
+    const send = vi
+      .fn()
+      .mockRejectedValueOnce(new RetryableSendError('offline'))
+      .mockResolvedValueOnce(undefined);
+    const first = await drainOutbox([entry({ clientId: 'a' })], send);
+    const second = await drainOutbox(first, send);
+    expect(second[0]).toMatchObject({ status: 'synced', attempts: 1 });
+  });
+});
 
 describe('drainOutbox', () => {
   it('marks entries synced when send resolves', async () => {

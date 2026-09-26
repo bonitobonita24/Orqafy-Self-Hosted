@@ -16,10 +16,24 @@
 // Pure module: the api-client import is type-only.
 import type { OrqafyApiClient } from '@orqafy/api-client';
 
+import { RetryableSendError } from './errors';
+import { sendPhotoCreate, type PhotoUploadDeps } from './photo';
 import type { OutboxEntry, OutboxOp, SendFn } from './types';
 
+/**
+ * Non-tRPC transport seams a handler may need, injected by the runtime (DI —
+ * tests pass spies). `photo` powers the multipart `/api/photos` upload.
+ */
+export interface OutboxSendDeps {
+  photo?: PhotoUploadDeps;
+}
+
 /** Transport for a single entity/op — dispatches to a tRPC mutation. */
-type OutboxHandler = (client: OrqafyApiClient, entry: OutboxEntry) => Promise<void>;
+type OutboxHandler = (
+  client: OrqafyApiClient,
+  entry: OutboxEntry,
+  deps: OutboxSendDeps,
+) => Promise<void>;
 
 /** Registry key: `${entityType}/${op}` (e.g. `task/update`). */
 type RegistryKey = `${string}/${OutboxOp}`;
@@ -83,19 +97,31 @@ const registry: Partial<Record<RegistryKey, OutboxHandler>> = {
       ...(p.reason !== undefined ? { reason: p.reason } : {}),
     });
   },
+  // D-28: multipart upload to /api/photos, then photos.create (see ./photo).
+  'photo/create': async (client, entry, deps) => {
+    // Retryable (not permanent): never discard a captured photo over a wiring
+    // hiccup; drainOutbox's maxAttempts still bounds it.
+    if (deps.photo === undefined) {
+      throw new RetryableSendError('photo/create needs upload deps (none injected)');
+    }
+    await sendPhotoCreate(client, entry, deps.photo);
+  },
 };
 
 /**
  * Build the SendFn `drainOutbox` consumes. Unmapped `entityType/op` throws a
  * clear error (surfaced as a failed attempt on the entry, not a silent drop).
  */
-export function createOutboxSend(client: OrqafyApiClient): SendFn {
+export function createOutboxSend(
+  client: OrqafyApiClient,
+  deps: OutboxSendDeps = {},
+): SendFn {
   return async (entry: OutboxEntry): Promise<void> => {
     const key: RegistryKey = `${entry.entityType}/${entry.op}`;
     const handler = registry[key];
     if (handler === undefined) {
       throw new Error(`No outbox mapping for ${entry.entityType}/${entry.op}`);
     }
-    await handler(client, entry);
+    await handler(client, entry, deps);
   };
 }

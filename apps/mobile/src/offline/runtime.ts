@@ -12,32 +12,21 @@
 // rather than throwing — an unavailable store degrades to "nothing queued/drained"
 // instead of crashing a screen.
 //
-// UUID choice: `expo-crypto` is NOT a dependency of this app, so this uses
-// `globalThis.crypto.randomUUID()` when the runtime exposes it (Hermes/modern
-// engines do) and falls back to a Math.random RFC-4122-v4 generator otherwise.
-// The clientId is only an idempotency key the server dedupes on; cryptographic
-// strength is not required, so the fallback is acceptable and keeps this module
-// dependency- and native-free.
+// UUIDs come from the pure `./uuid` (crypto.randomUUID, else RFC-4122 v4
+// fallback) — the clientId doubles as the server idempotency key and, for
+// photo/create, the upload's `clientId` (must be a UUID).
+//
+// Photo upload deps (D-28) — fetch/FormData/token/file-system — are also
+// loaded lazily inside `drain` (`../photos/upload-deps`) for the same reason.
 import { useEffect } from 'react';
 
 import type { OrqafyApiClient } from '@orqafy/api-client';
 
 import { enqueue as pureEnqueue } from './outbox';
-import { createOutboxSend } from './send';
+import { createOutboxSend, type OutboxSendDeps } from './send';
 import { drainOutbox } from './sync-engine';
 import type { OutboxEntry, OutboxOp, OutboxStore } from './types';
-
-/** Mint a stable clientId (idempotency key). Prefers crypto, else RFC-4122 v4. */
-function newClientId(): string {
-  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
-  if (c?.randomUUID) return c.randomUUID();
-  // RFC-4122 v4, Math.random fallback (non-cryptographic — fine for a dedupe key).
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
-    const r = (Math.random() * 16) | 0;
-    const v = ch === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+import { newUuid } from './uuid';
 
 /** The app-facing outbox surface a screen consumes. */
 export interface OutboxRuntime {
@@ -78,9 +67,23 @@ async function getStore(): Promise<OutboxStore | null> {
   return storePromise;
 }
 
+// --- non-tRPC send deps (lazy) ------------------------------------------------
+
+/** Device upload seams for photo/create. Missing -> photo entries fail permanently. */
+async function getSendDeps(): Promise<OutboxSendDeps> {
+  try {
+    const { createPhotoUploadDeps } = await import('../photos/upload-deps');
+    return { photo: createPhotoUploadDeps() };
+  } catch (err) {
+    console.warn('[outbox] photo upload deps unavailable', err);
+    return {};
+  }
+}
+
 // --- singleton runtime -------------------------------------------------------
 
 let runtime: OutboxRuntime | null = null;
+let inFlightDrain: Promise<void> | null = null;
 
 /** The process-wide outbox runtime (created once). */
 export function getOutboxRuntime(): OutboxRuntime {
@@ -88,7 +91,7 @@ export function getOutboxRuntime(): OutboxRuntime {
     runtime = {
       async enqueue(entityType, op, payload): Promise<string> {
         const entry: OutboxEntry = {
-          clientId: newClientId(),
+          clientId: newUuid(),
           entityType,
           op,
           payload,
@@ -111,17 +114,25 @@ export function getOutboxRuntime(): OutboxRuntime {
         }
         return entry.clientId;
       },
-      async drain(client): Promise<void> {
-        try {
-          const store = await getStore();
-          if (store === null) return;
-          const send = createOutboxSend(client);
-          const entries = await store.list();
-          const drained = await drainOutbox(entries, send);
-          await store.putMany(drained);
-        } catch (err) {
-          console.warn('[outbox] drain failed', err);
-        }
+      drain(client): Promise<void> {
+        // Single-flight: overlapping callers (mount, foreground, post-capture)
+        // share one drain so the same entry is never sent twice concurrently.
+        if (inFlightDrain !== null) return inFlightDrain;
+        inFlightDrain = (async (): Promise<void> => {
+          try {
+            const store = await getStore();
+            if (store === null) return;
+            const send = createOutboxSend(client, await getSendDeps());
+            const entries = await store.list();
+            const drained = await drainOutbox(entries, send);
+            await store.putMany(drained);
+          } catch (err) {
+            console.warn('[outbox] drain failed', err);
+          } finally {
+            inFlightDrain = null;
+          }
+        })();
+        return inFlightDrain;
       },
     };
   }

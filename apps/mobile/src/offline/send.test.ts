@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { OrqafyApiClient } from '@orqafy/api-client';
 
+import { RetryableSendError } from './errors';
 import { createOutboxSend } from './send';
 import type { OutboxEntry } from './types';
 
@@ -100,6 +101,43 @@ describe('createOutboxSend', () => {
       );
       expect(markRead).toHaveBeenCalledTimes(1);
       expect(firstArg(markRead)).toEqual({ id: 'n1' });
+    });
+  });
+
+  describe('photo/create mapping', () => {
+    it('is a RETRYABLE failure (photo kept) when no upload deps were injected', async () => {
+      const send = createOutboxSend(stubClient);
+      await expect(
+        send(makeEntry({ entityType: 'photo', op: 'create', payload: {} })),
+      ).rejects.toBeInstanceOf(RetryableSendError);
+    });
+
+    it('routes to the photo upload handler with the injected deps', async () => {
+      const mutate = vi.fn().mockResolvedValue({});
+      const client = { photos: { create: { mutate } } } as unknown as OrqafyApiClient;
+      const fetch = vi.fn().mockResolvedValue({
+        status: 200,
+        json: () => Promise.resolve({ storageKey: 'photos/c1/photo.jpg' }),
+      });
+      const send = createOutboxSend(client, {
+        photo: {
+          apiUrl: 'http://h',
+          getToken: () => Promise.resolve('t'),
+          fetch,
+          createFormData: () => ({ append: () => undefined }),
+          fileExists: () => Promise.resolve(true),
+          deleteFile: () => Promise.resolve(),
+        },
+      });
+      await send(
+        makeEntry({
+          entityType: 'photo',
+          op: 'create',
+          payload: { taskId: 'x', localUri: 'file:///p.jpg', mimeType: 'image/jpeg', capturedAt: 1 },
+        }),
+      );
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(mutate).toHaveBeenCalledTimes(1);
     });
   });
 
