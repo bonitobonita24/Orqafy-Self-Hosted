@@ -4,6 +4,20 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-26 — Field staff can now photograph a job site from the app (ORQ-23)
+
+**In your words:** you answered the one open question (who may upload site photos) with option (a), then asked me to build photo capture end to end, with every task run by an Opus subagent.
+
+✅ Done — **recorded your answer as D-28.** Field staff get a narrow "upload site photo for my task" permission, not general file management.
+✅ Done — **built the server side.** A new `upload_photo` permission, a photo upload endpoint (`POST /api/photos`) that accepts either the phone's login token or the web session, and a `photos.create` step that attaches the photo to its task. Each photo carries a unique client id, so a retry never creates duplicates.
+✅ Done — **had it attacked, then fixed what broke.** An independent review found four problems: someone who knew a photo's id could overwrite it (the most serious one), GPS locations were visible to users who shouldn't see them, an oversized upload could exhaust server memory, and two simultaneous uploads could collide. All four are fixed (merged at `c494f98`).
+✅ Done — **built the phone side.** Camera screen, an "Add photo" button on My Tasks, a safe local copy so the OS can't delete the photo before it uploads, a GPS tag when available, and offline upload that retries when signal returns. On the way I fixed a real bug: before, any failed send was treated as final. Now temporary failures retry up to 25 times.
+✅ Done — **closed the last hole in the overwrite fix.** Photo ids were sometimes generated from a weak random source that an attacker could predict. They now come from the phone's secure random generator, and the app refuses to create an id if that isn't available (`5b02b29`).
+💬 Verification — type-checks, linting, and automated tests all pass (web 80, storage 23, mobile 125), and the web build and mobile config both succeed. **Honest limits:** I tested the server live *before* the security fixes but couldn't re-run those tests afterwards, and no real phone has touched any of this.
+⛔ Blocked — **Docker Desktop on this machine can't publish ports right now** (`/forwards/expose … 500`). Restarting Docker Desktop should unblock the live re-test.
+⏳ Next — re-run the live upload tests after the Docker restart, then fix a separate security issue I found (a document marked sensitive can be re-filed as non-sensitive through `documents.create`), then smaller items: seed vs setup role mismatch, outbox cleanup, a secure photo download route, and the Tauri desktop app.
+💬 For you — (1) D-28 still needs to be copied into PRODUCT.md's Roles & Permissions section, which only you edit. (2) Merging `feat/mobile-photo-capture` into main is your call. Nothing is pushed.
+
 ## 2026-09-10 (chunk 5) — The mobile app's actual screens are built
 
 **In your words:** you noticed the next tasks weren't on the Squirlnote board — add them there first, then do them.

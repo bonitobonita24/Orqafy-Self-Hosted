@@ -35,6 +35,12 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ### Agent-found (Phase 4 build)
 
+- 🔴 **[test][api] Re-run live photo-upload tests POST-hardening** — server was live-tested only BEFORE F1–F5
+  (ad-hoc containers). Blocked this session by host Docker Desktop port publishing (`/forwards/expose … 500`) —
+  owner restarts Docker Desktop first. Cover bearer AND cookie paths, happy path, 403/409 clientId immutability,
+  411 missing Content-Length, 413 oversize, 429 rate limit. Done: curl transcripts in
+  `test-artifacts/photo-upload-2026-09-26/`. `<source: agent-found 2026-09-26>`
+
 - 🟡 **[BENIGN] `jose`/Auth.js Edge-runtime `CompressionStream` build warning** — `next build` emits a single
   "A Node.js API is used (CompressionStream) which is not supported in the Edge Runtime" warning from
   `jose` (pulled in by `@auth/core`, which runs in the Edge middleware). Benign: `CompressionStream` is only
@@ -77,11 +83,6 @@ exist yet. They are NOT actionable now; they gate a later phase._
 - 🔴 **[security][web] documents.create can re-commit a known SPI document key with isSPI:false, bypassing
   view_finances** — pre-existing. Fix: reject a `storageKey` already referenced by any Document, or bind keys to
   the upload session. `<source: agent-found 2026-09-26>`
-- 🔴 **[security][mobile] Outbox clientId falls back to Math.random** — `apps/mobile/src/offline/uuid.ts` uses
-  `crypto.randomUUID()` only if the runtime has it (Hermes may not) and says the id is "not a secret"; the F1
-  photo-upload hardening assumes clientIds are unguessable (an uncommitted clientId's object is last-writer-wins
-  across users). Fix: add `expo-crypto` (`randomUUID`) or `react-native-get-random-values`; update the comment.
-  `<source: agent-found 2026-09-26>`
 
 ### Remaining web scope (finish before mobile — web-first, D-25/W-1)
 
@@ -132,6 +133,12 @@ exist yet. They are NOT actionable now; they gate a later phase._
   restart-durable / multi-instance limiting when the app graduates past single-process. `<source: agent-found 2026-09-10>`
 
 ## ✅ Done recently
+
+- ✅ **[security][mobile] Outbox clientId no longer falls back to Math.random** (2026-09-26, `5b02b29`) —
+  `expo-crypto` ~15.0.9 `randomUUID` injected into a pure `createUuidGenerator` (`uuid.ts`, lowercases +
+  validates v4, THROWS with no CSPRNG source) bound in `uuid-native.ts`; `Math.random` path removed; comment
+  now states the id is a capability key (F1/D-28). Stale `runtime.ts` "fail permanently" comment corrected.
+  mobile tsc 0 · eslint 0 · vitest 125/125 · `expo config` 0 · asset guard clean.
 
 - ✅ **Site-photo capture upload path** (ORQ-23 / D-28) (2026-09-26, `feat/mobile-photo-capture`). Server half
   `f845130`…`1daeb4f`; mobile half `5c6763a` (outbox `photo/create` drain: multipart `/api/photos` → `photos.create`
