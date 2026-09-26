@@ -364,3 +364,18 @@ WS server (`@trpc/server/adapters/ws` + `applyWSSHandler`). Rationale (technical
   multi-instance deployment must back it with **Valkey pub/sub** (the BullMQ Valkey connection already exists;
   a pub/sub client would be added then). Recorded so a future scale-out doesn't silently break cross-instance
   realtime. Verified live two-client (`feat/web-realtime-sse` e3484e1).
+
+## 2026-09-26 — Resume session
+
+### D-28 · Field-staff site-photo upload permission (ORQ-23) (owner, 2026-09-26)
+**Decision:** Option (a) — add a NEW narrow, task-scoped photo-upload path: a `photos.create` tRPC procedure
+plus a narrow photo permission, so an assigned field worker can upload site photos ONLY against tasks they are
+assigned to, without holding the broad `manage_files` permission. `manage_files` stays reserved for full
+document management.
+**Why:** Least privilege — field staff must capture evidence photos (core field workflow) but must not
+edit/delete other people's documents.
+- Rejected (b) assignee-check bypass on a photo-only endpoint — couples authorization to assignment logic with
+  no auditable permission.
+- Rejected (c) grant field staff `manage_files` — far too broad.
+**Consequence:** Unblocks the mobile photo-capture piece (ORQ-23); build proceeds on `feat/mobile-photo-capture`.
+**PRODUCT.md back-port candidate:** Roles & Permissions — field staff may upload site photos to their assigned tasks (D-28). Owner to back-port.

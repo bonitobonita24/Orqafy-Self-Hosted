@@ -23,9 +23,10 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       account — a known limitation to state plainly in the README.** Keeps the background-location
       justification unconstrained by store review. Rationale: `docs/DECISIONS_LOG.md` D-6.
 
-## 🔴 Open
+## ✅ Resolved (2026-09-26, resume session)
 
-- [ ] **[WHAT] Field-staff photo-upload permission** (surfaced 2026-09-10, ORQ-23) — the mobile photo-capture
+- [x] **[WHAT] Field-staff photo-upload permission** → **D-28**: option (a) — narrow task-scoped photos.create + photo permission (owner, 2026-09-26).
+      (surfaced 2026-09-10, ORQ-23) — the mobile photo-capture
       screen has no server write path, and the only upload route (`/api/media`→`documents.create`) is gated on
       permission `manage_files`, which field/site staff likely do NOT hold. DECISION NEEDED: should an assigned
       field worker be able to upload a site photo against a task they're assigned to *without* full
@@ -33,6 +34,10 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       assignee-check bypass on a photo-only endpoint; (c) grant field staff `manage_files` (broad — likely too
       much). Recommendation: (a). Blocks the photo-capture piece of the mobile wave. Back-port to PRODUCT.md +
       DECISIONS_LOG once answered.
+
+## 🔴 Open
+
+_None._
 
 - [x] **[WHAT] Feature boundary vs commercial Orqafy** → RESOLVED in the interview. The
       self-hosted edition's line: **includes** PM + files + geofence + mobile + leave management +

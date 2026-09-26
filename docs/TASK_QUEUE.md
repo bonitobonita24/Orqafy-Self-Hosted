@@ -46,11 +46,12 @@ exist yet. They are NOT actionable now; they gate a later phase._
   `<source: agent-found 2026-09-08>`
 - 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
   legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. `<source: agent-found 2026-09-08>`
-- 🔴 **[mobile][server] Site-photo capture upload path** (ORQ-23) — the chunk-5 photo-capture screen has NO
+- 🟡 **[mobile][server] Site-photo capture upload path** (ORQ-23) — the chunk-5 photo-capture screen has NO
   server write path: no `photos` tRPC router / photos.create, and `/api/media`→documents.create is
   `manage_files`-gated (field staff likely lack it). Needs a minimal Photo-persist procedure + a [WHAT]-adjacent
   RBAC decision (task-scoped upload vs assignee check). Camera capture + local outbox queue can build now; the
   drain has no server target until this lands. `<source: agent-found 2026-09-10>`
+  Decision D-28 (2026-09-26): option (a) — narrow task-scoped photos.create + photo permission. Build IN PROGRESS on feat/mobile-photo-capture.
 - 🔴 **[mobile][BLOCKED-hardware] On-device chunk-5 verification** — the chunk-5 screens + geofence arming are
   static+unit verified only (no device here). Exercise login→My Tasks→mark-done→Leave→Notifications + live
   geofence arm/dwell on a real device when hardware exists (ties to the existing BLOCKED-hardware geofence task).
