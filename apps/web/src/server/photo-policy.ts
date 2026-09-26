@@ -35,12 +35,14 @@ export function photoExtFromMime(mime: string): PhotoExtension | null {
  * (GPS, capturer) on tasks NOT assigned to them.
  *
  * Choice (F2): both atoms are held by owner_admin and project_manager and by
- * NEITHER field_staff, accountant, nor client, in BOTH grant sources:
- *   • view_all_projects — the semantic "oversight" atom (roles.ts first-run
- *     grants give it to owner_admin + project_manager);
- *   • create_project    — the db seed's project_manager lacks view_all_projects
- *     (known seed-vs-roles.ts drift, docs/TASK_QUEUE.md), and create_project is
- *     the one project-management atom PM holds in both sources.
+ * NEITHER field_staff, accountant, nor client:
+ *   • view_all_projects — the semantic "oversight" atom, granted to owner_admin
+ *     + project_manager.
+ *   • create_project    — kept as belt-and-suspenders. The old seed-vs-roles.ts
+ *     drift (the db seed's project_manager once lacked view_all_projects) is now
+ *     RESOLVED: ORQ-27 made @orqafy/shared/roles the ONE grant source both the
+ *     seed and the web first-run consume, so PM holds view_all_projects in both.
+ *     create_project stays here as a redundant guard, not a drift workaround.
  * manage_files / export_data are deliberately excluded: the accountant holds
  * them, and file/export rights are not site oversight.
  */

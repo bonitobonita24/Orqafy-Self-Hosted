@@ -16,57 +16,19 @@
  * are absent the seed skips the admin entirely (the interactive-first-run path).
  */
 import { PrismaClient, Permission, SystemRole } from '@prisma/client';
+import {
+  SYSTEM_ROLE_PERMISSIONS,
+  SYSTEM_ROLE_LABEL,
+  SYSTEM_ROLE_ORDER,
+} from '@orqafy/shared';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-/** Base permission sets for the predefined roles (D-17). Elevated capabilities
- *  such as approve_leave / view_finances are deliberately NOT hardwired here —
- *  they are granted per user or via custom groups. */
-const SYSTEM_ROLES: ReadonlyArray<{
-  key: SystemRole;
-  name: string;
-  permissions: Permission[];
-}> = [
-  {
-    key: SystemRole.owner_admin,
-    name: 'Owner / Admin',
-    permissions: [
-      Permission.manage_users,
-      Permission.configure_server,
-      Permission.create_project,
-      Permission.view_finances,
-      Permission.manage_finances,
-      Permission.approve_leave,
-      Permission.manage_files,
-      Permission.view_all_projects,
-      Permission.export_data,
-      Permission.view_audit_log,
-      Permission.upload_photo,
-    ],
-  },
-  {
-    key: SystemRole.project_manager,
-    name: 'Project Manager',
-    permissions: [Permission.create_project, Permission.manage_files, Permission.upload_photo],
-  },
-  {
-    key: SystemRole.field_staff,
-    name: 'Field / Site Staff',
-    // D-28: task-scoped — the assignee check is enforced on every upload.
-    permissions: [Permission.upload_photo],
-  },
-  {
-    key: SystemRole.accountant,
-    name: 'Accountant',
-    permissions: [Permission.view_finances, Permission.manage_finances, Permission.export_data],
-  },
-  {
-    key: SystemRole.client,
-    name: 'Client',
-    permissions: [],
-  },
-];
+// Role→permission grants come from the ONE canonical source (@orqafy/shared),
+// the SAME module the web first-run (setup.ts) consumes — ORQ-27 ends the
+// seed↔first-run drift. The shared values are string-typed; they are bridged to
+// the Prisma enum types at the upsert call (identical string values).
 
 /** Starter leave categories (D-21). defaultDaysPerYear are sensible defaults the
  *  operator can edit; nothing here requires health detail (SPI minimisation). */
@@ -91,15 +53,18 @@ async function seedOrganization(): Promise<void> {
 }
 
 async function seedSystemRoles(): Promise<void> {
-  for (const role of SYSTEM_ROLES) {
+  for (const role of SYSTEM_ROLE_ORDER) {
+    const systemKey = role as SystemRole;
+    const name = SYSTEM_ROLE_LABEL[role];
+    const permissions = SYSTEM_ROLE_PERMISSIONS[role] as Permission[];
     await prisma.permissionGroup.upsert({
-      where: { systemKey: role.key },
-      update: { name: role.name, permissions: role.permissions, isSystem: true },
+      where: { systemKey },
+      update: { name, permissions, isSystem: true },
       create: {
-        name: role.name,
-        permissions: role.permissions,
+        name,
+        permissions,
         isSystem: true,
-        systemKey: role.key,
+        systemKey,
       },
     });
   }

@@ -4,4 +4,5 @@
 export * from './primitives';
 export * from './geofence-parse';
 export * from './enums';
+export * from './roles';
 export * from './schemas';
