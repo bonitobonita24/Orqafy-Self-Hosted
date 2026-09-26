@@ -48,20 +48,46 @@ export const photosRouter = router({
         });
       }
 
-      // Upsert by clientId: a retry returns the existing row unchanged (the
-      // first commit wins; nothing on it is re-writable by a replay).
-      return ctx.prisma.photo.upsert({
-        where: { clientId },
-        update: {},
-        create: {
-          clientId,
-          storageKey: input.storageKey,
-          taskId: input.taskId,
-          capturedBy: ctx.userId,
-          capturedAt: input.capturedAt,
-          gpsLat: input.gpsLat ?? null,
-          gpsLng: input.gpsLng ?? null,
-        },
-      });
+      // Idempotent on clientId: a retry by the SAME user returns the existing
+      // row unchanged (first commit wins; a replay rewrites nothing). A row owned
+      // by ANOTHER user is refused with the uniform message — never returned
+      // (that would leak their GPS/storageKey to anyone who learns the clientId).
+      const existing = await ctx.prisma.photo.findUnique({ where: { clientId } });
+      if (existing !== null) return ownedOrForbidden(existing, ctx.userId);
+
+      try {
+        return await ctx.prisma.photo.create({
+          data: {
+            clientId,
+            storageKey: input.storageKey,
+            taskId: input.taskId,
+            capturedBy: ctx.userId,
+            capturedAt: input.capturedAt,
+            gpsLat: input.gpsLat ?? null,
+            gpsLng: input.gpsLng ?? null,
+          },
+        });
+      } catch (err) {
+        // Concurrent commit of the same clientId (e.g. two outbox drains): the
+        // unique constraint fires — re-read and apply the same owner rule.
+        if (!isUniqueViolation(err)) throw err;
+        const raced = await ctx.prisma.photo.findUnique({ where: { clientId } });
+        if (raced === null) throw err;
+        return ownedOrForbidden(raced, ctx.userId);
+      }
     }),
 });
+
+function ownedOrForbidden<T extends { capturedBy: string }>(row: T, userId: string): T {
+  if (row.capturedBy !== userId) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: PHOTO_FORBIDDEN_MESSAGE });
+  }
+  return row;
+}
+
+/** Prisma unique-constraint violation (P2002), duck-typed so tests need no client. */
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === 'P2002'
+  );
+}

@@ -23,9 +23,25 @@ interface FakePhoto {
   gpsLng: number | null;
 }
 
-/** Minimal in-memory Prisma: tasks keyed by id, photos upserted by clientId. */
-function fakePrisma(tasks: Record<string, { id: string; assigneeId: string | null }>) {
+type FakeOpts = { seed?: FakePhoto[]; raceRow?: FakePhoto };
+
+function uniqueViolation(): Error {
+  return Object.assign(new Error('Unique constraint failed on clientId'), { code: 'P2002' });
+}
+
+/**
+ * Minimal in-memory Prisma: tasks keyed by id, photos keyed by clientId.
+ * `raceRow` simulates a concurrent commit: findUnique misses, then create hits
+ * the unique constraint (P2002) because another request inserted `raceRow`
+ * in between.
+ */
+function fakePrisma(
+  tasks: Record<string, { id: string; assigneeId: string | null }>,
+  opts: FakeOpts = {},
+) {
   const photos = new Map<string, FakePhoto>();
+  for (const row of opts.seed ?? []) photos.set(row.clientId ?? row.id, row);
+  let raced = false;
   let seq = 0;
   const prisma = {
     task: {
@@ -33,18 +49,19 @@ function fakePrisma(tasks: Record<string, { id: string; assigneeId: string | nul
         Promise.resolve(tasks[where.id] ?? null),
     },
     photo: {
-      upsert: ({
-        where,
-        create,
-      }: {
-        where: { clientId: string };
-        create: Omit<FakePhoto, 'id'>;
-        update: Record<string, unknown>;
-      }) => {
-        const existing = photos.get(where.clientId);
-        if (existing !== undefined) return Promise.resolve(existing);
-        const row: FakePhoto = { id: `p${++seq}`, ...create };
-        photos.set(where.clientId, row);
+      findUnique: ({ where }: { where: { clientId: string } }) =>
+        Promise.resolve(photos.get(where.clientId) ?? null),
+      create: ({ data }: { data: Omit<FakePhoto, 'id'> }) => {
+        if (opts.raceRow !== undefined && !raced) {
+          raced = true;
+          photos.set(opts.raceRow.clientId ?? opts.raceRow.id, opts.raceRow);
+          return Promise.reject(uniqueViolation());
+        }
+        if (data.clientId !== null && photos.has(data.clientId)) {
+          return Promise.reject(uniqueViolation());
+        }
+        const row: FakePhoto = { id: `p${++seq}`, ...data };
+        photos.set(data.clientId ?? row.id, row);
         return Promise.resolve(row);
       },
     },
@@ -52,12 +69,26 @@ function fakePrisma(tasks: Record<string, { id: string; assigneeId: string | nul
   return { prisma, photos };
 }
 
+function existingRow(capturedBy: string): FakePhoto {
+  return {
+    id: 'existing',
+    clientId: CLIENT_ID,
+    storageKey: `photos/${CLIENT_ID}/photo.jpg`,
+    taskId: 'mine',
+    capturedBy,
+    capturedAt: new Date('2026-09-25T08:00:00Z'),
+    gpsLat: 13.4,
+    gpsLng: 121.18,
+  };
+}
+
 function makeCaller(
   userId: string,
   permissions: Permission[],
   tasks: Record<string, { id: string; assigneeId: string | null }>,
+  opts: FakeOpts = {},
 ) {
-  const { prisma, photos } = fakePrisma(tasks);
+  const { prisma, photos } = fakePrisma(tasks, opts);
   const ctx = {
     prisma: prisma as unknown as TRPCContext['prisma'],
     session: { user: { id: userId }, expires: '2099-01-01T00:00:00.000Z' } as Session,
@@ -159,5 +190,37 @@ describe('photos.create', () => {
     await caller.create(input());
     await caller.create(input({ clientId: CLIENT_ID.toUpperCase() }));
     expect(photos.size).toBe(1);
+  });
+
+  it('FORBIDDEN when the clientId was already committed by ANOTHER user (no row leak)', async () => {
+    const { caller, photos } = makeCaller('u1', ['upload_photo'], TASKS, {
+      seed: [existingRow('u2')],
+    });
+    await expect(caller.create(input())).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      message: PHOTO_FORBIDDEN_MESSAGE,
+    });
+    expect(photos.get(CLIENT_ID)?.capturedBy).toBe('u2');
+  });
+
+  it('returns the existing row unchanged when the caller already committed it', async () => {
+    const { caller } = makeCaller('u1', ['upload_photo'], TASKS, { seed: [existingRow('u1')] });
+    const row = await caller.create(input({ gpsLat: 1, gpsLng: 2 }));
+    expect(row.id).toBe('existing');
+    expect(row.gpsLat).toBe(13.4);
+  });
+
+  it('P2002 race: returns the concurrently-committed row when it is the caller’s', async () => {
+    const { caller } = makeCaller('u1', ['upload_photo'], TASKS, { raceRow: existingRow('u1') });
+    const row = await caller.create(input());
+    expect(row.id).toBe('existing');
+  });
+
+  it('P2002 race: FORBIDDEN when the concurrently-committed row is another user’s', async () => {
+    const { caller } = makeCaller('u1', ['upload_photo'], TASKS, { raceRow: existingRow('u2') });
+    await expect(caller.create(input())).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      message: PHOTO_FORBIDDEN_MESSAGE,
+    });
   });
 });
