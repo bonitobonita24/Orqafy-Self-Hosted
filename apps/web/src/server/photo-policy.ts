@@ -71,6 +71,47 @@ export function canViewPhotoFeed(permissions: ReadonlySet<Permission>): boolean 
   return hasPhotoOversight(permissions);
 }
 
+/**
+ * The image MIME type for a stored photo key (`photos/<id>/photo.<ext>`), derived
+ * from the trailing extension of the key we ourselves minted (never the client).
+ * Only the three stored extensions map to an image type; anything else falls back
+ * to `application/octet-stream` so an unexpected object can never be served as an
+ * inline image (belt-and-suspenders with the route's `nosniff`).
+ */
+export function photoMimeFromKey(storageKey: string): string {
+  const ext = storageKey.split('.').pop()?.toLowerCase() ?? '';
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'heic':
+      return 'image/heic';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+/**
+ * May `userId` read the BYTES of a stored photo? Identical scoping to the
+ * `tasks.byId` / dashboard metadata reads so the download surface can never be
+ * more permissive than what already shows the photo's existence:
+ *   • task-attached photo → assignee OR oversight (canViewTaskPhotos)
+ *   • milestone-only / orphan photo → oversight only (canViewPhotoFeed)
+ * No capturer-only special case: consistency across surfaces is the point (a
+ * field_staff who is not the assignee cannot read another user's GPS-bearing
+ * photo just because they captured it, matching canViewTaskPhotos).
+ */
+export function canReadStoredPhoto(
+  photo: { taskId: string | null; task: { assigneeId: string | null } | null },
+  userId: string,
+  permissions: ReadonlySet<Permission>,
+): boolean {
+  if (photo.taskId !== null) return canViewTaskPhotos(photo.task, userId, permissions);
+  return canViewPhotoFeed(permissions);
+}
+
 /** True only when the task exists AND is assigned to `userId`. */
 export function canAttachPhoto(
   task: { assigneeId: string | null } | null,

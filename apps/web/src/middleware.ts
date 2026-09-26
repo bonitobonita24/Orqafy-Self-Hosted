@@ -18,9 +18,10 @@ const auth: NextAuthResult['auth'] = NextAuth(authConfig).auth;
 // `/api/mobile` (the mobile login endpoint) is public at the EDGE: it
 // authenticates by definition (email + password → bearer token), so the edge
 // must not 307-redirect it to the HTML /login page.
-// The byte-upload/download routes `/api/photos` and `/api/media` (+ `/api/media/[id]`)
-// are NOT listed here: they are excluded from the matcher entirely (see `config`
-// below) because middleware caps request bodies at 10 MB (ORQ-31).
+// The byte-upload/download routes `/api/photos` (+ `/api/photos/[id]`, ORQ-32)
+// and `/api/media` (+ `/api/media/[id]`) are NOT listed here: they are excluded
+// from the matcher entirely (see `config` below) because middleware caps request
+// bodies at 10 MB (ORQ-31). Each is its own auth boundary.
 const PUBLIC_PREFIXES = ['/login', '/setup', '/api/auth', '/api/trpc', '/api/mobile'];
 
 // The auth() wrapper's return type references a non-portable internal path, so
@@ -56,7 +57,9 @@ export const config = {
   // auth() + view_finances for SPI) and this middleware adds no headers, so
   // they lose nothing by skipping it. Unauthenticated callers now get a JSON
   // 401 from the handler instead of a 307 to the HTML /login page.
-  // `(?:/|$)` keeps look-alikes such as /api/photosX on the middleware.
+  // `api/photos(?:/|$)` excludes BOTH `/api/photos` and its subpath
+  // `/api/photos/[id]` (ORQ-32 download): `(?:/|$)` matches the `/` before an id,
+  // while still keeping look-alikes such as /api/photosX on the middleware.
   // Regression test: src/middleware.test.ts. Must stay a static literal (Next
   // parses it at build time).
   matcher: [

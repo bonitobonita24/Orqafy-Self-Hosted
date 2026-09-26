@@ -33,6 +33,7 @@ import {
 } from '@orqafy/ui';
 import { parseGeofenceStrings } from '@orqafy/shared';
 import { trpc } from '@/trpc/react';
+import { TaskPhotoStrip } from '@/components/tasks/task-photo-strip';
 import { MapPicker } from './map-picker.client';
 import {
   taskFormSchema,
@@ -356,6 +357,13 @@ export function TaskFormDialog({
             </Button>
           </DialogFooter>
         </form>
+
+        {task !== undefined ? (
+          <div className="mt-2 space-y-2 border-t pt-4">
+            <p className="text-sm font-medium">Site photos</p>
+            <TaskPhotoStrip taskId={task.id} />
+          </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

@@ -8,9 +8,11 @@ import {
   PHOTO_FORBIDDEN_MESSAGE,
   PHOTO_MAX_BYTES,
   canAttachPhoto,
+  canReadStoredPhoto,
   canViewPhotoFeed,
   canViewTaskPhotos,
   photoExtFromMime,
+  photoMimeFromKey,
 } from './photo-policy';
 import { SYSTEM_ROLE_PERMISSIONS } from './roles';
 
@@ -115,5 +117,68 @@ describe('canViewPhotoFeed (cross-task feed, e.g. dashboard)', () => {
     expect(canViewPhotoFeed(perms(SYSTEM_ROLE_PERMISSIONS.field_staff))).toBe(false);
     expect(canViewPhotoFeed(perms(SYSTEM_ROLE_PERMISSIONS.accountant))).toBe(false);
     expect(canViewPhotoFeed(perms(SYSTEM_ROLE_PERMISSIONS.client))).toBe(false);
+  });
+});
+
+// ORQ-32: the byte-download rule. A task-attached photo scopes exactly like
+// canViewTaskPhotos (assignee OR oversight); a milestone-only / orphan photo is
+// oversight-only. Same policy the tasks.byId metadata read uses — the byte route
+// is never more permissive than what already reveals the photo exists.
+describe('canReadStoredPhoto', () => {
+  const taskPhoto = { taskId: 't1', task: { assigneeId: 'assignee' } };
+  const orphanPhoto = { taskId: null, task: null };
+
+  it('allows the task assignee (no oversight atom)', () => {
+    expect(
+      canReadStoredPhoto(taskPhoto, 'assignee', perms(SYSTEM_ROLE_PERMISSIONS.field_staff)),
+    ).toBe(true);
+  });
+
+  it('allows an oversight holder who is not the assignee', () => {
+    expect(canReadStoredPhoto(taskPhoto, 'boss', perms(SYSTEM_ROLE_PERMISSIONS.owner_admin))).toBe(
+      true,
+    );
+    expect(canReadStoredPhoto(taskPhoto, 'pm', perms(SYSTEM_ROLE_PERMISSIONS.project_manager))).toBe(
+      true,
+    );
+  });
+
+  it('denies a non-assignee, non-oversight user (field_staff, accountant, client)', () => {
+    expect(
+      canReadStoredPhoto(taskPhoto, 'stranger', perms(SYSTEM_ROLE_PERMISSIONS.field_staff)),
+    ).toBe(false);
+    expect(canReadStoredPhoto(taskPhoto, 'acct', perms(SYSTEM_ROLE_PERMISSIONS.accountant))).toBe(
+      false,
+    );
+    expect(canReadStoredPhoto(taskPhoto, 'c', perms(SYSTEM_ROLE_PERMISSIONS.client))).toBe(false);
+  });
+
+  it('a milestone-only / orphan photo is oversight-only (no assignee shortcut)', () => {
+    expect(canReadStoredPhoto(orphanPhoto, 'boss', perms(SYSTEM_ROLE_PERMISSIONS.owner_admin))).toBe(
+      true,
+    );
+    expect(
+      canReadStoredPhoto(orphanPhoto, 'assignee', perms(SYSTEM_ROLE_PERMISSIONS.field_staff)),
+    ).toBe(false);
+  });
+});
+
+describe('photoMimeFromKey', () => {
+  const uuid = '3f2c9a4e-8b1d-4c7a-9e2f-1a2b3c4d5e6f';
+  it('maps the stored photo extensions to image MIME types', () => {
+    expect(photoMimeFromKey(`photos/${uuid}/photo.jpg`)).toBe('image/jpeg');
+    expect(photoMimeFromKey(`photos/${uuid}/photo.jpeg`)).toBe('image/jpeg');
+    expect(photoMimeFromKey(`photos/${uuid}/photo.png`)).toBe('image/png');
+    expect(photoMimeFromKey(`photos/${uuid}/photo.heic`)).toBe('image/heic');
+  });
+
+  it('is case-insensitive on the extension', () => {
+    expect(photoMimeFromKey(`photos/${uuid}/photo.JPG`)).toBe('image/jpeg');
+  });
+
+  it('falls back to application/octet-stream for anything unexpected', () => {
+    expect(photoMimeFromKey(`photos/${uuid}/photo.svg`)).toBe('application/octet-stream');
+    expect(photoMimeFromKey('photos/no-extension')).toBe('application/octet-stream');
+    expect(photoMimeFromKey('')).toBe('application/octet-stream');
   });
 });
