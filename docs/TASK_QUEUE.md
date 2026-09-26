@@ -9,13 +9,13 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 _The three below are BLOCKED — they require real hardware / a running stack / a live tunnel, none of which
 exist yet. They are NOT actionable now; they gate a later phase._
 
-- 🔴 **[BLOCKED-hardware] Real-device geofence-over-tunnel test** (iOS + Android) before Phase 3 — needs
+- 🔴 **[BLOCKED-hardware] Real-device geofence-over-tunnel test** (iOS + Android) before Phase 3 — needs `gate: external`
   physical devices + a live tunnel. R-1 found **no source** proving a VPN blocks geofence *triggering*;
   the open risk is notification *delivery* within the OS wake budget over an idle WireGuard tunnel.
   Decides whether the reverse-tunnel choice (Pangolin `newt`) is merely preferred or actually required.
   Done: measured trigger→delivery latency on both platforms, recorded in `docs/planning/R1_REMOTE_ACCESS.md`.
   `<source: agent-found 2026-09-06>`
-- 🔴 **[BLOCKED-post-scaffold] Sync-engine resource-cost check** — needs the stack actually running.
+- 🔴 **[BLOCKED-post-scaffold] Sync-engine resource-cost check** — needs the stack actually running. `gate: server-side`
   Measure idle and sync-load RAM/CPU on a desktop-as-server box already running Postgres + Valkey + MinIO
   before the choice is locked. Done: figures recorded in the winning engine's decision doc.
   `<source: agent-found 2026-09-06>`
@@ -28,7 +28,7 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ### Post-v1 (deferred, not blocked)
 
-- 🔴 **[POST-V1] Cloud-storage add-on + billing control plane** (D-27) — the paid monetization track: point
+- 🔴 **[POST-V1] Cloud-storage add-on + billing control plane** (D-27) — the paid monetization track: point `gate: owner`
   the storage abstraction at **Cloudflare R2** per-subscriber bucket; build the hosted billing/subscription
   control plane (tiers Starter…Max, metering, payment gateway) OUTSIDE the OSS app. Ships after v1. Pricing +
   provider analysis: `docs/planning/R9_CLOUD_STORAGE_PRICING.md`. `<source: owner 2026-09-08>`
@@ -36,16 +36,16 @@ exist yet. They are NOT actionable now; they gate a later phase._
 ### Agent-found (Phase 4 build)
 
 
-- 🟡 **[BENIGN] `jose`/Auth.js Edge-runtime `CompressionStream` build warning** — `next build` emits a single
+- 🟡 **[BENIGN] `jose`/Auth.js Edge-runtime `CompressionStream` build warning** — `next build` emits a single `gate: external`
   "A Node.js API is used (CompressionStream) which is not supported in the Edge Runtime" warning from
   `jose` (pulled in by `@auth/core`, which runs in the Edge middleware). Benign: `CompressionStream` is only
   used for JWE `zip`-compressed tokens, which Auth.js does NOT use for its default JWT sessions. Pre-existing,
   third-party, no runtime effect. Left as-is (any suppression would be a hack into a dependency's Edge path).
   Do NOT re-investigate. `<source: agent-found 2026-09-09>`
-- 🔴 **`Document.size` Int→BigInt** if single files >2GB are expected (Prisma schema + Zod). Construction
+- 🔴 **`Document.size` Int→BigInt** if single files >2GB are expected (Prisma schema + Zod). Construction `gate: owner`
   drawings are usually well under, so Int is fine for v1 — revisit if large-file uploads surface.
   `<source: agent-found 2026-09-08>`
-- 🔴 **[mobile][BLOCKED-hardware] On-device chunk-5 verification** — the chunk-5 screens + geofence arming are
+- 🔴 **[mobile][BLOCKED-hardware] On-device chunk-5 verification** — the chunk-5 screens + geofence arming are `gate: external`
   static+unit verified only (no device here). Exercise login→My Tasks→mark-done→Leave→Notifications + live
   geofence arm/dwell on a real device when hardware exists (ties to the existing BLOCKED-hardware geofence task).
   ALSO (ORQ-23, 2026-09-26): My Tasks "Photo" → camera permission/denied → capture offline → drain uploads
@@ -63,7 +63,7 @@ exist yet. They are NOT actionable now; they gate a later phase._
   ~~realtime transport (D-22)~~ ✅ **SSE** (`feat/web-realtime-sse` e3484e1) · ~~self-hosted woff2 fonts~~ ✅
   (`feat/self-hosted-fonts` 0560001) · ~~OCR/matching processors~~ ✅ (`feat/document-ocr-matching` af0d71d).
   `<source: agent-found 2026-09-08>`
-- 🟡 **[BLOCKED-hardware remainder] Expo mobile (Part 6)** — BUILD COMPLETE incl. photo capture (ORQ-23/D-28);
+- 🟡 **[BLOCKED-hardware remainder] Expo mobile (Part 6)** — BUILD COMPLETE incl. photo capture (ORQ-23/D-28); `gate: external`
   only hardware-blocked on-device tests remain (see the BLOCKED on-device item). Originally noted as (wave
   plan: `docs/tasks/mobile-wave-plan.md`; tip branch `feat/mobile-chunk5-screens`). ✅ **Chunks 1–5 DONE +
   verified** (static+unit bar; NO device). ✅ **Chunk 1 scaffold DONE + verified** (`dc138a4`): `apps/mobile` Expo SDK 54
@@ -97,11 +97,11 @@ exist yet. They are NOT actionable now; they gate a later phase._
   hardenings. mobile tsc 0 · eslint 0 · vitest 64/64 · expo config resolves · Rule-13 clean. NOT device-tested.
   **Photo capture carved out → separate task (ORQ-23): no server photos.create + manage_files RBAC question.**
   `<source: plan 2026-09-08>`
-- 🔴 **[DEFERRED-owner-gated] Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar
+- 🔴 **[DEFERRED-owner-gated] Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar `gate: owner`
   (D-11/D-14). ✅ Wave PLAN written: `docs/planning/R7a_TAURI_WAVE_PLAN.md` (chunks 1–7 + 7 open [WHAT]s).
   BUILD is owner-gated (D-3 later track) — not un-gated; start only when the owner greenlights the track.
   `<source: plan 2026-09-08>`
-- 🔴 **[POST-V1, security] Valkey-backed rate-limit store** — the mobile-login limiter is in-memory (resets on
+- 🔴 **[POST-V1, security] Valkey-backed rate-limit store** — the mobile-login limiter is in-memory (resets on `gate: owner`
   restart, per-instance). Drop in a Valkey `RateLimitStore` adapter at the `getRateLimitStore()` SEAM for
   restart-durable / multi-instance limiting when the app graduates past single-process. `<source: agent-found 2026-09-10>`
 
