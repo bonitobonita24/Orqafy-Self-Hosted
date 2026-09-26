@@ -49,9 +49,6 @@ exist yet. They are NOT actionable now; they gate a later phase._
 - 🔴 **`Document.size` Int→BigInt** if single files >2GB are expected (Prisma schema + Zod). Construction
   drawings are usually well under, so Int is fine for v1 — revisit if large-file uploads surface.
   `<source: agent-found 2026-09-08>`
-- 🔴 **ESLint 8→9 flat-config migration** — Part 1 pinned ESLint 8.57.1 (EOL) to match the framework's
-  legacy `.eslintrc` shape. Migrate to ESLint 9 flat config when convenient. Board ORQ-34.
-  `<source: agent-found 2026-09-08>`
 - 🔴 **[mobile][BLOCKED-hardware] On-device chunk-5 verification** — the chunk-5 screens + geofence arming are
   static+unit verified only (no device here). Exercise login→My Tasks→mark-done→Leave→Notifications + live
   geofence arm/dwell on a real device when hardware exists (ties to the existing BLOCKED-hardware geofence task).
@@ -121,6 +118,15 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **ESLint 8→9 flat-config migration (ORQ-34)** — all 10 workspaces off EOL ESLint 8.57.1/legacy `.eslintrc`
+  to ESLint 9.39.5 flat config (`eslint.base.mjs` shared base + per-workspace `eslint.config.mjs`;
+  typescript-eslint v8; web needed no eslint-config-next/FlatCompat — it lints plain `src` globs). Every
+  rule/override/ignore/env reproduced (no relaxation): recommendedTypeChecked, the 3 base rules + web's 6
+  relaxations, reportUnusedDisableDirectives off, dot-dir ignores restated. Real v8-surfaced violations fixed
+  properly (no disables). Rule-13 mobile no-restricted-imports guard re-proven (PM re-ran the probe: banned
+  `@orqafy/ui`/`@orqafy/db` imports error with the exact message, then reverted clean). Gates: `pnpm -r lint` 0
+  across 10 workspaces, web/mobile/db tsc clean, vitest web 130 / mobile 145 / shared 13, `expo config` OK.
+  (`136d146`, branch `chore/eslint9-flat-config`, 2026-09-26)
 - ✅ **[web] Friendly `documents.create` CONFLICT handling + retry in the Files form (ORQ-33)** — pure testable
   mapper `conflict-error.ts` (`isConflictError`/`conflictMessage`); on tRPC CONFLICT the form shows "This file
   was already uploaded. Please choose the file again to retry." (app's inline `text-destructive` convention),
