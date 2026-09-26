@@ -2,9 +2,11 @@
 //
 // Data: `tasks.myTasks` (assignee-filtered server-side). "Mark done" flows through the
 // OFFLINE OUTBOX (`enqueue('task','update',{ status:'done' })`) so it works with no
-// signal — the row is struck optimistically and the list refetched. On every task change
+// signal — the row is struck optimistically and the list refetched. "Photo" opens the
+// task-scoped camera (/capture?taskId=…, D-28), which queues an outbox photo/create. On every task change
 // `useTaskGeofencing` (re)arms OS geofencing for the in-window, located tasks only — the
 // on-device half of the authorization boundary.
+import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -135,6 +137,14 @@ export default function MyTasksScreen() {
               ) : null}
             </View>
           </View>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`Add photo to ${item.title}`}
+            style={styles.photoButton}
+            onPress={() => router.push({ pathname: '/capture', params: { taskId: item.id } })}
+          >
+            <Text style={styles.photoButtonText}>Photo</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel={`Mark ${item.title} done`}
@@ -285,6 +295,21 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.6 },
   due: { fontSize: 12, color: colors.mutedForeground, fontWeight: '500' },
   dueOverdue: { color: colors.destructive, fontWeight: '600' },
+
+  photoButton: {
+    alignSelf: 'center',
+    marginLeft: 4,
+    minWidth: 64,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+  },
+  photoButtonText: { color: colors.foreground, fontWeight: '600', fontSize: 14 },
 
   doneButton: {
     alignSelf: 'center',

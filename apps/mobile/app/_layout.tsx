@@ -43,6 +43,16 @@ function RootNavigator() {
       <Tabs.Screen name="calendar" options={{ title: 'Calendar' }} />
       <Tabs.Screen name="notifications" options={{ title: 'Notifications' }} />
       <Tabs.Screen name="leave" options={{ title: 'Leave' }} />
+      {/* Task-scoped photo capture (D-28): routable, but not a tab; full-screen camera. */}
+      <Tabs.Screen
+        name="capture"
+        options={{
+          href: null,
+          title: 'Add photo',
+          headerShown: false,
+          tabBarStyle: { display: 'none' },
+        }}
+      />
     </Tabs>
   );
 }
