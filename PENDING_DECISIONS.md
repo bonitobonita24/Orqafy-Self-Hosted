@@ -39,15 +39,14 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
 
 _None._
 
+## ✅ Resolved (2026-09-06, v1-scope resolution)
+
 - [x] **[WHAT] Feature boundary vs commercial Orqafy** → RESOLVED in the interview. The
       self-hosted edition's line: **includes** PM + files + geofence + mobile + leave management +
       document-AI (thin slice v1, full v2) + the v2 finance modules + a v2 client portal. **Excludes**
       attendance/timekeeping, payroll processing, full accounting ledger, BIM/CAD viewing, tenancy,
       worker location history, and parity with commercial Orqafy. See `docs/PRODUCT.md` Out of Scope
       and D-17…D-23.
-
-
-## ✅ Resolved (2026-09-06, v1-scope resolution)
 
 - [x] **Document-AI phasing** → **D-13**: thin slice (no LLM) in v1 ~3–4 wks; full version later.
 - [x] **Desktop sync client (was D-10a)** → **D-14**: headless Nextcloud client sidecar'd behind our
