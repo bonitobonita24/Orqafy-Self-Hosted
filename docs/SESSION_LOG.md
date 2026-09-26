@@ -4,6 +4,20 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-09-26 (late) — Full-Auto wave: RBAC drift, photo download, outbox hygiene, Files UX, ESLint 9, offline retry, Tauri plan
+
+**In your words:** keep going in Full Auto through the ORQ lineup (grant drift → photo download → outbox hygiene → Files CONFLICT → ESLint 9 → Tauri scout).
+
+✅ ORQ-27 — one canonical role-grant source (`@orqafy/shared/roles`) for the DB seed + web first-run; parity test. `d7e1e95`
+✅ ORQ-32 — scoped photo byte-download route (uniform-404 anti-oracle, nosniff, assignee/oversight) + task-view thumbnails. `ec76903`
+✅ ORQ-28 — mobile outbox hygiene (prune synced, re-drain, revive/retry, discard+file cleanup, orphan sweep, pending-photo badge + failed banner) + post-crash idempotent recovery (`photos.existsByClientId`). `d375fdf`,`a66a055`
+✅ ORQ-33 — friendly CONFLICT handling + retry in the Files upload form. `07d53f5`
+✅ ORQ-34 — ESLint 8→9 flat-config migration across all 10 workspaces; Rule-13 guard re-proven. `136d146`
+✅ ORQ-35 — offline non-photo mutations now stay pending for retry (was failing on first drain). `ad8849c`
+✅ Tauri desktop wave plan (R7a) — chunked build plan for the deferred desktop track. `cf35d88`
+💬 All verified static+unit; gates re-run by PM. Live browser/device + live-curl deferred (no web server running, no device). HARD HOLD — nothing pushed; merge chain → main is the owner's call.
+⏳ Next — no un-gated build work remains. Owner-gated: merge the chain to main, back-port D-28 into PRODUCT.md, greenlight the desktop track (R7a open [WHAT]s). Blocked (hardware/stack/tunnel): geofence-over-tunnel, sync resource-cost, Pangolin throughput, on-device chunk-5 + photo capture. Post-v1: R2 storage add-on, Valkey rate-limit store.
+
 ## 2026-09-26 — Field staff can now photograph a job site from the app (ORQ-23)
 
 **In your words:** you answered the one open question (who may upload site photos) with option (a), then asked me to build photo capture end to end, with every task run by an Opus subagent.
