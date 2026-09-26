@@ -52,6 +52,17 @@ exist yet. They are NOT actionable now; they gate a later phase._
   RBAC decision (task-scoped upload vs assignee check). Camera capture + local outbox queue can build now; the
   drain has no server target until this lands. `<source: agent-found 2026-09-10>`
   Decision D-28 (2026-09-26): option (a) — narrow task-scoped photos.create + photo permission. Build IN PROGRESS on feat/mobile-photo-capture.
+  2026-09-26: SERVER half DONE + unit + live verified (`upload_photo` perm, `Photo.clientId`, `POST /api/photos`,
+  `photos.create`, documents.create key guard). Remaining: mobile capture + outbox drain to these endpoints.
+- 🔴 **[server][security] Scoped photo READ path** — no photo read procedure exists (a `listByTask` draft was
+  removed pre-commit: unscoped = IDOR on GPS data). When the web/mobile needs to view photos, add it as
+  assignee-OR-oversight scoped (existing atom, e.g. `view_all_projects`), uniform FORBIDDEN for missing/denied,
+  plus a scoped download route. Discrepancy noted: `tasks.byId`/`listByProject` reads are themselves unscoped
+  `protectedProcedure` — decide whether that is intended for a single-org install. `<source: agent-found 2026-09-26>`
+- 🔴 **[rbac] Seed vs first-run role grants drift** — `packages/db/prisma/seed.ts` and
+  `apps/web/src/server/roles.ts` (used by first-run `setup`) disagree on default grants (e.g. project_manager:
+  seed = create_project+manage_files; roles.ts adds view_all_projects+export_data; accountant manage_files).
+  Unify to one source. `<source: agent-found 2026-09-26>`
 - 🔴 **[mobile][BLOCKED-hardware] On-device chunk-5 verification** — the chunk-5 screens + geofence arming are
   static+unit verified only (no device here). Exercise login→My Tasks→mark-done→Leave→Notifications + live
   geofence arm/dwell on a real device when hardware exists (ties to the existing BLOCKED-hardware geofence task).
