@@ -42,10 +42,6 @@ exist yet. They are NOT actionable now; they gate a later phase._
   used for JWE `zip`-compressed tokens, which Auth.js does NOT use for its default JWT sessions. Pre-existing,
   third-party, no runtime effect. Left as-is (any suppression would be a hack into a dependency's Edge path).
   Do NOT re-investigate. `<source: agent-found 2026-09-09>`
-- 🔴 **[mobile] Offline non-photo mutations fail on first attempt** — `send.ts` error classification leaves an
-  offline task/update `create`/`update`/`delete` failing on the first drain rather than staying `pending`
-  (only photo/create currently classifies network errors as retryable). Make transport/offline errors
-  retryable for all entity ops so queued edits survive being made offline. `<source: agent-found 2026-09-26>`
 - 🔴 **`Document.size` Int→BigInt** if single files >2GB are expected (Prisma schema + Zod). Construction
   drawings are usually well under, so Int is fine for v1 — revisit if large-file uploads surface.
   `<source: agent-found 2026-09-08>`
@@ -118,6 +114,14 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **[mobile] Offline non-photo mutations stay pending for retry (ORQ-35)** — root cause: `send.ts` dispatched
+  generic handlers with NO error classification (only photo/create classified), so an offline throw reached
+  `sync-engine.ts` as an untyped error → marked `failed` on the first drain (only `RetryableSendError` stays
+  pending). Fix (DRY): wrap the handler dispatch in `classifyTrpcError` — transport/offline + 401/408/429/5xx →
+  RetryableSendError (stays pending, bounded by maxAttempts=25); genuine 4xx → PermanentSendError; photo.ts
+  untouched (already classified). +9 tests (create+update+status matrix). Gates: mobile tsc/eslint + vitest 157
+  + `expo config`. Note: current registry maps task/update, notification/update, leave/create, photo/create;
+  future delete/create ops inherit the shared wrapper. (`ad8849c`, branch `fix/offline-mutations-retryable`, 2026-09-26)
 - ✅ **ESLint 8→9 flat-config migration (ORQ-34)** — all 10 workspaces off EOL ESLint 8.57.1/legacy `.eslintrc`
   to ESLint 9.39.5 flat config (`eslint.base.mjs` shared base + per-workspace `eslint.config.mjs`;
   typescript-eslint v8; web needed no eslint-config-next/FlatCompat — it lints plain `src` globs). Every
