@@ -9,6 +9,7 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { documentCategoryEnum, documentReviewStatusEnum } from '@orqafy/shared';
+import { isDocumentKey } from '@orqafy/storage';
 import { router, protectedProcedure, permissionProcedure } from '../trpc';
 import { omitUndefined } from '../util';
 import { enqueueOcr } from '../queues';
@@ -118,6 +119,12 @@ export const documentsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // Only keys /api/media produces (`documents/<uuid>/<name>`) may be
+      // committed — never a site photo (D-28) or any other object, which would
+      // otherwise become downloadable via /api/media/[id].
+      if (!isDocumentKey(input.storageKey)) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid document storageKey.' });
+      }
       const doc = await ctx.prisma.document.create({
         data: {
           name: input.name,
