@@ -8,9 +8,11 @@
 // someone else uploaded. `capturedBy` is always the authenticated caller.
 // The commit is idempotent on `clientId` (the mobile outbox retries freely).
 //
-// NOTE: there is deliberately NO read procedure here yet. Photos carry GPS
-// (location data) and task reads are unscoped today, so a photo read path must
-// be assignee-or-oversight scoped when it is added (see docs/TASK_QUEUE.md).
+// READ PATHS: photo rows carry GPS, so every read is scoped by photo-policy —
+// tasks.byId returns a task's photos only to the assignee or an oversight
+// holder (canViewTaskPhotos), and dashboard.summary's recent-photo feed is
+// oversight-only (canViewPhotoFeed). Neither returns clientId/storageKey.
+// There is no photo byte-serving path (see the F4 note in server/photo-upload).
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { isValidPhotoKey } from '@orqafy/storage';

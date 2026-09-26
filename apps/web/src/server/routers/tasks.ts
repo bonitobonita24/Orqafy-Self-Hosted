@@ -9,6 +9,7 @@ import { observable } from '@trpc/server/observable';
 import { router, protectedProcedure } from '../trpc';
 import { omitUndefined } from '../util';
 import { realtimeBus } from '../realtime';
+import { canViewTaskPhotos } from '../photo-policy';
 
 // Prisma-native status enum (values `in_progress`; the DB stores `in-progress`
 // via @map). Keeps the tRPC contract 1:1 with the DB layer.
@@ -57,14 +58,31 @@ export const tasksRouter = router({
   byId: protectedProcedure
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.task.findUnique({
+      const task = await ctx.prisma.task.findUnique({
         where: { id: input.id },
         include: {
           project: { select: { id: true, name: true } },
           assignee: { select: { id: true, name: true } },
-          photos: true,
         },
       });
+      if (task === null) return null;
+      // Photo rows carry GPS: only the assignee or an oversight holder sees them
+      // (F2). storageKey/clientId are never returned — no web consumer needs
+      // them, and a known clientId is the handle for tampering with an upload.
+      const photos = canViewTaskPhotos(task, ctx.userId, ctx.permissions)
+        ? await ctx.prisma.photo.findMany({
+            where: { taskId: task.id },
+            orderBy: { capturedAt: 'desc' },
+            select: {
+              id: true,
+              capturedAt: true,
+              capturedBy: true,
+              gpsLat: true,
+              gpsLng: true,
+            },
+          })
+        : [];
+      return { ...task, photos };
     }),
 
   create: protectedProcedure

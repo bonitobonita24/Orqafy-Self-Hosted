@@ -7,6 +7,9 @@
 //     someone else produce the SAME answer + message (no existence oracle).
 //   • Type: the stored extension is derived from the MIME type, never from the
 //     client filename; only JPEG / PNG / HEIC are accepted.
+//   • Read: photo rows carry GPS, so reading them is assignee-OR-oversight
+//     (canViewTaskPhotos); a cross-task feed is oversight-only (canViewPhotoFeed).
+import type { Permission } from '@orqafy/shared';
 import type { PhotoExtension } from '@orqafy/storage';
 
 /** 15 MiB hard ceiling on a single site photo. */
@@ -25,6 +28,45 @@ const MIME_TO_EXT: Readonly<Record<string, PhotoExtension>> = {
 export function photoExtFromMime(mime: string): PhotoExtension | null {
   const base = mime.split(';')[0]?.trim().toLowerCase() ?? '';
   return MIME_TO_EXT[base] ?? null;
+}
+
+/**
+ * Permission atoms that mean "oversees projects" — a holder may read photo rows
+ * (GPS, capturer) on tasks NOT assigned to them.
+ *
+ * Choice (F2): both atoms are held by owner_admin and project_manager and by
+ * NEITHER field_staff, accountant, nor client, in BOTH grant sources:
+ *   • view_all_projects — the semantic "oversight" atom (roles.ts first-run
+ *     grants give it to owner_admin + project_manager);
+ *   • create_project    — the db seed's project_manager lacks view_all_projects
+ *     (known seed-vs-roles.ts drift, docs/TASK_QUEUE.md), and create_project is
+ *     the one project-management atom PM holds in both sources.
+ * manage_files / export_data are deliberately excluded: the accountant holds
+ * them, and file/export rights are not site oversight.
+ */
+export const PHOTO_OVERSIGHT_PERMISSIONS: readonly Permission[] = [
+  'view_all_projects',
+  'create_project',
+];
+
+function hasPhotoOversight(permissions: ReadonlySet<Permission>): boolean {
+  return PHOTO_OVERSIGHT_PERMISSIONS.some((p) => permissions.has(p));
+}
+
+/** May `userId` read the photo rows of this task? Assignee OR oversight. */
+export function canViewTaskPhotos(
+  task: { assigneeId: string | null } | null,
+  userId: string,
+  permissions: ReadonlySet<Permission>,
+): boolean {
+  if (task === null) return false;
+  if (task.assigneeId !== null && task.assigneeId === userId) return true;
+  return hasPhotoOversight(permissions);
+}
+
+/** May the caller see a cross-task photo feed (e.g. the dashboard)? Oversight only. */
+export function canViewPhotoFeed(permissions: ReadonlySet<Permission>): boolean {
+  return hasPhotoOversight(permissions);
 }
 
 /** True only when the task exists AND is assigned to `userId`. */
