@@ -34,6 +34,7 @@ export const permissionEnum = z.enum([
   'view_all_projects',
   'export_data',
   'view_audit_log',
+  'upload_photo',
 ]);
 export type Permission = z.infer<typeof permissionEnum>;
 

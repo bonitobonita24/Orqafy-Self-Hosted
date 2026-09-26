@@ -1,4 +1,4 @@
-// Human-readable labels for the 10 permission atoms (permissionEnum). Shared by
+// Human-readable labels for the 11 permission atoms (permissionEnum). Shared by
 // the custom-group builder and the per-user override editor (D-17) so the two
 // surfaces never drift. Keyed by the canonical underscore `Permission` values.
 import type { Permission } from '@orqafy/shared';
@@ -14,6 +14,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   view_all_projects: 'View all projects',
   export_data: 'Export data',
   view_audit_log: 'View audit log',
+  upload_photo: 'Upload site photos',
 };
 
 /**

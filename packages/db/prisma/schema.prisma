@@ -49,6 +49,7 @@ enum Permission {
   view_all_projects
   export_data
   view_audit_log
+  upload_photo
 }
 
 enum ProjectStatus {
@@ -373,6 +374,8 @@ model DocumentReview {
 /// A site photo captured against a task or milestone; bytes live in storage.
 model Photo {
   id          String   @id @default(cuid())
+  /// Idempotency key minted by the mobile outbox (D-28); a retry upserts the same row.
+  clientId    String?  @unique
   storageKey  String
   taskId      String?
   milestoneId String?

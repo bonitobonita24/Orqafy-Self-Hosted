@@ -42,17 +42,19 @@ const SYSTEM_ROLES: ReadonlyArray<{
       Permission.view_all_projects,
       Permission.export_data,
       Permission.view_audit_log,
+      Permission.upload_photo,
     ],
   },
   {
     key: SystemRole.project_manager,
     name: 'Project Manager',
-    permissions: [Permission.create_project, Permission.manage_files],
+    permissions: [Permission.create_project, Permission.manage_files, Permission.upload_photo],
   },
   {
     key: SystemRole.field_staff,
     name: 'Field / Site Staff',
-    permissions: [],
+    // D-28: task-scoped — the assignee check is enforced on every upload.
+    permissions: [Permission.upload_photo],
   },
   {
     key: SystemRole.accountant,
