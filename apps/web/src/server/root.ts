@@ -10,6 +10,7 @@ import { projectsRouter } from './routers/projects';
 import { milestonesRouter } from './routers/milestones';
 import { tasksRouter } from './routers/tasks';
 import { documentsRouter } from './routers/documents';
+import { photosRouter } from './routers/photos';
 import { notificationsRouter } from './routers/notifications';
 import { leaveRouter } from './routers/leave';
 import { dashboardRouter } from './routers/dashboard';
@@ -24,6 +25,7 @@ export const appRouter = router({
   milestones: milestonesRouter,
   tasks: tasksRouter,
   documents: documentsRouter,
+  photos: photosRouter,
   notifications: notificationsRouter,
   leave: leaveRouter,
   dashboard: dashboardRouter,

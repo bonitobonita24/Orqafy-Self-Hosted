@@ -18,7 +18,19 @@ const auth: NextAuthResult['auth'] = NextAuth(authConfig).auth;
 // `/api/mobile` (the mobile login endpoint) is public at the EDGE: it
 // authenticates by definition (email + password → bearer token), so the edge
 // must not 307-redirect it to the HTML /login page.
-const PUBLIC_PREFIXES = ['/login', '/setup', '/api/auth', '/api/trpc', '/api/mobile'];
+// `/api/photos` (D-28 site-photo upload) is public at the EDGE for the same
+// reason as `/api/trpc`: the mobile app calls it with a BEARER token and no
+// cookie, which this cookie-only middleware would 307 to /login. The route
+// handler itself enforces auth (cookie OR bearer → 401), `upload_photo` and the
+// task-assignee check (→ 403).
+const PUBLIC_PREFIXES = [
+  '/login',
+  '/setup',
+  '/api/auth',
+  '/api/trpc',
+  '/api/mobile',
+  '/api/photos',
+];
 
 // The auth() wrapper's return type references a non-portable internal path, so
 // the default export is annotated to Next's portable NextMiddleware type.
