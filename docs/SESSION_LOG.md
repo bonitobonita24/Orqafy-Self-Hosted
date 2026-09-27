@@ -11,7 +11,13 @@ Human-readable accomplishment report, one section per working session, **newest 
 💬 **D-29** — Orqafy carries its OWN product brand (sidebar/login/favicon); Powerbyte mark stays in the "Developed by Powerbyte IT Solutions" footer only. Scopes the 2026-09-21 official-logo broadcast to the footer for this public AGPL product. Asset = **text wordmark placeholder**. Back-ported to DECISIONS_LOG + PENDING_DECISIONS; committed on `main` (`34debcc`).
 ✅ **Orqafy wordmark + favicon + Powerbyte footer** — built + verified (Opus worker) on `feat/orqafy-wordmark-branding` (`e31b64e`): reusable `<OrqafyWordmark>` ("O" monogram + IBM Plex Sans wordmark, theme-token only) in the sidebar + login; App-Router `icon.svg` favicon; new sidebar footer with version tag + Powerbyte credit link. typecheck / lint / build all green (PM re-verified typecheck). HARD HOLD — local only, on branch.
 💬 RBAC SessionStart offer dismissed — known false positive (D-5 single-org, not tenant-based).
-⏳ **Owner to do:** (1) merge `feat/orqafy-wordmark-branding` → main + rebuild the dev container (Rule 39 — dev serves a prebuilt image; not visible at localhost until rebuilt); (2) set `apps/web/package.json` version (footer shows `v0.0.0` until then). Carried over: push `main` to a remote + merge `chore/dev-restart-no` (no remote yet); back-port D-28 to PRODUCT.md; desktop-track greenlight (R7a, POST-V1).
+✅ Merged branding + `restart: "no"` + app version 0.1.0 + PRODUCT.md back-ports D-28/D-29 (`main` `2957d9b`); all gates green; dev stack rebuilt, now on http://localhost:56483, restart=no.
+✅ Public repo https://github.com/bonitobonita24/Orqafy-Self-Hosted — release **v0.1.0** (`9ba2472`), CI green.
+✅ Tier 1+2 security audit: 0 CRITICAL, 5 HIGH, 5 MEDIUM, 10 LOW. Report at `test-artifacts/audit-2026-09-27/REPORT.md` (gitignored).
+💬 **D-30** desktop deferred / reuse web / cookie auth · **D-31** publish as-is · **D-32** fix H+M, then push v0.1.1.
+💬 The model setup changed 2026-09-27: architect Opus 4.8, worker Sonnet 5.
+⏳ Next: the audit fix wave H-1→M-5, then v0.1.1.
+⛔ Owner stopped the loop 2026-09-27 (save + stop).
 
 ## 2026-09-27 — Adopt fleet DEV-compose `restart: "no"` policy
 

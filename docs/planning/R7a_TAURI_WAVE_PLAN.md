@@ -258,10 +258,16 @@ chunks (mirrors the mobile wave). Chunks 6–7 are **owner/CI-gated** (signing +
 These are **not blocking** and must **not** be invented. When the owner greenlights the track, they move into
 `PENDING_DECISIONS.md` and are answered before the dependent chunk:
 - **Q1 · Timing / greenlight** — when does the desktop track start? (D-3 says post-v1; the trigger is owner's.)
+  → answered 2026-09-27 (D-30): stays **DEFERRED (post-v1)**. On-device mobile verification, the Pangolin
+  throughput test, geofence-over-tunnel, the security audit and the sync-engine resource check come first.
 - **Q2 · UI reuse posture** — reuse `apps/web` inside the WebView (recommended, §2.1) vs a dedicated
   `apps/desktop` SPA on `@orqafy/ui`? Gates Chunk 1.
+  → answered 2026-09-27 (D-30): **reuse `apps/web` inside the Tauri WebView**; no separate SPA.
 - **Q3 · Auth model** — reuse the mobile **bearer-token** path, or Auth.js **cookies same-origin** (if the
   web app is embedded)? Gates Chunk 2.
+  → answered 2026-09-27 (D-30): **Auth.js cookie session, same origin**; the embedded web app keeps its
+  normal session. A scoped token is added ONLY if native Rust code must call the Orqafy API directly; the
+  Nextcloud sidecar authenticates separately.
 - **Q4 · Sync engine final confirmation** — D-14 keeps `nextcloudcmd`; confirm it survives the BLOCKED
   sync-engine resource-cost check (§8) before Chunk 3 locks. If it fails, escalate to D-10a option (b)
   (WebDAV-in-client) — an owner-gated engine build, not this wave.
@@ -271,6 +277,8 @@ These are **not blocking** and must **not** be invented. When the owner greenlig
   distribution channel authorized (HARD HOLD)? Gates Chunk 7.
 - **Q7 · `notify_push` fast-follow** — wire the sidecar to Nextcloud's `notify_push` for near-instant
   remote-change latency (R8 §3.1)? Post-Chunk-4, unverified feasibility.
+
+Q4–Q7 stay **parked** (hardware / certs / release host) — not answered by D-30 (2026-09-27).
 
 ## 8. Prerequisites / blocked-on
 

@@ -46,10 +46,15 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       proceed until the owner settles where the Orqafy-Self-Hosted logo comes from (owner-supplied file /
       generate a new mark / text wordmark placeholder). Tracked in `docs/TASK_QUEUE.md` (ORQ-37).
 
+## ✅ Resolved (2026-09-27, resume session — continued)
+
+- [x] **D-30 Desktop track (R7a §7 Q1–Q3)** → deferred post-v1; reuse `apps/web` in the Tauri WebView; Auth.js cookie session same-origin (Q4–Q7 parked).
+- [x] **D-31 First public release** → public repo `bonitobonita24/Orqafy-Self-Hosted`, `main` + tag `v0.1.0` pushed as-is (gitleaks clean, CI green).
+- [x] **D-32 Audit fix scope** → fix H-1…H-5 + M-1…M-5 on per-fix branches, then push release v0.1.1 (pre-authorized once gates green); L-1…L-10 to backlog.
+
 ## 🔴 Open
 
-_(none — the only open item is the D-29 asset-source sub-gate above, awaiting the owner's word on the
-logo asset.)_
+_(none)_
 
 ## ✅ Resolved (2026-09-06, v1-scope resolution)
 

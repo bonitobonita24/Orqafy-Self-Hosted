@@ -398,3 +398,29 @@ asset source is still to be settled with the owner before the UI wiring can proc
 the asset-source sub-gate. HARD HOLD (local only).
 **PRODUCT.md back-port candidate:** Branding — Orqafy uses its own product logo/favicon; Powerbyte mark only in
 the footer credit (D-29). Back-ported to PRODUCT.md 2026-09-27.
+
+### D-30 · Desktop track (R7a §7 Q1–Q3) (owner, 2026-09-27)
+**Decision:**
+- **Q1 timing:** the desktop track stays **DEFERRED (post-v1)**. First come on-device mobile verification, the
+  Pangolin throughput test, geofence-over-tunnel, the security audit, and the sync-engine resource check.
+- **Q2 UI reuse:** reuse `apps/web` inside the Tauri WebView — no separate desktop SPA.
+- **Q3 auth:** Auth.js **cookie session, same origin** — the embedded web app keeps its normal session. A
+  scoped token is added ONLY if native Rust code must call the Orqafy API directly. The Nextcloud sidecar
+  authenticates separately.
+**Parked:** Q4–Q7 (sync-engine confirmation, signing certs, release host, `notify_push`) stay in
+`docs/planning/R7a_TAURI_WAVE_PLAN.md` §7 — they need hardware/certs/a release host.
+
+### D-31 · First public release (owner, 2026-09-27)
+**Decision:** Created the PUBLIC repo `bonitobonita24/Orqafy-Self-Hosted` (AGPL-3.0, per D-2) and pushed `main`
++ the annotated tag `v0.1.0` only (no other branches).
+- **Preflight:** gitleaks clean (1 hit = a synthetic test fixture).
+- **Published as-is:** one deleted `.playwright-mcp/` mockup snapshot from `f79db7c` remains in history. It
+  holds only fictional mockup data already in `docs/MOCKUP.jsx`; a history rewrite would have misaligned 41
+  local branches.
+- **Evidence:** CI run 36286246150 green.
+
+### D-32 · Audit fix scope (owner, 2026-09-27)
+**Decision:** Fix every HIGH (H-1…H-5) and MEDIUM (M-1…M-5) finding from the 2026-09-27 Tier 1+2 security
+audit — each on its own branch, verified locally, merged to `main` — then push as release **v0.1.1**. The owner
+pre-authorized that push once gates are green and PM-verified. The 10 LOW items (L-1…L-10) go to the backlog.
+**Source:** `test-artifacts/audit-2026-09-27/REPORT.md` (gitignored). Queue: `docs/TASK_QUEUE.md`.

@@ -6,7 +6,73 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 ## 🔴 / 🟡 Open
 
-- 🟡 **[branding] Orqafy product wordmark + favicon + Powerbyte footer** — [WHAT] RESOLVED → **D-29 (A)**: Orqafy product-branded chrome; Powerbyte mark in footer only; asset = text wordmark placeholder. BUILT + verified on `feat/orqafy-wordmark-branding` (`e31b64e`): `<OrqafyWordmark>` in sidebar + login, App-Router `icon.svg` favicon, sidebar footer (version tag + Powerbyte credit link). typecheck/lint/build green. `gate: owner (merge→main + dev rebuild; footer shows v0.0.0 until package.json version set)` `source: owner 2026-09-21`
+### Security audit fixes → release v0.1.1 (D-32, un-gated, ordered)
+
+Source: `test-artifacts/audit-2026-09-27/REPORT.md` (gitignored). One branch per fix, verified locally, merged
+to `main`; then push v0.1.1 (owner pre-authorized once gates green + PM-verified). Done-criterion for each item:
+the fix is in + a regression test where the fix is app code + gates green (typecheck/lint/test/build).
+
+- 🔴 **H-1 · SPI gate bypass via document metadata** — `apps/web/src/server/routers/documents.ts` (`update`
+  185-199, `reviewTray` 67-77, `delete` 202, `decideReview`). Fix: deny when `doc.isSPI && !view_finances` in
+  update/delete/decideReview; only `view_finances` holders may change `isSPI`; `update` returns a
+  `select`-limited shape (no `ocrText`); filter `reviewTray` by `isSPI`. Done: `project_manager` test cannot
+  read/flip/delete an SPI doc. `source: audit 2026-09-27`
+- 🔴 **H-2 · Deactivated user keeps web session** — `server/context.ts:43-46`, `server/request-auth.ts:15-17`,
+  `server/permissions.ts:72-90`, both `/api/media` routes. Fix: resolve no user/permissions when `!isActive` on
+  the cookie path; set a short `session.maxAge`. Done: deactivated user's cookie → 401 on tRPC, media and SSE.
+  `source: audit 2026-09-27`
+- 🔴 **H-3 · Web login has no brute-force limit** — `apps/web/src/auth.ts:24-36`. Fix: call
+  `checkLoginRateLimit` / `recordLoginFailure` / `recordLoginSuccess` inside `authorize(credentials, request)`
+  on the same store as `/api/mobile/login`. Done: N failed web logins → locked, test proves it.
+  `source: audit 2026-09-27`
+- 🔴 **H-4 · OCR sidecar: vulnerable deps + no auth** — OCR service `requirements.txt`, `app.py:28`,
+  `Dockerfile:11`, dev compose port 9003. Fix: `pillow`→≥12.3.0, `python-multipart`→≥0.0.31, `fastapi` bump so
+  `starlette`≥1.3.1; non-root `USER`; stop publishing 9003; shared-secret header on requests; set
+  `Image.MAX_IMAGE_PIXELS`. Done: Trivy fs clean of those CVEs, unauthenticated request rejected, OCR pipeline
+  still works end-to-end. `source: audit 2026-09-27`
+- 🔴 **H-5 · Stale base layers in container images** — OCR (debian 13.6: 5 CRIT/110 HIGH), app + worker
+  (npm-bundled `tar@7.5.11` etc. under `/usr/local/lib/node_modules/npm`), worker (`libssl3`/`libcrypto3`
+  3.5.7-r0, `nodemailer@9.0.1`). Fix: rebuild on current bases with `apt-get upgrade`/`apk upgrade`, delete npm
+  from the runtime stage, bump nodemailer (≥9.1.0) via its parent. Done: Trivy image re-scan shows only
+  no-fix-available items; app + worker boot. `source: audit 2026-09-27`
+- 🔴 **M-1 · First-run `/setup` claimable by first visitor + race** — `server/routers/setup.ts:26-30`. Fix:
+  require a one-time `SETUP_TOKEN`; enforce single setup inside the DB transaction. Done: no/incorrect token
+  rejected; concurrent setup test → exactly one owner. `source: audit 2026-09-27`
+- 🔴 **M-2 · Rate limiter trusts client IP** — `server/rate-limit.ts:99-108` (leftmost `X-Forwarded-For`). Fix:
+  use the hop added by the trusted proxy. Done: spoofed XFF does not reset the per-IP limit (test).
+  `source: audit 2026-09-27`
+- 🔴 **M-3 · No security headers** — `apps/web/next.config.mjs`. Fix: `headers()` block with CSP incl.
+  `frame-ancestors`, HSTS, `nosniff`, Referrer-Policy. Done: headers present on responses; app pages still
+  render (no CSP breakage). `source: audit 2026-09-27`
+- 🔴 **M-4 · Dev compose publishes every service on 0.0.0.0** — dev compose (Postgres, Valkey, MinIO +
+  console, pgAdmin, MailHog, OCR). Fix: bind to `127.0.0.1`; ship a production compose. Done: `docker ps` shows
+  127.0.0.1 bindings; dev stack still healthy; prod compose validates (`docker compose config`).
+  `source: audit 2026-09-27`
+- 🔴 **M-5 · `/api/media/[id]` serves client-declared Content-Type** — `/api/media/[id]` route + upload check.
+  Fix: `nosniff` + sandbox CSP on the response; switch the upload check from denylist to allowlist (blocks
+  HTML/SVG). Done: HTML/SVG upload rejected; download carries `nosniff` + CSP (test).
+  `source: audit 2026-09-27`
+
+### Other open
+
+- 🔴 **Audit LOW backlog (L-1…L-10)** — from `test-artifacts/audit-2026-09-27/REPORT.md`. `gate: owner (backlog — outside v0.1.1 scope, D-32)` `source: audit 2026-09-27`
+  - L-1 `/api/media` reads whole body before its 50 MiB check (`route.ts:56`).
+  - L-2 60-day mobile token not revoked on password change.
+  - L-3 any signed-in user can download non-SPI docs (matches `documents.list`) — confirm intended.
+  - L-4 GitHub Actions use mutable tags, no `permissions:` block.
+  - L-5 `pnpm-workspace.yaml` lacks `minimumReleaseAge` / `trustPolicy` / `blockExoticSubdeps`.
+  - L-6 `decode-uri-component@0.2.2` (transitive via @react-navigation / expo-router; fixed 0.5.0).
+  - L-7 `vitest@2.1.9` direct devDep in 6 workspaces → bump ≥4.1.11 (dev only).
+  - L-8 `postcss@8.4.31`/`8.4.49` transitive via next + expo (build time only).
+  - L-9 `deepmerge-ts@7.1.5`, `image-size@1.2.1`, `uuid@7.0.3` (tooling, no untrusted input).
+  - L-10 worker image ships full dev `node_modules` → prune to prod deps in runtime stage.
+- 🔴 **AIEF tooling defects found during the audit/release (cross-scope — fix in the Powerbyte-AIEF seat, NOT here)** — `gate: external (AIEF seat)` `source: agent-found 2026-09-27`
+  (a) `scripts/audit-app.sh:284` ESLint detection misses `eslint.base.mjs` (only looks for `eslint.config.*` /
+  `.eslintrc*`); (b) `audit-app.sh` reports a Trivy DB download failure as a CVE finding; (c)
+  `gen-release-notes` writes a stale "Claude Opus 4.8" co-author trailer.
+- 🔴 **Board reconcile: pipelineStage** — ~20 Ready-to-Test Squirlnote cards show `pipelineStage=staging`, but
+  this repo has never had a staging env. Set code cards on `main` → `pushed`; planning/[WHAT]-only cards → null.
+  Done: no card shows `staging`. `source: agent-found 2026-09-27`
 
 _The three below are BLOCKED — they require real hardware / a running stack / a live tunnel, none of which
 exist yet. They are NOT actionable now; they gate a later phase._
@@ -101,14 +167,19 @@ exist yet. They are NOT actionable now; they gate a later phase._
   `<source: plan 2026-09-08>`
 - 🔴 **[DEFERRED-owner-gated] Tauri desktop** — later wave (own sessions): Tauri client + Rust sync sidecar `gate: owner`
   (D-11/D-14). ✅ Wave PLAN written: `docs/planning/R7a_TAURI_WAVE_PLAN.md` (chunks 1–7 + 7 open [WHAT]s).
-  BUILD is owner-gated (D-3 later track) — not un-gated; start only when the owner greenlights the track.
-  `<source: plan 2026-09-08>`
+  BUILD is owner-gated (D-3 later track). **D-30 (2026-09-27):** stays deferred post-v1; Q2 = reuse `apps/web`
+  in the WebView, Q3 = Auth.js cookie same-origin; Q4–Q7 parked in R7a §7. `<source: plan 2026-09-08>`
 - 🔴 **[POST-V1, security] Valkey-backed rate-limit store** — the mobile-login limiter is in-memory (resets on `gate: owner`
   restart, per-instance). Drop in a Valkey `RateLimitStore` adapter at the `getRateLimitStore()` SEAM for
   restart-durable / multi-instance limiting when the app graduates past single-process. `<source: agent-found 2026-09-10>`
 
 ## ✅ Done recently
 
+- ✅ **[branding] Orqafy product wordmark + favicon + Powerbyte footer (ORQ-37 / D-29)** — `<OrqafyWordmark>`
+  in sidebar + login, `icon.svg` favicon, sidebar footer (version tag + Powerbyte credit). Merged to `main`
+  (`eceed30`) + app version 0.1.0 (`c042948`); dev stack rebuilt; pushed in release v0.1.0. (2026-09-27)
+- ✅ **Dev compose `restart: "no"` (ORQ-36, broadcast 2026-09-23)** — merged to `main` (`a79a7de`); all 10 dev
+  containers verified `RestartPolicy=no`; pushed in release v0.1.0. (2026-09-27)
 - ✅ **[mobile] Offline non-photo mutations stay pending for retry (ORQ-35)** — root cause: `send.ts` dispatched
   generic handlers with NO error classification (only photo/create classified), so an offline throw reached
   `sync-engine.ts` as an untyped error → marked `failed` on the first drain (only `RetryableSendError` stays
