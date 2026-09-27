@@ -68,7 +68,11 @@ per user (e.g. finance visibility is a permission, not hardwired to a role). A p
 
 **Key permissions (assignable via custom groups / per-user):** `manage_users`, `configure_server`,
 `create_project`, `view_finances`, `manage_finances`, `approve_leave`, `manage_files`,
-`view_all_projects`, `export_data`, `view_audit_log`.
+`view_all_projects`, `export_data`, `view_audit_log`, `upload_photo`.
+
+**Site-photo upload (D-28):** field staff may upload site photos ONLY to tasks they are assigned to, via
+the narrow task-scoped `upload_photo` permission + the `photos.create` procedure. `manage_files` stays
+reserved for full document management — field staff never need it to capture photos.
 
 ---
 
@@ -279,6 +283,9 @@ completed milestone + its photos → **signs off or rejects** → the PM is noti
 - **Responsive posture:** field-facing pages (tasks, geofence, photo capture, leave apply) are
   **Mobile First**; admin/ops pages (projects admin, users, roles, finance, reports) are **Mobile
   Ready** (desktop-primary, scales down). Full per-page table generated in DESIGN.md.
+- **Branding (D-29):** Orqafy uses its **own product wordmark/logo + favicon** in the sidebar, login
+  screen, and favicon. The Powerbyte mark appears ONLY in the sidebar-footer credit "Developed by
+  Powerbyte IT Solutions". The current asset is a text-wordmark placeholder, swappable for a final logo.
 
 ---
 

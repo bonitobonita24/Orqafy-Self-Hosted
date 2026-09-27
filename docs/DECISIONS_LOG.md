@@ -378,7 +378,7 @@ edit/delete other people's documents.
   no auditable permission.
 - Rejected (c) grant field staff `manage_files` — far too broad.
 **Consequence:** Unblocks the mobile photo-capture piece (ORQ-23); build proceeds on `feat/mobile-photo-capture`.
-**PRODUCT.md back-port candidate:** Roles & Permissions — field staff may upload site photos to their assigned tasks (D-28). Owner to back-port.
+**PRODUCT.md back-port candidate:** Roles & Permissions — field staff may upload site photos to their assigned tasks (D-28). Back-ported to PRODUCT.md 2026-09-27.
 
 ## 2026-09-27 — Resume session
 
@@ -397,4 +397,4 @@ asset source is still to be settled with the owner before the UI wiring can proc
 **Consequence:** No UI change lands until the asset source is decided; ORQ-37 stays open in TASK_QUEUE.md as
 the asset-source sub-gate. HARD HOLD (local only).
 **PRODUCT.md back-port candidate:** Branding — Orqafy uses its own product logo/favicon; Powerbyte mark only in
-the footer credit (D-29). Owner to back-port.
+the footer credit (D-29). Back-ported to PRODUCT.md 2026-09-27.
