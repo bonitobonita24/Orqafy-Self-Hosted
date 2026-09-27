@@ -14,6 +14,7 @@ import {
   Input,
   Label,
 } from '@orqafy/ui';
+import { OrqafyWordmark } from '@/components/orqafy-wordmark';
 import { trpc } from '@/trpc/react';
 
 export default function LoginPage() {
@@ -42,7 +43,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-4">
+      <OrqafyWordmark size="lg" />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Sign in to Orqafy</CardTitle>

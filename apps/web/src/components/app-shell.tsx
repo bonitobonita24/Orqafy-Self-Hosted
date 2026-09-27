@@ -15,9 +15,10 @@ import {
   Bell,
   Users,
   LogOut,
-  MapPin,
 } from 'lucide-react';
 import { Button, cn } from '@orqafy/ui';
+import { OrqafyWordmark } from '@/components/orqafy-wordmark';
+import { APP_VERSION } from '@/lib/app-version';
 
 interface NavItem {
   href: string;
@@ -45,9 +46,8 @@ export function AppShell({ userName, children }: { userName: string; children: R
   return (
     <div className="flex min-h-screen">
       <aside className="hidden w-60 shrink-0 flex-col border-r bg-card md:flex">
-        <div className="flex items-center gap-2 px-6 py-5">
-          <MapPin className="text-primary" />
-          <span className="text-lg font-semibold tracking-tight">Orqafy</span>
+        <div className="flex items-center px-6 py-5">
+          <OrqafyWordmark size="md" />
         </div>
         <nav className="flex-1 space-y-1 px-3">
           {NAV.map((item) => {
@@ -71,6 +71,18 @@ export function AppShell({ userName, children }: { userName: string; children: R
             );
           })}
         </nav>
+        {/* White-label footer (fleet standard): app version tag + Powerbyte credit link. */}
+        <div className="mt-auto space-y-1 border-t px-6 py-4">
+          <p className="font-mono text-xs text-muted-foreground">v{APP_VERSION}</p>
+          <a
+            href="https://www.powerbyteitsolutions.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Developed by Powerbyte IT Solutions
+          </a>
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
