@@ -15,7 +15,7 @@ services:
       context: ../../..
       dockerfile: deploy/compose/dev/Dockerfile.app
     container_name: orqafy_dev_app
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -44,7 +44,7 @@ services:
       context: ../../..
       dockerfile: deploy/compose/dev/Dockerfile.worker
     container_name: orqafy_dev_worker
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       valkey:
         condition: service_healthy
@@ -67,7 +67,7 @@ services:
       context: ../ocr
       dockerfile: Dockerfile
     container_name: orqafy_dev_ocr
-    restart: unless-stopped
+    restart: "no"
     profiles: ["ocr"]
     ports:
       - "${OCR_PORT:-9003}:9003"

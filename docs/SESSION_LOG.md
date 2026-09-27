@@ -13,6 +13,13 @@ Human-readable accomplishment report, one section per working session, **newest 
 💬 RBAC SessionStart offer dismissed — known false positive (D-5 single-org, not tenant-based).
 ⏳ **Owner to do:** (1) merge `feat/orqafy-wordmark-branding` → main + rebuild the dev container (Rule 39 — dev serves a prebuilt image; not visible at localhost until rebuilt); (2) set `apps/web/package.json` version (footer shows `v0.0.0` until then). Carried over: push `main` to a remote + merge `chore/dev-restart-no` (no remote yet); back-port D-28 to PRODUCT.md; desktop-track greenlight (R7a, POST-V1).
 
+## 2026-09-27 — Adopt fleet DEV-compose `restart: "no"` policy
+
+**In your words:** apply the fleet broadcast (2026-09-23) so Docker Desktop stops auto-launching the whole dev fleet.
+
+✅ Done — changed every `restart: unless-stopped` → `restart: "no"` across the 3 DEV compose files (9 services: 3 app, 2 db, 4 infra). Verified zero `unless-stopped`/`always` remain under `deploy/compose/dev/`. DEV-ONLY — no staging/prod/demo compose touched. Committed locally on `chore/dev-restart-no`.
+💬 **HARD HOLD** — local commit only; not pushed, no docker run.
+
 ## 2026-09-27 — Merge verified V1 wave → main (owner-actioned)
 
 **In your words:** action one of the owner-gated items — you chose to merge the finished build into main.

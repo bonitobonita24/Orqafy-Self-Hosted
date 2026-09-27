@@ -11,7 +11,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: orqafy_dev_postgres
-    restart: unless-stopped
+    restart: "no"
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -33,7 +33,7 @@ services:
   pgbouncer:
     image: edoburu/pgbouncer:v1.23.1-p3
     container_name: orqafy_dev_pgbouncer
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       postgres:
         condition: service_healthy

@@ -6,7 +6,7 @@ services:
   valkey:
     image: valkey/valkey:8-alpine
     container_name: orqafy_dev_valkey
-    restart: unless-stopped
+    restart: "no"
     command:
       - valkey-server
       - --requirepass
@@ -28,7 +28,7 @@ services:
   minio:
     image: minio/minio:latest
     container_name: orqafy_dev_minio
-    restart: unless-stopped
+    restart: "no"
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -65,7 +65,7 @@ services:
   mailhog:
     image: mailhog/mailhog:latest
     container_name: orqafy_dev_mailhog
-    restart: unless-stopped
+    restart: "no"
     ports:
       - "${MAILHOG_SMTP_PORT}:1025" # SMTP capture
       - "${MAILHOG_UI_PORT}:8025" # web UI
@@ -75,7 +75,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: orqafy_dev_pgadmin
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
