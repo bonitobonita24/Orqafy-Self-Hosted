@@ -24,6 +24,12 @@ export interface OcrClientConfig {
   fetchImpl?: typeof fetch;
   /** Abort the request after this many ms (default 120_000 — OCR is slow). */
   timeoutMs?: number;
+  /**
+   * Shared secret sent as `X-OCR-Secret` (audit H-4) — must match the
+   * sidecar's `OCR_SHARED_SECRET` env (deploy/compose/ocr/app.py), or the
+   * sidecar rejects with 401. Omitted header when unset (local/no-auth dev).
+   */
+  secret?: string;
 }
 
 /** HTTP OCR client. Engine-agnostic: any sidecar honouring `POST /ocr` works. */
@@ -47,10 +53,20 @@ export function createOcrClient(config: OcrClientConfig): OcrClient {
       });
       form.append('file', blob, input.filename);
 
+      const headers: Record<string, string> = {};
+      if (typeof config.secret === 'string' && config.secret.length > 0) {
+        headers['X-OCR-Secret'] = config.secret;
+      }
+
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const res = await doFetch(endpoint, { method: 'POST', body: form, signal: controller.signal });
+        const res = await doFetch(endpoint, {
+          method: 'POST',
+          body: form,
+          headers,
+          signal: controller.signal,
+        });
         if (!res.ok) {
           throw new Error(`OCR sidecar returned ${res.status} for ${input.filename}`);
         }

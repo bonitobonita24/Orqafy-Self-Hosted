@@ -2,15 +2,27 @@
 CPU-only, licence-clean. Accepts an image or PDF and returns extracted text.
 No cloud, no LLM. Tesseract is the documented fallback engine (swap this service)."""
 import io
+import os
 
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from pdf2image import convert_from_bytes
 from PIL import Image
 from rapidocr_onnxruntime import RapidOCR
 
+# Decompression-bomb guard (audit H-4) — PIL defaults to ~89M pixels; cap it
+# explicitly so a crafted image can't force an unbounded in-memory decode.
+Image.MAX_IMAGE_PIXELS = 64_000_000
+
 app = FastAPI(title="Orqafy OCR sidecar")
 engine = RapidOCR()
+
+# Shared-secret auth (audit H-4) — the sidecar has no host port exposure in
+# compose, but defense-in-depth requires callers to prove they hold the
+# secret the worker (packages/jobs/src/ocr.ts via runtime-deps.ts) was given.
+# Fails CLOSED: an unset/empty secret rejects every /ocr call rather than
+# silently allowing all callers.
+OCR_SHARED_SECRET = os.environ.get("OCR_SHARED_SECRET", "")
 
 
 def _ocr_image(img: Image.Image) -> str:
@@ -26,7 +38,14 @@ def health() -> dict:
 
 
 @app.post("/ocr")
-async def ocr(file: UploadFile = File(...)) -> dict:
+async def ocr(
+    file: UploadFile = File(...),
+    x_ocr_secret: str | None = Header(default=None, alias="X-OCR-Secret"),
+) -> dict:
+    if not OCR_SHARED_SECRET:
+        raise HTTPException(status_code=503, detail="ocr secret not configured")
+    if not x_ocr_secret or x_ocr_secret != OCR_SHARED_SECRET:
+        raise HTTPException(status_code=401, detail="unauthorized")
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="empty file")
