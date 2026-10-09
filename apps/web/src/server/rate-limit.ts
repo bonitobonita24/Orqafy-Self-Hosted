@@ -88,29 +88,70 @@ export function getRateLimitStore(): RateLimitStore {
   return store;
 }
 
+// Config with env overrides + sane defaults (Number-parsed, NaN → default).
+const IP_MAX = Number(process.env.MOBILE_LOGIN_IP_MAX) || 20;
+const EMAIL_MAX = Number(process.env.MOBILE_LOGIN_EMAIL_MAX) || 5;
+const WINDOW_SEC = Number(process.env.MOBILE_LOGIN_WINDOW_SEC) || 900;
+
 /**
- * Best-effort client IP from proxy headers. Uses the leftmost `x-forwarded-for`
- * entry, then `x-real-ip`, else `'unknown'`.
+ * Number of reverse-proxy hops between the client and this app (Traefik /
+ * Pangolin = 1 by default). `x-forwarded-for` is appended LEFT→RIGHT: each
+ * proxy appends the peer that connected to IT, so the entry added by OUR
+ * trusted proxy is the Nth-from-the-right entry (N = hops), never the
+ * leftmost one. Coerced to >= 1 — NaN or < 1 both fall back to 1.
  *
- * NOTE: this TRUSTS the front proxy (Traefik / Pangolin) to set XFF — a client
- * can spoof these headers if it can reach the app directly, so the deployment
- * must ensure the app is only reachable through the proxy.
+ * Read lazily (not a module-level const like IP_MAX/EMAIL_MAX/WINDOW_SEC)
+ * because clientIp() is a pure header-parsing helper exercised directly in
+ * tests with per-test env overrides — a module-load-time snapshot would be
+ * frozen to whatever TRUSTED_PROXY_HOPS was set to at import time.
+ */
+function trustedProxyHops(): number {
+  const raw = Number(process.env.TRUSTED_PROXY_HOPS);
+  return Number.isFinite(raw) && raw >= 1 ? raw : 1;
+}
+
+/**
+ * Best-effort client IP from proxy headers.
+ *
+ * SECURITY: `x-forwarded-for` is a client-controlled header — an attacker can
+ * prepend arbitrary (even rotating) entries to the LEFT of it. Trusting the
+ * leftmost entry lets an attacker present a different "IP" on every request
+ * (`X-Forwarded-For: <random>, ...`), defeating the per-IP brute-force limiter
+ * entirely. Only the entries APPENDED BY OUR OWN trusted reverse proxy chain
+ * can be trusted, and because XFF is appended left→right, those are always
+ * the RIGHTMOST `TRUSTED_PROXY_HOPS` entries. This resolves the client as the
+ * entry `TRUSTED_PROXY_HOPS` positions from the right (default hops=1 → the
+ * single rightmost entry), so any client-prepended spoof entries are ignored
+ * and cannot change the resolved IP or evade the per-IP limit.
+ *
+ * Falls back to `x-real-ip` when XFF is absent/empty, else `'unknown'`.
+ *
+ * NOTE: this still TRUSTS the front proxy (Traefik / Pangolin) to set XFF
+ * correctly for the configured number of hops — the deployment must ensure
+ * the app is only reachable through that proxy chain, and TRUSTED_PROXY_HOPS
+ * must match the actual number of trusted proxies in front of the app.
  */
 export function clientIp(req: Request): string {
   const xff = req.headers.get('x-forwarded-for');
   if (xff !== null && xff.length > 0) {
-    const first = xff.split(',')[0]?.trim();
-    if (first !== undefined && first.length > 0) return first;
+    const entries = xff
+      .split(',')
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0);
+    if (entries.length > 0) {
+      const hops = trustedProxyHops();
+      // Rightmost entry = index (length - 1); Nth-from-right = (length - hops).
+      // If fewer entries than hops (misconfig), fall back to the leftmost
+      // available entry rather than indexing out of bounds.
+      const idx = entries.length >= hops ? entries.length - hops : 0;
+      const resolved = entries[idx];
+      if (resolved !== undefined) return resolved;
+    }
   }
   const realIp = req.headers.get('x-real-ip');
   if (realIp !== null && realIp.trim().length > 0) return realIp.trim();
   return 'unknown';
 }
-
-// Config with env overrides + sane defaults (Number-parsed, NaN → default).
-const IP_MAX = Number(process.env.MOBILE_LOGIN_IP_MAX) || 20;
-const EMAIL_MAX = Number(process.env.MOBILE_LOGIN_EMAIL_MAX) || 5;
-const WINDOW_SEC = Number(process.env.MOBILE_LOGIN_WINDOW_SEC) || 900;
 
 function ipKey(ip: string): string {
   return `rl:mlogin:ip:${ip}`;
