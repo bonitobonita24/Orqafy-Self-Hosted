@@ -7,7 +7,10 @@
 //      alg-pinned — see lib/mobile-token, resolved by server/bearer-identity). Identity ONLY; the user's `isActive`
 //      flag is re-checked from the DB on EVERY request, because a stateless
 //      token cannot otherwise be revoked.
-//   2. Fallback: the Auth.js v5 cookie session (unchanged).
+//   2. Fallback: the Auth.js v5 cookie session. The JWT session is re-checked
+//      against the DB's `isActive` flag on EVERY request (H-2) — otherwise a
+//      deactivated user's existing cookie session keeps authenticating for the
+//      rest of its lifetime, since the JWT itself carries no revocation signal.
 // In BOTH paths, permissions are resolved fresh from the DB — a bearer identity
 // NEVER carries permissions from the token.
 import 'server-only';
@@ -15,6 +18,7 @@ import type { Session } from 'next-auth';
 import type { Permission } from '@orqafy/shared';
 import { prisma } from '@orqafy/db';
 import { auth } from '../auth';
+import { defaultActiveUserDeps, type ActiveUserDeps } from './active-user';
 import { resolveBearerIdentity } from './bearer-identity';
 import { resolveUserPermissions } from './permissions';
 
@@ -26,7 +30,10 @@ export interface TRPCContext {
 }
 
 /** Build the per-request context (bearer token first, then cookie session). */
-export async function createTRPCContext(req?: Request): Promise<TRPCContext> {
+export async function createTRPCContext(
+  req?: Request,
+  activeUserDeps: ActiveUserDeps = defaultActiveUserDeps,
+): Promise<TRPCContext> {
   let session: Session | null = null;
   let userId: string | null = null;
 
@@ -39,10 +46,17 @@ export async function createTRPCContext(req?: Request): Promise<TRPCContext> {
     session = bearer.session;
   }
 
-  // 2. Cookie session fallback (unchanged) — only when no valid bearer identity.
+  // 2. Cookie session fallback — only when no valid bearer identity. The
+  //    resolved user is re-checked for `isActive` fresh from the DB (H-2): a
+  //    deactivated user resolves to NO session and NO user, same as an absent
+  //    cookie, so protectedProcedure rejects with UNAUTHORIZED.
   if (userId === null) {
-    session = await auth();
-    userId = session?.user?.id ?? null;
+    const cookieSession = await auth();
+    const cookieUserId = cookieSession?.user?.id ?? null;
+    if (cookieUserId !== null && (await activeUserDeps.isUserActive(cookieUserId))) {
+      session = cookieSession;
+      userId = cookieUserId;
+    }
   }
 
   // Permissions are ALWAYS resolved from the DB — never read from a token.

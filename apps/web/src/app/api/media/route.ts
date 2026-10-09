@@ -10,7 +10,7 @@
 // the body at 10 MB, ORQ-31); this handler is the auth boundary.
 import { NextResponse } from 'next/server';
 import { buildDocumentKey } from '@orqafy/storage';
-import { auth } from '@/auth';
+import { resolveRequestUserId } from '@/server/request-auth';
 import { resolveUserPermissions } from '@/server/permissions';
 import { getStorageAdapter } from '@/server/storage';
 
@@ -42,9 +42,8 @@ function extensionOf(name: string): string {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (userId === undefined || userId === null || userId.length === 0) {
+  const userId = await resolveRequestUserId(req);
+  if (userId === null) {
     return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
   }
 
