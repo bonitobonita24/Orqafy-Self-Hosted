@@ -4,6 +4,33 @@ All notable changes per release. A version is assigned at each push/merge to `ma
 entries are auto-derived from Conventional-Commit types. See
 `~/.claude/rules/release-changelog-discipline.md`.
 
+## v0.1.1 — 2026-10-10
+
+### [FIXED]
+- neutralize client Content-Type — download nosniff+sandbox, upload allowlist (audit M-5) (`1f02f74`)
+- bind dev published ports to 127.0.0.1 only (audit M-4) (`2e6593c`)
+- add security response headers — CSP, HSTS, nosniff, Referrer-Policy (audit M-3) (`087dac8`)
+- resolve client IP from trusted proxy hop, not spoofable XFF (audit M-2) (`b47ee31`)
+- require SETUP_TOKEN + race-safe single first-run admin (audit M-1) (`3729b95`)
+- H-5 refresh stale base layers (apt/apk upgrade, drop bundled npm, nodemailer) (`e026d82`)
+- harden OCR sidecar — dep bumps, non-root, shared-secret auth (audit H-4) (`47da244`)
+- deny deactivated users on session/media/SSE paths + bound session maxAge (audit H-2) (`a567c50`)
+- rate-limit web credentials login on the shared store (audit H-3) (`b378137`)
+- gate SPI docs behind view_finances on update/delete/decideReview/reviewTray (audit H-1) (`e60d753`)
+
+### [DOCS]
+- D-33 close M-4b (repo dev-only), reconcile wave → v0.1.1 (`655ae9e`)
+- M-1..M-5 done (9/9 un-gated audit fixes), release held on M-4b [WHAT] (`b4b6e2d`)
+- defer M-4b prod-compose as [WHAT] (topology/deploy-posture, public-repo risk) (`31934fa`)
+- H-5 stale base layers done (5/10), vite/vitest carve-out logged (`9dfa602`)
+- H-4 OCR hardening done (4/10), anomaly resolved, Full Auto engaged (`0beba66`)
+- v0.1.1 wave checkpoint — H-1/H-2/H-3 done (local branches), handoff + state (`dcef019`)
+- save — D-30/31/32, v0.1.0 public release, audit findings queued for v0.1.1 (`b2c377e`)
+
+### [TEST]
+- mock resolveRequestUserId (H-2) in M-5 route tests — merge integration (`91f2601`)
+
+
 ## v0.1.0 — 2026-09-27
 
 ### [FEATURE]
