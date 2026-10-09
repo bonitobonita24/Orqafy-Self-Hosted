@@ -8,6 +8,9 @@
 # Container service-to-service traffic uses INTERNAL hostnames/ports (declared
 # below), independent of the Rule-22 host ports in .env.dev (those publish to
 # localhost for tooling + host `pnpm dev`).
+#
+# M-4 hardening: published ports bind to 127.0.0.1 only — dev tooling is
+# localhost-only; the app is reached via host `pnpm dev` or localhost.
 
 services:
   app:
@@ -35,7 +38,7 @@ services:
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_URL: ${AUTH_URL}
     ports:
-      - "${APP_PORT}:56483"
+      - "127.0.0.1:${APP_PORT}:56483"
     networks:
       - orqafy_dev_net
 
@@ -70,7 +73,7 @@ services:
     restart: "no"
     profiles: ["ocr"]
     ports:
-      - "${OCR_PORT:-9003}:9003"
+      - "127.0.0.1:${OCR_PORT:-9003}:9003"
     # RapidOCR models (~500MB) download on first run; ~1GB RAM headroom.
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9003/health').status==200 else 1)"]

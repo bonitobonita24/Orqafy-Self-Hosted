@@ -1,6 +1,8 @@
 # Orqafy Self-Hosted — dev infra tier (Valkey, MinIO + console, MailHog, pgAdmin).
 # Phase 4 Part 7. Dev only, HARD HOLD. Rule-22 ports from .env.dev.
 # The named network/volumes are declared in docker-compose.db.yml (external here).
+# M-4 hardening: published ports bind to 127.0.0.1 only — dev tooling is
+# localhost-only; the app is reached via host `pnpm dev` or localhost.
 
 services:
   valkey:
@@ -14,7 +16,7 @@ services:
       - --appendonly
       - "yes"
     ports:
-      - "${VALKEY_PORT}:6379" # REDIS_URL — BullMQ backend
+      - "127.0.0.1:${VALKEY_PORT}:6379" # REDIS_URL — BullMQ backend
     volumes:
       - orqafy_dev_valkey:/data
     healthcheck:
@@ -34,8 +36,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "${MINIO_PORT}:9000" # S3 API
-      - "${MINIO_CONSOLE_PORT}:9001" # web console
+      - "127.0.0.1:${MINIO_PORT}:9000" # S3 API
+      - "127.0.0.1:${MINIO_CONSOLE_PORT}:9001" # web console
     volumes:
       - orqafy_dev_minio:/data
     healthcheck:
@@ -67,8 +69,8 @@ services:
     container_name: orqafy_dev_mailhog
     restart: "no"
     ports:
-      - "${MAILHOG_SMTP_PORT}:1025" # SMTP capture
-      - "${MAILHOG_UI_PORT}:8025" # web UI
+      - "127.0.0.1:${MAILHOG_SMTP_PORT}:1025" # SMTP capture
+      - "127.0.0.1:${MAILHOG_UI_PORT}:8025" # web UI
     networks:
       - orqafy_dev_net
 
@@ -90,7 +92,7 @@ services:
       PGADMIN_CONFIG_GLOBALLY_DELIVERABLE: "False"
       PGADMIN_CONFIG_ALLOW_SPECIAL_EMAIL_DOMAINS: '["local"]'
     ports:
-      - "${PGADMIN_PORT}:80"
+      - "127.0.0.1:${PGADMIN_PORT}:80"
     volumes:
       - orqafy_dev_pgadmin:/var/lib/pgadmin
       - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
