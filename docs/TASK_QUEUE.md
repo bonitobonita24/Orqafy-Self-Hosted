@@ -25,11 +25,6 @@ the fix is in + a regression test where the fix is app code + gates green (typec
   `checkLoginRateLimit` / `recordLoginFailure` / `recordLoginSuccess` inside `authorize(credentials, request)`
   on the same store as `/api/mobile/login`. Done: N failed web logins → locked, test proves it.
   `source: audit 2026-09-27`
-- 🔴 **H-4 · OCR sidecar: vulnerable deps + no auth** — OCR service `requirements.txt`, `app.py:28`,
-  `Dockerfile:11`, dev compose port 9003. Fix: `pillow`→≥12.3.0, `python-multipart`→≥0.0.31, `fastapi` bump so
-  `starlette`≥1.3.1; non-root `USER`; stop publishing 9003; shared-secret header on requests; set
-  `Image.MAX_IMAGE_PIXELS`. Done: Trivy fs clean of those CVEs, unauthenticated request rejected, OCR pipeline
-  still works end-to-end. `source: audit 2026-09-27`
 - 🔴 **H-5 · Stale base layers in container images** — OCR (debian 13.6: 5 CRIT/110 HIGH), app + worker
   (npm-bundled `tar@7.5.11` etc. under `/usr/local/lib/node_modules/npm`), worker (`libssl3`/`libcrypto3`
   3.5.7-r0, `nodemailer@9.0.1`). Fix: rebuild on current bases with `apt-get upgrade`/`apk upgrade`, delete npm
@@ -55,6 +50,9 @@ the fix is in + a regression test where the fix is app code + gates green (typec
 
 ### Other open
 
+- 🔴 **[security][LOW] OCR shared-secret uses non-constant-time compare** — `deploy/compose/ocr/app.py` H-4 added
+  `x_ocr_secret != OCR_SHARED_SECRET`. Swap for `hmac.compare_digest`. Low practical risk (internal service, no host
+  port, random high-entropy secret) — defense-in-depth polish. `gate: none (un-gated)` `source: agent-found 2026-10-10 (H-4 review)`
 - 🔴 **Audit LOW backlog (L-1…L-10)** — from `test-artifacts/audit-2026-09-27/REPORT.md`. `gate: owner (backlog — outside v0.1.1 scope, D-32)` `source: audit 2026-09-27`
   - L-1 `/api/media` reads whole body before its 50 MiB check (`route.ts:56`).
   - L-2 60-day mobile token not revoked on password change.
@@ -175,6 +173,12 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 ## ✅ Done recently
 
+- ✅ **H-4 · OCR sidecar hardened (audit, v0.1.1)** — `fix/audit-h4-ocr-hardening` `47da244` (LOCAL, not merged/pushed).
+  pillow 11.1→12.3.0, python-multipart 0.0.20→0.0.31, fastapi 0.115.6→0.140.13 + `starlette>=1.3.1` (resolved 1.7.0);
+  non-root `appuser`; dropped host port 9003; `X-OCR-Secret` shared-secret auth on `/ocr` (fail-closed: 503 unset,
+  401 wrong); `Image.MAX_IMAGE_PIXELS=64M`; secret wired through `packages/jobs` ocr client + runtime-deps.
+  PM-verified: jobs vitest 17/17 (incl. 2 new header tests), tsc+lint 0, Trivy fs 0 on the 3 named deps,
+  unauth `/ocr`→401 / correct→200, OCR e2e "INVOICE 12345" extracted, host `:9003` refused. (2026-10-10)
 - ✅ **[branding] Orqafy product wordmark + favicon + Powerbyte footer (ORQ-37 / D-29)** — `<OrqafyWordmark>`
   in sidebar + login, `icon.svg` favicon, sidebar footer (version tag + Powerbyte credit). Merged to `main`
   (`eceed30`) + app version 0.1.0 (`c042948`); dev stack rebuilt; pushed in release v0.1.0. (2026-09-27)

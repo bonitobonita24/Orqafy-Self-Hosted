@@ -1,18 +1,21 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-10-10 (loop slot 24 — v0.1.1 wave 3/10 done)
+**Last updated:** 2026-10-10 (loop slot 24 — v0.1.1 wave 4/10 done — 🌙 FULL AUTO, owner asleep)
+- 🌙 **FULL AUTO MODE** (owner-set 2026-10-10, owner asleep) — run EVERY reboot, NO approval questions; serial
+  one-task-at-a-time; `[HOW]`=self, `[WHAT]`=defer to PENDING_DECISIONS.md. Preset `library/full-auto-mode-preset.md`.
 - **CURRENT:** `main` @ `9ba2472`..(+docs) — PUBLIC repo `bonitobonita24/Orqafy-Self-Hosted`, release **v0.1.0**.
-  Dev stack on http://localhost:56483 (restart=no). **v0.1.1 audit wave IN PROGRESS: H-1/H-2/H-3 DONE+PM-verified,
+  Dev stack on http://localhost:56483 (restart=no). **v0.1.1 audit wave IN PROGRESS: H-1/H-2/H-3/H-4 DONE+PM-verified,
   each on its own branch off `main`, LOCAL/HARD HOLD (NOT merged, NOT pushed):** `fix/audit-h1-spi-gate-bypass`
-  `e60d753` · `fix/audit-h2-deactivated-session` `a567c50` · `fix/audit-h3-web-login-ratelimit` `b378137`.
-  Each re-verified in isolation (tsc 0, full web vitest green). 0 open [WHAT].
-  ⚠ **Anomaly:** memory/STATE recorded "loop STOPPED by owner 2026-09-27", yet loop slot 24 is running today —
-  flagged to owner (board comment); continuing on D-32 standing authorization for this wave.
-- **NEXT (un-gated):** continue v0.1.1 wave — **H-4** (OCR sidecar deps+auth), **H-5** (stale base layers),
-  then **M-1…M-5**, each one branch/fix off `main`, verified. ⚠ Dispatch each fix SERIALLY or in ISOLATED
-  git worktrees — H-2/H-3 parallel-in-one-tree collided (no damage this time, but a footgun; see LESSONS_GLOBAL).
-  When ALL 10 done+verified → merge the fix branches to `main` → `gen-release-notes` v0.1.1 → push+tag
-  (pre-authorized by D-32; repo IS on auto-push allowlist). Then Squirlnote pipelineStage reconcile.
+  `e60d753` · `fix/audit-h2-deactivated-session` `a567c50` · `fix/audit-h3-web-login-ratelimit` `b378137` ·
+  `fix/audit-h4-ocr-hardening` `47da244` (OCR deps+non-root+shared-secret+decompression guard; jobs 17/17, Trivy fs 0).
+  Each re-verified in isolation. 0 open [WHAT].
+  ✅ **Anomaly RESOLVED:** the "loop STOPPED 2026-09-27" vs slot-24-running note was surfaced to the owner at this
+  session's start — owner confirmed the relaunch was intentional ("continue the wave"). No longer a flag.
+- **NEXT (un-gated):** continue v0.1.1 wave — **H-5** (stale base layers), then **M-1…M-5**, each one branch/fix
+  off `main`, verified. ⚠ Dispatch each fix SERIALLY or in ISOLATED git worktrees — H-2/H-3 parallel-in-one-tree
+  collided (no damage, but a footgun; see LESSONS_GLOBAL). When ALL 10 done+verified → merge the fix branches to
+  `main` → `gen-release-notes` v0.1.1 → push+tag (pre-authorized by D-32; repo IS on auto-push allowlist, staging
+  ceiling — prod/demo stay manual). Then Squirlnote pipelineStage reconcile.
 - **BLOCKED:** on-device verification · geofence-over-tunnel · Pangolin throughput · sync-engine resource-cost.
 - **POST-V1:** desktop track (D-30) · R2 cloud-storage add-on (D-27) · Valkey-backed rate-limit store.
 
