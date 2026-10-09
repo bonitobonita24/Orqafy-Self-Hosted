@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@orqafy/db';
 import { ObjectNotFoundError } from '@orqafy/storage';
-import { auth } from '@/auth';
+import { resolveRequestUserId } from '@/server/request-auth';
 import { resolveUserPermissions } from '@/server/permissions';
 import { getStorageAdapter } from '@/server/storage';
 
@@ -26,12 +26,11 @@ function headerSafeName(name: string): string {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (userId === undefined || userId === null || userId.length === 0) {
+  const userId = await resolveRequestUserId(req);
+  if (userId === null) {
     return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
   }
 
