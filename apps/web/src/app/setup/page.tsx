@@ -26,13 +26,14 @@ export default function SetupPage() {
   const [adminName, setAdminName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [setupToken, setSetupToken] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     try {
-      await createAdmin.mutateAsync({ orgName, adminName, email, password });
+      await createAdmin.mutateAsync({ orgName, adminName, email, password, setupToken });
       await signIn('credentials', { email, password, redirect: false });
       router.push('/dashboard');
       router.refresh();
@@ -111,6 +112,20 @@ export default function SetupPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">At least 8 characters.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="setupToken">Setup token</Label>
+              <Input
+                id="setupToken"
+                type="password"
+                autoComplete="off"
+                required
+                value={setupToken}
+                onChange={(e) => setSetupToken(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                The SETUP_TOKEN value configured on the server for this install.
+              </p>
             </div>
             {error !== null ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button type="submit" className="w-full" disabled={createAdmin.isPending}>
