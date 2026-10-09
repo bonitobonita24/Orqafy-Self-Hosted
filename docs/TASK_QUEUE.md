@@ -12,16 +12,16 @@ Source: `test-artifacts/audit-2026-09-27/REPORT.md` (gitignored). One branch per
 to `main`; then push v0.1.1 (owner pre-authorized once gates green + PM-verified). Done-criterion for each item:
 the fix is in + a regression test where the fix is app code + gates green (typecheck/lint/test/build).
 
-- 🔴 **H-1 · SPI gate bypass via document metadata** — `apps/web/src/server/routers/documents.ts` (`update`
+- ✅ **H-1 · SPI gate bypass via document metadata** — DONE 2026-10-10 (branch `fix/audit-h1-spi-gate-bypass` `e60d753`, 13 regression tests, gates green, PM-verified; LOCAL/HARD HOLD, not merged). Orig spec: `apps/web/src/server/routers/documents.ts` (`update`
   185-199, `reviewTray` 67-77, `delete` 202, `decideReview`). Fix: deny when `doc.isSPI && !view_finances` in
   update/delete/decideReview; only `view_finances` holders may change `isSPI`; `update` returns a
   `select`-limited shape (no `ocrText`); filter `reviewTray` by `isSPI`. Done: `project_manager` test cannot
   read/flip/delete an SPI doc. `source: audit 2026-09-27`
-- 🔴 **H-2 · Deactivated user keeps web session** — `server/context.ts:43-46`, `server/request-auth.ts:15-17`,
+- ✅ **H-2 · Deactivated user keeps web session** — DONE 2026-10-10 (branch `fix/audit-h2-deactivated-session` `a567c50`, shared `isUserActive` re-check on cookie path + media/SSE + 8h session.maxAge, 6 tests, gates green, PM-verified; LOCAL/HARD HOLD). Orig spec: `server/context.ts:43-46`, `server/request-auth.ts:15-17`,
   `server/permissions.ts:72-90`, both `/api/media` routes. Fix: resolve no user/permissions when `!isActive` on
   the cookie path; set a short `session.maxAge`. Done: deactivated user's cookie → 401 on tRPC, media and SSE.
   `source: audit 2026-09-27`
-- 🔴 **H-3 · Web login has no brute-force limit** — `apps/web/src/auth.ts:24-36`. Fix: call
+- ✅ **H-3 · Web login has no brute-force limit** — DONE 2026-10-10 (branch `fix/audit-h3-web-login-ratelimit` `b378137`, shared rate-limit store in `authorize()` via extracted `credentials-auth.ts`, 6 tests, gates green, PM-verified; LOCAL/HARD HOLD). Note: lockout-DoS + non-atomic check-then-increment mirror the pre-existing mobile limiter → backlog (Valkey atomic store already POST-V1). Orig spec: `apps/web/src/auth.ts:24-36`. Fix: call
   `checkLoginRateLimit` / `recordLoginFailure` / `recordLoginSuccess` inside `authorize(credentials, request)`
   on the same store as `/api/mobile/login`. Done: N failed web logins → locked, test proves it.
   `source: audit 2026-09-27`
