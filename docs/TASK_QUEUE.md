@@ -36,22 +36,37 @@ the fix is in + a regression test where the fix is app code + gates green (typec
   all up (worker consuming 6 queues, ocr `/health` 200). Evidence `test-artifacts/audit-h5-2026-10-10/` (gitignored).
   **Residual 34 (app+worker) carved out → the vite/vitest toolchain task below** — NOT stale base layers; does
   NOT gate the v0.1.1 10-item wave. `source: audit 2026-09-27`
-- 🔴 **M-1 · First-run `/setup` claimable by first visitor + race** — `server/routers/setup.ts:26-30`. Fix:
-  require a one-time `SETUP_TOKEN`; enforce single setup inside the DB transaction. Done: no/incorrect token
-  rejected; concurrent setup test → exactly one owner. `source: audit 2026-09-27`
-- 🔴 **M-2 · Rate limiter trusts client IP** — `server/rate-limit.ts:99-108` (leftmost `X-Forwarded-For`). Fix:
-  use the hop added by the trusted proxy. Done: spoofed XFF does not reset the per-IP limit (test).
+- ✅ **M-1 · First-run `/setup` claimable by first visitor + race** — DONE 2026-10-10 (branch `fix/audit-m1-setup-token`
+  `3729b95`, 5 regression tests, gates green incl. concurrency test, PM-verified; LOCAL/HARD HOLD, not merged).
+  Fix: require a one-time `SETUP_TOKEN` (constant-time `timingSafeEqual`, `PRECONDITION_FAILED` if unset,
+  `UNAUTHORIZED` on mismatch, checked before any DB work) + enforce single setup INSIDE the `$transaction` behind
+  `pg_advisory_xact_lock` + authoritative recheck → concurrent setup yields exactly one owner (loser `CONFLICT`).
   `source: audit 2026-09-27`
-- 🔴 **M-3 · No security headers** — `apps/web/next.config.mjs`. Fix: `headers()` block with CSP incl.
-  `frame-ancestors`, HSTS, `nosniff`, Referrer-Policy. Done: headers present on responses; app pages still
-  render (no CSP breakage). `source: audit 2026-09-27`
-- 🔴 **M-4 · Dev compose publishes every service on 0.0.0.0** — dev compose (Postgres, Valkey, MinIO +
-  console, pgAdmin, MailHog, OCR). Fix: bind to `127.0.0.1`; ship a production compose. Done: `docker ps` shows
-  127.0.0.1 bindings; dev stack still healthy; prod compose validates (`docker compose config`).
+- ✅ **M-2 · Rate limiter trusts client IP** — DONE 2026-10-10 (branch `fix/audit-m2-xff-trust` `b47ee31`,
+  5 new clientIp tests (15 in rate-limit suite), gates green, PM-verified; LOCAL/HARD HOLD). Fix: `clientIp()`
+  resolves the Nth-from-right XFF entry (new `TRUSTED_PROXY_HOPS`, default 1, lazy read) = the hop added by the
+  trusted proxy, not the spoofable leftmost. Test (c) proves rotating fake left entries share one rate-limit
+  bucket. `source: audit 2026-09-27`
+- ✅ **M-3 · No security headers** — DONE 2026-10-10 (branch `fix/audit-m3-security-headers` `087dac8`,
+  4 tests + `next build` passed, gates green, PM-verified; LOCAL/HARD HOLD). Fix: `async headers()` in
+  `next.config.mjs` (via `src/lib/security-headers.ts`) → app-correct CSP (`frame-ancestors 'none'`,
+  `default-src 'self'`, OSM tile `img-src`, same-origin `connect-src`, Next `'unsafe-inline'` v1 posture +
+  nonce POST-V1 seam, `CSP_EXTRA_IMG_SRC` hook) + HSTS + `nosniff` + Referrer-Policy + `X-Frame-Options: DENY`.
   `source: audit 2026-09-27`
-- 🔴 **M-5 · `/api/media/[id]` serves client-declared Content-Type** — `/api/media/[id]` route + upload check.
-  Fix: `nosniff` + sandbox CSP on the response; switch the upload check from denylist to allowlist (blocks
-  HTML/SVG). Done: HTML/SVG upload rejected; download carries `nosniff` + CSP (test).
+- ✅ **M-4a · Dev compose publishes every service on 0.0.0.0** — DONE 2026-10-10 (branch `fix/audit-m4-compose-bind`
+  `2e6593c`, verified via `docker compose config` static render — all 10 published ports bind `127.0.0.1`,
+  PM-verified; LOCAL/HARD HOLD). Fix: prefixed every published dev port (valkey/minio×2/mailhog×2/pgadmin/postgres/
+  pgbouncer/app/ocr) with `127.0.0.1:`; internal container ports untouched. `source: audit 2026-09-27`
+- ⛔ **M-4b · Ship a production compose** — DEFERRED as `[WHAT]` (see `PENDING_DECISIONS.md` 🔴 Open, 2026-10-10).
+  Conflicts with the D-3/`start.sh` dev-only lock + the EC2-Komodo/Hostinger topology (infra broadcast); a correct
+  prod compose needs owner-confirmed topology/secrets/limits, risky to fabricate into a public AGPL repo.
+  Recommendation (b): keep repo dev-only for v0.1.1, prod stack owned server-side. **This is the ONLY item gating
+  the all-10-done → merge+push v0.1.1.** `source: audit 2026-09-27 (M-4 split)`
+- ✅ **M-5 · `/api/media/[id]` serves client-declared Content-Type** — DONE 2026-10-10 (branch
+  `fix/audit-m5-media-content-type` `1f02f74`, 16 regression tests (146 web tests), gates green, PM-verified;
+  LOCAL/HARD HOLD). Fix: layer 1 — download route serves `safeDownloadContentType()` (risky types→octet-stream) +
+  `nosniff` + `default-src 'none'; sandbox` CSP + `private, no-store`; layer 2 — upload denylist→allowlist
+  (`isAllowedUpload`, requires BOTH extension AND MIME, blocks HTML/SVG incl. relabel both directions).
   `source: audit 2026-09-27`
 
 ### Other open
@@ -65,7 +80,9 @@ the fix is in + a regression test where the fix is app code + gates green (typec
   re-scan green. `gate: owner (post-v0.1.1 — does NOT block the 10-item wave)` `source: agent-found 2026-10-10 (H-5)`
 - 🔴 **[security][LOW] OCR shared-secret uses non-constant-time compare** — `deploy/compose/ocr/app.py` H-4 added
   `x_ocr_secret != OCR_SHARED_SECRET`. Swap for `hmac.compare_digest`. Low practical risk (internal service, no host
-  port, random high-entropy secret) — defense-in-depth polish. `gate: none (un-gated)` `source: agent-found 2026-10-10 (H-4 review)`
+  port, random high-entropy secret) — defense-in-depth polish. `gate: blocked — the `!=` compare only exists on the
+  unmerged `fix/audit-h4-ocr-hardening` branch; apply as a follow-up after the v0.1.1 wave merges to main (or fold
+  into H-4 at merge).` `source: agent-found 2026-10-10 (H-4 review)`
 - 🔴 **Audit LOW backlog (L-1…L-10)** — from `test-artifacts/audit-2026-09-27/REPORT.md`. `gate: owner (backlog — outside v0.1.1 scope, D-32)` `source: audit 2026-09-27`
   - L-1 `/api/media` reads whole body before its 50 MiB check (`route.ts:56`).
   - L-2 60-day mobile token not revoked on password change.

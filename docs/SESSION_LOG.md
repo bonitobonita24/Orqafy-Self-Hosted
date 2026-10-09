@@ -4,6 +4,19 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-10-10 — Full Auto: M-1…M-5 security fixes (9/9 un-gated done; release gated on one decision)
+
+**In your words:** (Full Auto, you asleep) — finish the v0.1.1 security-audit wave, M-1 onward.
+
+✅ **M-1 · First-run setup hijack + race** — first-run `/setup` now requires a one-time `SETUP_TOKEN` (constant-time check, disabled if the server didn't set one), and the "only one owner" rule is enforced inside the DB transaction behind a Postgres advisory lock, so two people hitting setup at once can't both become owner. 5 tests incl. a concurrency test. Branch `fix/audit-m1-setup-token` `3729b95`.
+✅ **M-2 · Rate limiter IP spoofing** — the login limiter was reading the *client-controlled* leftmost `X-Forwarded-For` entry, so an attacker could look like a new IP every request and never trip the limit. Now reads the entry our trusted proxy actually added (configurable hop count). Test proves rotating fake IPs share one bucket. Branch `fix/audit-m2-xff-trust` `b47ee31`.
+✅ **M-3 · Missing security headers** — added CSP (frame-ancestors none, etc.), HSTS, nosniff, Referrer-Policy, X-Frame-Options. CSP tuned to what the app really uses (OpenStreetMap tiles, self-hosted fonts, same-origin realtime) so nothing breaks; the production build passed as the no-breakage check. Branch `fix/audit-m3-security-headers` `087dac8`.
+✅ **M-4a · Services exposed on all interfaces** — every dev container port (Postgres, Valkey, MinIO, app, …) now binds to `127.0.0.1` only, so they're not reachable from the LAN. Verified with `docker compose config` (no containers started — other sessions may be running). Branch `fix/audit-m4-compose-bind` `2e6593c`.
+✅ **M-5 · Media Content-Type trust (stored-XSS)** — downloads now carry nosniff + a sandbox CSP and serve risky types (HTML/SVG) as a plain download instead of inline; uploads switched from a leaky denylist to an allowlist that blocks HTML/SVG even if relabeled. 16 tests. Branch `fix/audit-m5-media-content-type` `1f02f74`.
+⛔ **M-4b · "ship a production compose" — deferred to you (a decision, not a bug).** This repo is deliberately dev-only (D-3 / `start.sh` refuses any non-dev env), and staging/prod live on EC2-Komodo / Hostinger. A correct prod compose depends on that topology (image source, secrets, resource limits) and shouldn't be guessed into a public repo. Recorded in PENDING_DECISIONS. **My recommendation: keep the repo dev-only for v0.1.1** — the port-binding fix already removes the exposure risk. This is the one thing holding the v0.1.1 merge+push.
+💬 **Held the release.** All 9 un-gated fixes are done, verified, on isolated branches, local only. I did **not** merge or push v0.1.1 — I won't scope out a deliverable you planned (M-4b) on my own, so the release waits for your call on it.
+⏳ **Next:** your decision on M-4b → then merge the fix branches in order + auto-version + push v0.1.1 (staging ceiling; prod/demo stay manual).
+
 ## 2026-10-10 — Full Auto: H-5 stale base layers (5/10)
 
 **In your words:** continue the v0.1.1 security-audit wave (Full Auto, you asleep) — next fix is H-5.

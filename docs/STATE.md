@@ -1,27 +1,31 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-10-10 (loop slot 24 — v0.1.1 wave 5/10 done — 🌙 FULL AUTO, owner asleep)
+**Last updated:** 2026-10-10 (loop slot 24 — v0.1.1 wave 9/9 un-gated fixes DONE, release gated on M-4b [WHAT] — 🌙 FULL AUTO)
 - 🌙 **FULL AUTO MODE** (owner-set 2026-10-10, owner asleep) — run EVERY reboot, NO approval questions; serial
   one-task-at-a-time; `[HOW]`=self, `[WHAT]`=defer to PENDING_DECISIONS.md. Preset `library/full-auto-mode-preset.md`.
-- **CURRENT:** `main` @ `9ba2472`..(+docs) — PUBLIC repo `bonitobonita24/Orqafy-Self-Hosted`, release **v0.1.0**.
-  Dev stack on http://localhost:56483 (restart=no). **v0.1.1 audit wave IN PROGRESS: H-1/H-2/H-3/H-4/H-5 DONE+PM-verified,
-  each on its own branch (NOT merged, NOT pushed), LOCAL/HARD HOLD:** `fix/audit-h1-spi-gate-bypass`
-  `e60d753` · `fix/audit-h2-deactivated-session` `a567c50` · `fix/audit-h3-web-login-ratelimit` `b378137` ·
-  `fix/audit-h4-ocr-hardening` `47da244` (OCR deps+non-root+shared-secret+decompression guard; jobs 17/17, Trivy fs 0) ·
-  `fix/audit-h5-stale-base-layers` `e026d82` (STACKED on h4 — OCR Dockerfile overlap; apt/apk upgrade + drop bundled
-  npm/pip + pnpm pin 10.34.6 + overrides; OCR 2→0 fixable CRIT/HIGH, app/worker 68→34; full gates green incl.
-  352 tests + web build). Each re-verified in isolation. 0 open [WHAT].
-  ⚠ Residual 34 app/worker fixable = vite/vitest toolchain cluster → carved to a NEW TASK_QUEUE task (NOT a base
-  layer, does NOT gate the 10-item wave). ⚠ Concurrency flag: other `orqafy-*` sessions seen active on this repo
-  at slot-24 start — verify git/branch ground truth before any merge.
-  ✅ **Anomaly RESOLVED:** the "loop STOPPED 2026-09-27" vs slot-24-running note was surfaced to the owner at this
-  session's start — owner confirmed the relaunch was intentional ("continue the wave"). No longer a flag.
-- **NEXT (un-gated):** continue v0.1.1 wave — **M-1** (setup token+txn), then **M-2…M-5**, each one branch/fix
-  off `main`, verified. ⚠ Dispatch each fix SERIALLY or in ISOLATED git worktrees — H-2/H-3 parallel-in-one-tree
-  collided (no damage, but a footgun; see LESSONS_GLOBAL). When ALL 10 done+verified → merge the fix branches to
-  `main` → `gen-release-notes` v0.1.1 → push+tag (pre-authorized by D-32; repo IS on auto-push allowlist, staging
-  ceiling — prod/demo stay manual). Then Squirlnote pipelineStage reconcile.
-- **BLOCKED:** on-device verification · geofence-over-tunnel · Pangolin throughput · sync-engine resource-cost.
+- **CURRENT:** `main` @ `9ba2472`..(+docs, tip `31934fa`+this save) — PUBLIC repo `bonitobonita24/Orqafy-Self-Hosted`,
+  release **v0.1.0**. Dev stack on http://localhost:56483 (restart=no). **v0.1.1 audit wave: ALL 9 un-gated fixes
+  DONE+PM-verified, each on its own branch (NOT merged, NOT pushed), LOCAL/HARD HOLD:**
+  H-1 `fix/audit-h1-spi-gate-bypass` `e60d753` · H-2 `fix/audit-h2-deactivated-session` `a567c50` ·
+  H-3 `fix/audit-h3-web-login-ratelimit` `b378137` · H-4 `fix/audit-h4-ocr-hardening` `47da244` ·
+  H-5 `fix/audit-h5-stale-base-layers` `e026d82` (stacked on h4) · **M-1 `fix/audit-m1-setup-token` `3729b95`**
+  (SETUP_TOKEN constant-time gate + `pg_advisory_xact_lock` race-safe single owner, 5 tests) ·
+  **M-2 `fix/audit-m2-xff-trust` `b47ee31`** (clientIp = Nth-from-right XFF, `TRUSTED_PROXY_HOPS`, 5 tests) ·
+  **M-3 `fix/audit-m3-security-headers` `087dac8`** (CSP/HSTS/nosniff/Referrer-Policy, app-correct CSP, build-verified) ·
+  **M-4a `fix/audit-m4-compose-bind` `2e6593c`** (all 10 dev ports → 127.0.0.1, `docker compose config`-verified) ·
+  **M-5 `fix/audit-m5-media-content-type` `1f02f74`** (download nosniff+sandbox+octet-stream override, upload allowlist, 16 tests).
+  Each PM-verified in isolation against ground truth (commit + re-run gates). Merge order: h1,h2,h3,h4,h5,m1,m2,m3,m4,m5.
+- **⛔ RELEASE GATE — 1 open [WHAT] (M-4b):** author a production compose, or keep repo dev-only? Conflicts with the
+  D-3/`start.sh` dev-only lock + EC2-Komodo/Hostinger topology. Deferred to `PENDING_DECISIONS.md` 🔴 Open. **This is the
+  ONLY thing blocking "all done → merge+push v0.1.1."** Recommendation (b): keep repo dev-only, prod stack owned server-side.
+- **NEXT:** await owner on M-4b. When answered → (b) scope M-4b out, OR (a) do M-4b → then merge the 9 (or 10) fix branches
+  to `main` in order → `gen-release-notes` v0.1.1 → push+tag (D-32 pre-auth; repo on auto-push allowlist, STAGING ceiling,
+  prod/demo manual). Then Squirlnote pipelineStage reconcile. ⚠ Concurrency: other `orqafy-*` sessions seen on this repo at
+  slot-24 start — verify git/branch ground truth before any merge.
+- **BLOCKED / backlog (un-gated-but-not-on-main):** OCR hmac constant-time compare — target `!=` only exists on the unmerged
+  H-4 branch, apply as a follow-up after the wave merges. **Owner-gated post-v1:** vite/vitest toolchain MAJOR upgrade
+  (34 residual app/worker image CRIT/HIGH, ORQ-51, does NOT gate v0.1.1).
+- **BLOCKED (hardware/stack):** on-device verification · geofence-over-tunnel · Pangolin throughput · sync-engine resource-cost.
 - **POST-V1:** desktop track (D-30) · R2 cloud-storage add-on (D-27) · Valkey-backed rate-limit store.
 
 _Earlier note (superseded):_ **Last updated:** 2026-09-27 (merge to main) · **CURRENT: `main` now carries the full V1 wave — fast-forwarded (clean FF, zero conflicts, full history preserved) from `docs/tauri-wave-plan` (tip `811d60d`) 2026-09-27. This is the owner-actioned "merge the `cf35d88` chain → main"; checked out on `main`, tree clean. `main` has NO upstream — HARD HOLD, nothing pushed. Linear chain contains ORQ-27 (canonical `@orqafy/shared/roles` grants + parity test, `d7e1e95`) · ORQ-32 (scoped photo byte-download route + task-view thumbnails, `ec76903`) · ORQ-28 (mobile outbox hygiene + post-crash idempotent recovery via `photos.existsByClientId`, `d375fdf`,`a66a055`) · ORQ-33 (Files-form friendly CONFLICT + retry, `07d53f5`) · ORQ-34 (ESLint 8→9 flat-config across all 10 workspaces, Rule-13 guard re-proven, `136d146`) · ORQ-35 (offline non-photo mutations stay pending/retryable, `ad8849c`) · Tauri desktop wave plan R7a (`cf35d88`). Tree clean. The full un-gated Full-Auto lineup is DONE + PM-verified this session (static+unit bar; gates re-run, Rule-13 probe re-run). NO un-gated build work remains. 0 open [WHAT]. HARD HOLD — nothing pushed.**
