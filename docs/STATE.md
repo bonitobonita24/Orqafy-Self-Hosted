@@ -9,9 +9,15 @@
   (2) M-5 media route tests mocked the pre-H-2 `@/auth` while H-2 switched the routes to `resolveRequestUserId` —
   tests re-mocked `@/server/request-auth` (production code unchanged). Combined main FULLY green: typecheck 10/10,
   lint 10/10, test 7/7 workspaces (web 185, mobile 157, +jobs/storage/geofence/shared), web build. Then
-  `gen-release-notes` v0.1.0→v0.1.1 + CHANGELOG + annotated tag, pushed `main` + tag (D-32 pre-auth, allowlist,
-  STAGING ceiling — prod/demo stay MANUAL). See the release/push note below for the exact pushed SHA + CI.
-- Follow-up now un-gated (H-4 on main): OCR hmac constant-time compare polish. Post-v1 owner-gated: vite/vitest MAJOR upgrade (ORQ-51).
+  `gen-release-notes` v0.1.0→v0.1.1 + CHANGELOG + annotated tag; version synced to 0.1.1 across all 11 workspaces.
+  **Pushed `main` `9ba2472..2c86999` + tag `v0.1.1`** (git-guard `# HARDHOLD-OK`, D-32 pre-auth, repo on auto-push
+  allowlist, STAGING ceiling — prod/demo stay MANUAL). **CI run 38006139059 = SUCCESS** (typecheck/test/build green).
+  `main` == `origin/main`.
+- **Post-push security review (2026-10-10) — 2 LOW defense-in-depth findings, acknowledged + queued, NOT release blockers:**
+  (1) login rate-limiter non-atomic check-then-increment (TOCTOU) — KNOWN/accepted v1 limitation, Valkey atomic store is
+  the POST-V1 seam; (2) OCR `app.py` has no independent input byte/page cap — internal + secret-gated + bounded upstream
+  by the 50 MiB web cap, so not externally exploitable. Both in `docs/TASK_QUEUE.md` Other open.
+- Follow-up now un-gated (H-4 on main): OCR service hardening (hmac constant-time compare + input cap). Post-v1 owner-gated: vite/vitest MAJOR upgrade (ORQ-51).
 
 - 🌙 **FULL AUTO MODE** (owner-set 2026-10-10, owner asleep) — run EVERY reboot, NO approval questions; serial
   one-task-at-a-time; `[HOW]`=self, `[WHAT]`=defer to PENDING_DECISIONS.md. Preset `library/full-auto-mode-preset.md`.

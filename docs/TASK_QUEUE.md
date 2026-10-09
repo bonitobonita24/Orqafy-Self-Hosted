@@ -77,11 +77,21 @@ the fix is in + a regression test where the fix is app code + gates green (typec
   2→latest) with full test-suite re-verification — real regression risk, own dedicated task. Supersedes/absorbs
   audit **L-7** (vitest 2.1.9 bump). Done: vite/vitest upgraded across the 6 workspaces, all gates + Trivy image
   re-scan green. `gate: owner (post-v0.1.1 — does NOT block the 10-item wave)` `source: agent-found 2026-10-10 (H-5)`
-- 🔴 **[security][LOW] OCR shared-secret uses non-constant-time compare** — `deploy/compose/ocr/app.py` H-4 added
-  `x_ocr_secret != OCR_SHARED_SECRET`. Swap for `hmac.compare_digest`. Low practical risk (internal service, no host
-  port, random high-entropy secret) — defense-in-depth polish. `gate: blocked — the `!=` compare only exists on the
-  unmerged `fix/audit-h4-ocr-hardening` branch; apply as a follow-up after the v0.1.1 wave merges to main (or fold
-  into H-4 at merge).` `source: agent-found 2026-10-10 (H-4 review)`
+- 🔴 **[security][LOW] OCR service hardening follow-up (constant-time compare + input cap)** — `deploy/compose/ocr/app.py`.
+  TWO defense-in-depth items, both LOW (service has NO host port — internal compose DNS only — and is shared-secret
+  gated; only caller is the authenticated worker on files already bounded by the 50 MiB web-upload cap):
+  (1) `x_ocr_secret != OCR_SHARED_SECRET` → swap for `hmac.compare_digest` (constant-time).
+  (2) [push-review 2026-10-10] `data = await file.read()` reads the whole upload into memory with NO independent
+  byte cap, and `convert_from_bytes` has no PDF page-count cap → resource-exhaustion if a caller ever sends a large
+  payload (currently bounded upstream by the 50 MiB web cap, so not externally exploitable — but the service should
+  enforce its OWN cap rather than trust upstream). Add a MAX_OCR_BYTES check before read + a page-count guard.
+  Now UN-GATED (H-4 is on `main` as of v0.1.1). `gate: none (un-gated, post-v0.1.1 polish)` `source: agent-found 2026-10-10 (H-4 review + push security review)`
+- 🟡 **[security][LOW][KNOWN] Login rate-limiter check-then-increment is non-atomic (TOCTOU)** — [push-review 2026-10-10]
+  `credentials-auth.ts`/`rate-limit.ts`: `checkLoginRateLimit` (read) then `recordLoginFailure` (increment) are not
+  atomic in the in-memory store, so high-concurrency bursts can slip a few extra attempts past the per-window limit.
+  KNOWN + ACCEPTED for v1 (mirrors the pre-existing mobile limiter; the limiter still massively raises the brute-force
+  bar vs. the previous NO limit). Fix = the already-documented Valkey-backed atomic INCR store.
+  `gate: owner (POST-V1 — Valkey atomic rate-limit store seam)` `source: agent-found 2026-10-10 (H-3 push review; dup of H-3 note)`
 - 🔴 **Audit LOW backlog (L-1…L-10)** — from `test-artifacts/audit-2026-09-27/REPORT.md`. `gate: owner (backlog — outside v0.1.1 scope, D-32)` `source: audit 2026-09-27`
   - L-1 `/api/media` reads whole body before its 50 MiB check (`route.ts:56`).
   - L-2 60-day mobile token not revoked on password change.
