@@ -35,4 +35,42 @@ describe('createOcrClient', () => {
       client.extract({ body: new Uint8Array([1]), contentType: 'image/png', filename: 'x.png' }),
     ).rejects.toThrow(/OCR sidecar/);
   });
+
+  it('sends the X-OCR-Secret header when a secret is configured (audit H-4)', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ text: 'ok', engine: 'rapidocr', pages: 1 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      ),
+    );
+    const client = createOcrClient({ baseUrl: 'http://ocr:9003', fetchImpl, secret: 'top-secret' });
+
+    await client.extract({ body: new Uint8Array([1]), contentType: 'image/png', filename: 'x.png' });
+
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    const [, init] = fetchImpl.mock.calls[0]!;
+    const headers = new Headers((init as RequestInit).headers);
+    expect(headers.get('X-OCR-Secret')).toBe('top-secret');
+  });
+
+  it('omits the X-OCR-Secret header when no secret is configured', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ text: 'ok', engine: 'rapidocr', pages: 1 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      ),
+    );
+    const client = createOcrClient({ baseUrl: 'http://ocr:9003', fetchImpl });
+
+    await client.extract({ body: new Uint8Array([1]), contentType: 'image/png', filename: 'x.png' });
+
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    const [, init] = fetchImpl.mock.calls[0]!;
+    const headers = new Headers((init as RequestInit).headers ?? {});
+    expect(headers.has('X-OCR-Secret')).toBe(false);
+  });
 });

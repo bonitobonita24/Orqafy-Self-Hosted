@@ -59,6 +59,9 @@ services:
       # OCR sidecar (profile-gated). A queued OCR job just retries until it is up,
       # so no depends_on: the default dev stack runs without the `ocr` profile.
       OCR_URL: "http://ocr:9003"
+      # Shared secret the worker sends as X-OCR-Secret (audit H-4) — must match
+      # the ocr service's OCR_SHARED_SECRET below, or the sidecar 401s.
+      OCR_SHARED_SECRET: ${OCR_SHARED_SECRET}
     networks:
       - orqafy_dev_net
 
@@ -69,8 +72,11 @@ services:
     container_name: orqafy_dev_ocr
     restart: "no"
     profiles: ["ocr"]
-    ports:
-      - "${OCR_PORT:-9003}:9003"
+    environment:
+      # Shared secret required on /ocr (audit H-4) — fails closed if unset.
+      OCR_SHARED_SECRET: ${OCR_SHARED_SECRET}
+    # No host port publish (audit H-4) — the worker reaches this sidecar via
+    # internal compose DNS (http://ocr:9003); it never needs host exposure.
     # RapidOCR models (~500MB) download on first run; ~1GB RAM headroom.
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9003/health').status==200 else 1)"]

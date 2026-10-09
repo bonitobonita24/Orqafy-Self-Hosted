@@ -48,7 +48,12 @@ export function buildRuntimeDeps(env: NodeJS.ProcessEnv = process.env): JobDeps 
   return {
     prisma,
     storage: buildStorageAdapter(env),
-    ocr: createOcrClient({ baseUrl: ocrUrl }),
+    ocr: createOcrClient({
+      baseUrl: ocrUrl,
+      ...(typeof env['OCR_SHARED_SECRET'] === 'string' && env['OCR_SHARED_SECRET'].length > 0
+        ? { secret: env['OCR_SHARED_SECRET'] }
+        : {}),
+    }),
     queues: { documentMatching: queues.documentMatching },
   };
 }
