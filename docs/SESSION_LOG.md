@@ -4,6 +4,16 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-10-10 — Full Auto: H-5 stale base layers (5/10)
+
+**In your words:** continue the v0.1.1 security-audit wave (Full Auto, you asleep) — next fix is H-5.
+
+✅ **H-5 · Stale container base layers** — refreshed all three dev images. **OCR image now fully clean** (2→0 fixable CRITICAL/HIGH): `apt-get upgrade`, upgraded pip/setuptools/wheel, then dropped `pip` itself (it vendored stale copies); H-4's non-root user kept. **App + worker** (68→34 fixable): `apk upgrade` (patched libssl/libcrypto), deleted the bundled `npm` tree (it carried a CRITICAL `tar` CVE and never runs), bumped the pnpm pin, added safe same-major dependency overrides. The flagged `nodemailer` CVE turned out not to apply (it isn't actually installed).
+✅ **Verified** — branch `fix/audit-h5-stale-base-layers` `e026d82` (stacked on the H-4 branch so the shared OCR file doesn't collide at merge). Ran the full gate after the dependency change: clean install, typecheck, lint, 352 tests, and the production web build — all green; app/worker/ocr all boot.
+💬 **Carve-out logged** — the 34 CRIT/HIGH still on app/worker are all the vite/vitest build-and-test toolchain (not base layers). They need a major-version upgrade with its own test pass, so I split them into a new backlog task; they do **not** block finishing the v0.1.1 wave.
+⚠️ **Flagged** — other Orqafy sessions appeared active on this repo at session start (possible concurrency); git state verified clean before/after, carried into the handoff.
+⏳ **Next** — M-1 (first-run setup token + transaction), then M-2…M-5, then merge + push v0.1.1.
+
 ## 2026-10-10 — Full Auto: anomaly resolved + H-4 OCR hardening (4/10)
 
 **In your words:** you confirmed the loop relaunch was intentional ("continue the wave"), then asked me to run Full Auto Mode every reboot while you sleep.

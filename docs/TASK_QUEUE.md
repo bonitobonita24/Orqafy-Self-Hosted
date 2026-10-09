@@ -25,11 +25,17 @@ the fix is in + a regression test where the fix is app code + gates green (typec
   `checkLoginRateLimit` / `recordLoginFailure` / `recordLoginSuccess` inside `authorize(credentials, request)`
   on the same store as `/api/mobile/login`. Done: N failed web logins → locked, test proves it.
   `source: audit 2026-09-27`
-- 🔴 **H-5 · Stale base layers in container images** — OCR (debian 13.6: 5 CRIT/110 HIGH), app + worker
-  (npm-bundled `tar@7.5.11` etc. under `/usr/local/lib/node_modules/npm`), worker (`libssl3`/`libcrypto3`
-  3.5.7-r0, `nodemailer@9.0.1`). Fix: rebuild on current bases with `apt-get upgrade`/`apk upgrade`, delete npm
-  from the runtime stage, bump nodemailer (≥9.1.0) via its parent. Done: Trivy image re-scan shows only
-  no-fix-available items; app + worker boot. `source: audit 2026-09-27`
+- ✅ **H-5 · Stale base layers in container images** — DONE 2026-10-10 (branch `fix/audit-h5-stale-base-layers`
+  `e026d82`, stacked on H-4; gates green — frozen install/tsc/lint/352 tests/web build; PM-verified; LOCAL/HARD
+  HOLD, not merged). Base-layer scope complete: **OCR 2→0 fixable CRIT/HIGH (fully clean)** via `apt-get upgrade`
+  + pip/setuptools/wheel upgrade + drop bundled `pip` (H-4 non-root untouched); **app+worker 68→34 fixable** via
+  `apk upgrade` (libssl3/libcrypto3 →3.5.8-r0) + delete bundled `npm` (clears CRIT `tar@7.5.11`/pacote/sigstore/
+  brace-expansion) + bump `packageManager` pin `pnpm@10.33.2→10.34.6` + same-major `pnpm.overrides`
+  (brace-expansion/compression/postcss/sharp/shell-quote/source-map-js). `nodemailer@9.0.1`: confirmed NOT a
+  resolved dep (optional `@auth/core` peer only, absent from the image) — no change needed. Boot: app/worker/ocr
+  all up (worker consuming 6 queues, ocr `/health` 200). Evidence `test-artifacts/audit-h5-2026-10-10/` (gitignored).
+  **Residual 34 (app+worker) carved out → the vite/vitest toolchain task below** — NOT stale base layers; does
+  NOT gate the v0.1.1 10-item wave. `source: audit 2026-09-27`
 - 🔴 **M-1 · First-run `/setup` claimable by first visitor + race** — `server/routers/setup.ts:26-30`. Fix:
   require a one-time `SETUP_TOKEN`; enforce single setup inside the DB transaction. Done: no/incorrect token
   rejected; concurrent setup test → exactly one owner. `source: audit 2026-09-27`
@@ -50,6 +56,13 @@ the fix is in + a regression test where the fix is app code + gates green (typec
 
 ### Other open
 
+- 🔴 **[security][chore] Dev/test toolchain major-upgrade — 34 residual image CRIT/HIGH (H-5 carve-out)** — the
+  `orqafy_dev-app`/`orqafy_dev-worker` images retain 34 FIXABLE CRIT/HIGH all in one cluster: `vite@5.4.21`,
+  `vitest@2.1.9`, `tinypool`, `deepmerge-ts`, `image-size`, + esbuild's bundled Go stdlib (×27, tied to the same
+  vite major). These are app devDependencies, NOT stale base layers, and need MAJOR bumps (vite 5→latest, vitest
+  2→latest) with full test-suite re-verification — real regression risk, own dedicated task. Supersedes/absorbs
+  audit **L-7** (vitest 2.1.9 bump). Done: vite/vitest upgraded across the 6 workspaces, all gates + Trivy image
+  re-scan green. `gate: owner (post-v0.1.1 — does NOT block the 10-item wave)` `source: agent-found 2026-10-10 (H-5)`
 - 🔴 **[security][LOW] OCR shared-secret uses non-constant-time compare** — `deploy/compose/ocr/app.py` H-4 added
   `x_ocr_secret != OCR_SHARED_SECRET`. Swap for `hmac.compare_digest`. Low practical risk (internal service, no host
   port, random high-entropy secret) — defense-in-depth polish. `gate: none (un-gated)` `source: agent-found 2026-10-10 (H-4 review)`

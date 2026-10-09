@@ -1,17 +1,22 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-10-10 (loop slot 24 — v0.1.1 wave 4/10 done — 🌙 FULL AUTO, owner asleep)
+**Last updated:** 2026-10-10 (loop slot 24 — v0.1.1 wave 5/10 done — 🌙 FULL AUTO, owner asleep)
 - 🌙 **FULL AUTO MODE** (owner-set 2026-10-10, owner asleep) — run EVERY reboot, NO approval questions; serial
   one-task-at-a-time; `[HOW]`=self, `[WHAT]`=defer to PENDING_DECISIONS.md. Preset `library/full-auto-mode-preset.md`.
 - **CURRENT:** `main` @ `9ba2472`..(+docs) — PUBLIC repo `bonitobonita24/Orqafy-Self-Hosted`, release **v0.1.0**.
-  Dev stack on http://localhost:56483 (restart=no). **v0.1.1 audit wave IN PROGRESS: H-1/H-2/H-3/H-4 DONE+PM-verified,
-  each on its own branch off `main`, LOCAL/HARD HOLD (NOT merged, NOT pushed):** `fix/audit-h1-spi-gate-bypass`
+  Dev stack on http://localhost:56483 (restart=no). **v0.1.1 audit wave IN PROGRESS: H-1/H-2/H-3/H-4/H-5 DONE+PM-verified,
+  each on its own branch (NOT merged, NOT pushed), LOCAL/HARD HOLD:** `fix/audit-h1-spi-gate-bypass`
   `e60d753` · `fix/audit-h2-deactivated-session` `a567c50` · `fix/audit-h3-web-login-ratelimit` `b378137` ·
-  `fix/audit-h4-ocr-hardening` `47da244` (OCR deps+non-root+shared-secret+decompression guard; jobs 17/17, Trivy fs 0).
-  Each re-verified in isolation. 0 open [WHAT].
+  `fix/audit-h4-ocr-hardening` `47da244` (OCR deps+non-root+shared-secret+decompression guard; jobs 17/17, Trivy fs 0) ·
+  `fix/audit-h5-stale-base-layers` `e026d82` (STACKED on h4 — OCR Dockerfile overlap; apt/apk upgrade + drop bundled
+  npm/pip + pnpm pin 10.34.6 + overrides; OCR 2→0 fixable CRIT/HIGH, app/worker 68→34; full gates green incl.
+  352 tests + web build). Each re-verified in isolation. 0 open [WHAT].
+  ⚠ Residual 34 app/worker fixable = vite/vitest toolchain cluster → carved to a NEW TASK_QUEUE task (NOT a base
+  layer, does NOT gate the 10-item wave). ⚠ Concurrency flag: other `orqafy-*` sessions seen active on this repo
+  at slot-24 start — verify git/branch ground truth before any merge.
   ✅ **Anomaly RESOLVED:** the "loop STOPPED 2026-09-27" vs slot-24-running note was surfaced to the owner at this
   session's start — owner confirmed the relaunch was intentional ("continue the wave"). No longer a flag.
-- **NEXT (un-gated):** continue v0.1.1 wave — **H-5** (stale base layers), then **M-1…M-5**, each one branch/fix
+- **NEXT (un-gated):** continue v0.1.1 wave — **M-1** (setup token+txn), then **M-2…M-5**, each one branch/fix
   off `main`, verified. ⚠ Dispatch each fix SERIALLY or in ISOLATED git worktrees — H-2/H-3 parallel-in-one-tree
   collided (no damage, but a footgun; see LESSONS_GLOBAL). When ALL 10 done+verified → merge the fix branches to
   `main` → `gen-release-notes` v0.1.1 → push+tag (pre-authorized by D-32; repo IS on auto-push allowlist, staging
