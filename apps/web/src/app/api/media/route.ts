@@ -20,25 +20,52 @@ export const runtime = 'nodejs';
 /** 50 MiB hard ceiling on a single upload. */
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
-/** Executable/script types are refused regardless of the rest of the payload. */
-const DENIED_EXTENSIONS = new Set(['.exe', '.sh', '.bat', '.js', '.mjs', '.cmd', '.com', '.msi']);
-const DENIED_MIME_TYPES = new Set([
-  'application/x-msdownload',
-  'application/x-msdos-program',
-  'application/x-dosexec',
-  'application/vnd.microsoft.portable-executable',
-  'application/x-executable',
-  'application/x-sh',
-  'application/x-shellscript',
-  'application/x-bat',
-  'application/x-msi',
-  'application/javascript',
-  'text/javascript',
+/**
+ * ALLOWLIST (audit M-5 — replaces the prior denylist). A denylist can never
+ * enumerate every executable/active-content type; it also trusted the
+ * client-declared MIME in isolation, so a relabeled `evil.html` sent as
+ * `image/png` sailed through on extension alone. Both the extension AND the
+ * MIME type must be in their respective allowlist — html/svg/xml/script are
+ * deliberately excluded from both sets, so neither a correctly- nor an
+ * incorrectly-labeled active-content file can pass.
+ */
+const ALLOWED_EXTENSIONS = new Set([
+  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tif', '.tiff', '.heic', '.heif', '.avif',
+  '.pdf', '.txt', '.csv',
+  '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  '.odt', '.ods', '.odp',
+  '.zip',
+]);
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff',
+  'image/heic', 'image/heif', 'image/avif',
+  'application/pdf', 'text/plain', 'text/csv',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.oasis.opendocument.text',
+  'application/vnd.oasis.opendocument.spreadsheet',
+  'application/vnd.oasis.opendocument.presentation',
+  'application/zip',
+  'application/octet-stream',
 ]);
 
 function extensionOf(name: string): string {
   const dot = name.lastIndexOf('.');
   return dot >= 0 ? name.slice(dot).toLowerCase() : '';
+}
+
+/**
+ * A file is accepted ONLY if its extension AND its declared MIME type are
+ * BOTH in the allowlist. Requiring both blocks a relabel attack either
+ * direction: `evil.html` declared as `image/png` fails on extension;
+ * `evil.png` declared as `text/html` fails on MIME.
+ */
+export function isAllowedUpload(name: string, mime: string): boolean {
+  return ALLOWED_EXTENSIONS.has(extensionOf(name)) && ALLOWED_MIME_TYPES.has(mime.toLowerCase());
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -67,10 +94,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const mimeType = file.type.length > 0 ? file.type : 'application/octet-stream';
-  if (
-    DENIED_EXTENSIONS.has(extensionOf(file.name)) ||
-    DENIED_MIME_TYPES.has(mimeType.toLowerCase())
-  ) {
+  if (!isAllowedUpload(file.name, mimeType)) {
     return NextResponse.json({ error: 'This file type is not allowed.' }, { status: 400 });
   }
 
