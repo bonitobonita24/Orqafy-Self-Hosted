@@ -2,6 +2,17 @@
 // admin — the operator creates their OWN owner/admin account interactively.
 // NO Powerbyte / universal credentials are ever seeded (D-5 hard rule). This
 // also seeds the predefined system roles as PermissionGroups (D-17).
+//
+// AUDIT M-1 (v0.1.1): createFirstAdmin was a bare publicProcedure with no
+// shared-secret gate — any first visitor to a freshly-deployed install could
+// race to claim the owner account — AND its "already set up" guard
+// (`user.count()`) ran OUTSIDE the `$transaction`, so two concurrent requests
+// could both read count===0 and both create an owner (TOCTOU race -> two
+// owners). Fixed by: (1) requiring a `setupToken` matched against
+// `process.env.SETUP_TOKEN` in constant time before any DB work, and (2)
+// moving the single-setup enforcement INSIDE the transaction behind a
+// Postgres advisory lock that serializes concurrent setup attempts.
+import { timingSafeEqual } from 'crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, publicProcedure } from '../trpc';
@@ -13,7 +24,28 @@ const firstAdminInput = z.object({
   adminName: z.string().min(1, 'Your name is required.'),
   email: z.string().email(),
   password: z.string().min(8, 'Use at least 8 characters.'),
+  setupToken: z.string().min(1, 'Setup token is required.'),
 });
+
+/**
+ * Fixed Postgres advisory-lock key for first-run setup. Arbitrary bigint
+ * constant (fits a signed 64-bit int) — only ever used to serialize
+ * concurrent `createFirstAdmin` calls against each other, nothing else.
+ */
+const SETUP_ADVISORY_LOCK_KEY = 847_201_559_301n;
+
+/**
+ * Constant-time comparison of the caller-supplied setup token against
+ * SETUP_TOKEN. Guards the length check first (timingSafeEqual throws on a
+ * length mismatch) — the length check itself leaks only string length, never
+ * byte content, and SETUP_TOKEN length is not a secret worth protecting.
+ */
+function safeTokenEquals(provided: string, expected: string): boolean {
+  const a = Buffer.from(provided, 'utf8');
+  const b = Buffer.from(expected, 'utf8');
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 export const setupRouter = router({
   /** Whether the install still needs its first-run setup (no users yet). */
@@ -24,6 +56,20 @@ export const setupRouter = router({
 
   /** Create the operator's own admin account + seed org and system roles. */
   createFirstAdmin: publicProcedure.input(firstAdminInput).mutation(async ({ ctx, input }) => {
+    // 1. Shared-secret gate — BEFORE any DB work or password hashing.
+    const expectedToken = process.env.SETUP_TOKEN;
+    if (expectedToken === undefined || expectedToken.length === 0) {
+      throw new TRPCError({
+        code: 'PRECONDITION_FAILED',
+        message: 'Server is missing SETUP_TOKEN; first-run setup is disabled.',
+      });
+    }
+    if (!safeTokenEquals(input.setupToken, expectedToken)) {
+      throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid setup token.' });
+    }
+
+    // Cheap pre-transaction check — fast friendly path only, NOT authoritative
+    // (the in-transaction lock+recheck below is the real guard against the race).
     const existing = await ctx.prisma.user.count();
     if (existing > 0) {
       throw new TRPCError({ code: 'CONFLICT', message: 'Setup has already been completed.' });
@@ -33,6 +79,19 @@ export const setupRouter = router({
     const email = input.email.trim().toLowerCase();
 
     const admin = await ctx.prisma.$transaction(async (tx) => {
+      // 2. Race-safe single-setup: acquire a session-transaction advisory
+      // lock FIRST so concurrent setup attempts serialize against each
+      // other, THEN re-check user.count() as the authoritative guard. The
+      // second transaction to reach here waits for the first to commit,
+      // then sees count > 0 and throws CONFLICT — guaranteeing exactly one
+      // owner regardless of request interleaving.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${SETUP_ADVISORY_LOCK_KEY})`;
+
+      const count = await tx.user.count();
+      if (count > 0) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Setup has already been completed.' });
+      }
+
       await tx.organization.create({ data: { name: input.orgName } });
 
       // Seed the predefined system roles as PermissionGroups (D-17).
