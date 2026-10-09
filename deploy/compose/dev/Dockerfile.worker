@@ -3,7 +3,8 @@
 # worker on stale code.
 FROM node:22-alpine
 
-RUN apk add --no-cache libc6-compat openssl bash
+RUN apk add --no-cache libc6-compat openssl bash \
+  && apk upgrade --no-cache
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -18,6 +19,11 @@ COPY . .
 # that slips past .dockerignore without a TTY (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY).
 RUN CI=true pnpm install --frozen-lockfile \
   && pnpm --filter @orqafy/db exec prisma generate
+
+# Drop npm's bundled tree (audit H-5) — carries CRITICAL tar/pacote/sigstore/
+# brace-expansion CVEs and never runs at runtime (corepack->pnpm only, not npm).
+# Must run AFTER pnpm install; corepack is a separate bundle, unaffected.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # tsx watch — the worker bootstrap (src/main.ts) starts every BullMQ consumer.
 CMD ["pnpm", "--filter", "@orqafy/jobs", "dev"]
