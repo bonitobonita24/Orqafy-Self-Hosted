@@ -4,7 +4,6 @@
 // upload time — apps/web/src/app/api/media/route.ts — but this route is a
 // SECOND, independent layer that must neutralize active content regardless).
 import { describe, expect, it, vi } from 'vitest';
-import type { Session } from 'next-auth';
 
 const doc = vi.hoisted(() => ({
   row: null as null | { id: string; name: string; mimeType: string; isSPI: boolean },
@@ -15,9 +14,10 @@ vi.mock('@orqafy/db', () => ({
     document: { findUnique: () => Promise.resolve(doc.row) },
   },
 }));
-vi.mock('@/auth', () => ({
-  auth: (): Promise<Session | null> =>
-    Promise.resolve({ user: { id: 'u1' }, expires: '2099-01-01T00:00:00.000Z' } as Session),
+// The route resolves the caller via resolveRequestUserId (audit H-2 — the
+// isActive-aware bearer/cookie path), not auth() directly. Mock that module.
+vi.mock('@/server/request-auth', () => ({
+  resolveRequestUserId: (): Promise<string | null> => Promise.resolve('u1'),
 }));
 vi.mock('@/server/permissions', () => ({
   resolveUserPermissions: () => Promise.resolve(new Set(['view_finances'])),

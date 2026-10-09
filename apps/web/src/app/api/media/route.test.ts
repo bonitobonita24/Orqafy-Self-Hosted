@@ -4,15 +4,15 @@
 // EITHER direction (wrong extension on a real type, or a real extension
 // carrying a lying Content-Type).
 import { describe, expect, it, vi } from 'vitest';
-import type { Session } from 'next-auth';
 
 vi.mock('@orqafy/db', () => ({ prisma: {} }));
 vi.mock('@orqafy/storage', () => ({
   buildDocumentKey: (name: string) => `documents/u1/${name}`,
 }));
-vi.mock('@/auth', () => ({
-  auth: (): Promise<Session | null> =>
-    Promise.resolve({ user: { id: 'u1' }, expires: '2099-01-01T00:00:00.000Z' } as Session),
+// The route resolves the caller via resolveRequestUserId (audit H-2 — the
+// isActive-aware bearer/cookie path), not auth() directly. Mock that module.
+vi.mock('@/server/request-auth', () => ({
+  resolveRequestUserId: (): Promise<string | null> => Promise.resolve('u1'),
 }));
 vi.mock('@/server/permissions', () => ({
   resolveUserPermissions: () => Promise.resolve(new Set(['manage_files'])),
