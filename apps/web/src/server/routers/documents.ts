@@ -64,9 +64,12 @@ export const documentsRouter = router({
     return ctx.prisma.documentReview.count({ where: { status: 'pending' } });
   }),
 
+  // SPI docs excluded from the review tray (audit H-1) unless the caller has
+  // finance sight — mirrors `list`'s canSeeSPI/isSPI:false pattern.
   reviewTray: permissionProcedure('manage_files').query(async ({ ctx }) => {
+    const canSeeSPI = ctx.permissions.has('view_finances');
     return ctx.prisma.documentReview.findMany({
-      where: { status: 'pending' },
+      where: { status: 'pending', ...(canSeeSPI ? {} : { file: { isSPI: false } }) },
       orderBy: { confidence: 'asc' },
       include: {
         file: { select: { id: true, name: true, category: true } },
@@ -88,8 +91,15 @@ export const documentsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const review = await ctx.prisma.documentReview.findUnique({ where: { id: input.reviewId } });
+      const review = await ctx.prisma.documentReview.findUnique({
+        where: { id: input.reviewId },
+        include: { file: { select: { isSPI: true } } },
+      });
       if (review === null) throw new TRPCError({ code: 'NOT_FOUND' });
+      // H-1: a review of an SPI document is itself finance-gated.
+      if (review.file.isSPI && !ctx.permissions.has('view_finances')) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'This document is restricted.' });
+      }
 
       // Apply the human decision to the underlying document, then close the row.
       await ctx.prisma.document.update({
@@ -195,7 +205,45 @@ export const documentsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...rest } = input;
-      return ctx.prisma.document.update({ where: { id }, data: omitUndefined(rest) });
+      const canViewFinances = ctx.permissions.has('view_finances');
+
+      const doc = await ctx.prisma.document.findUnique({ where: { id }, select: { isSPI: true } });
+      if (doc === null) throw new TRPCError({ code: 'NOT_FOUND' });
+      // H-1: an SPI document's metadata (incl. ocrText) is finance-gated.
+      if (doc.isSPI && !canViewFinances) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'This document is restricted.' });
+      }
+      // Only a view_finances holder may SET or CHANGE the isSPI flag itself —
+      // otherwise a manage_files-only caller could un-gate an SPI document by
+      // flipping it to false, or gate-then-immediately-read one of their own.
+      if (rest.isSPI !== undefined && !canViewFinances) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Missing required permission(s): view_finances',
+        });
+      }
+
+      return ctx.prisma.document.update({
+        where: { id },
+        data: omitUndefined(rest),
+        select: {
+          id: true,
+          name: true,
+          storageKey: true,
+          projectId: true,
+          clientId: true,
+          category: true,
+          mimeType: true,
+          size: true,
+          ocrStatus: true,
+          isSPI: true,
+          uploadedBy: true,
+          createdAt: true,
+          updatedAt: true,
+          // ocrText deliberately omitted — it can hold SPI content and has no
+          // reason to round-trip back from a metadata edit.
+        },
+      });
     }),
 
   /** Delete a document: best-effort remove the bytes, then the metadata row. */
@@ -204,6 +252,10 @@ export const documentsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const doc = await ctx.prisma.document.findUnique({ where: { id: input.id } });
       if (doc === null) throw new TRPCError({ code: 'NOT_FOUND' });
+      // H-1: deleting an SPI document is finance-gated too.
+      if (doc.isSPI && !ctx.permissions.has('view_finances')) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'This document is restricted.' });
+      }
 
       try {
         await getStorageAdapter().deleteObject(doc.storageKey);
