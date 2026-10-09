@@ -2,6 +2,8 @@
 // Workspace source packages are compiled by Next (transpilePackages); Prisma's
 // engine stays external so it is not bundled. ESLint runs as its own turbo task
 // (`pnpm lint`), not inside `next build` — the monorepo owns one ESLint config.
+import { buildHeadersConfig } from './src/lib/security-headers.ts';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -14,6 +16,12 @@ const nextConfig = {
   typescript: {
     // Type errors MUST fail the build — this is a real static gate.
     ignoreBuildErrors: false,
+  },
+  // Security response headers (audit M-3) — CSP, HSTS, nosniff, Referrer-Policy,
+  // frame protection — applied to every route. Logic lives in
+  // src/lib/security-headers.ts (also unit-tested there).
+  async headers() {
+    return buildHeadersConfig();
   },
   webpack: (config, { webpack }) => {
     // BullMQ (pulled in via @orqafy/jobs) references an optional Valkey Glide
