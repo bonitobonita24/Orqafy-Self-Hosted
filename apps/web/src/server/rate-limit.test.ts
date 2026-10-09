@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   checkLoginRateLimit,
   checkPhotoUploadRateLimit,
+  clientIp,
   createMemoryStore,
   recordLoginFailure,
   recordLoginSuccess,
@@ -121,6 +122,76 @@ describe('rate-limit', () => {
     expect(rl.retryAfterSec).toBe(0);
   });
 });
+
+// clientIp (audit M-2): must resolve the TRUSTED proxy hop, never the
+// client-spoofable leftmost X-Forwarded-For entry.
+function reqWithHeaders(headers: Record<string, string>): Request {
+  return new Request('https://example.test/api/mobile/login', { headers });
+}
+
+describe('clientIp', () => {
+  beforeEach(() => {
+    delete process.env.TRUSTED_PROXY_HOPS;
+  });
+
+  afterEach(() => {
+    delete process.env.TRUSTED_PROXY_HOPS;
+  });
+
+  it('(a) single trusted proxy (default hops=1): resolves the sole XFF entry', () => {
+    const req = reqWithHeaders({ 'x-forwarded-for': '203.0.113.9' });
+    expect(clientIp(req)).toBe('203.0.113.9');
+  });
+
+  it('(b) SPOOF: ignores a client-prepended fake leftmost entry, trusts the proxy-appended rightmost one', () => {
+    // Attacker sets "X-Forwarded-For: 1.2.3.4" before reaching the proxy; the
+    // proxy appends the real peer IP to the right.
+    const req = reqWithHeaders({ 'x-forwarded-for': '1.2.3.4, 203.0.113.9' });
+    const resolved = clientIp(req);
+    expect(resolved).toBe('203.0.113.9');
+    expect(resolved).not.toBe('1.2.3.4');
+  });
+
+  it('(c) rotating-spoof evasion is defeated: different fake left entries, same real rightmost IP → same clientIp, shared rate-limit bucket', async () => {
+    const req1 = reqWithHeaders({ 'x-forwarded-for': 'aaa.fake.1, 203.0.113.50' });
+    const req2 = reqWithHeaders({ 'x-forwarded-for': 'zzz.fake.2, 203.0.113.50' });
+
+    const ip1 = clientIp(req1);
+    const ip2 = clientIp(req2);
+    expect(ip1).toBe(ip2);
+    expect(ip1).toBe('203.0.113.50');
+
+    // Drive both through the real limiter store and confirm they land in the
+    // SAME per-IP bucket (an attacker rotating the spoofed entry cannot reset
+    // or evade the counter).
+    const store = frozenStore();
+    const r1 = await checkLoginRateLimit(store, { ip: ip1, email: null });
+    const r2 = await checkLoginRateLimit(store, { ip: ip2, email: null });
+    expect(r1.allowed).toBe(true);
+    expect(r2.allowed).toBe(true);
+    expect(await store.get(ipKeyForTest(ip1))).toBe(2);
+  });
+
+  it('(d) TRUSTED_PROXY_HOPS=2 resolves the 2nd-from-right entry (the hop before the edge proxy)', () => {
+    process.env.TRUSTED_PROXY_HOPS = '2';
+    const req = reqWithHeaders({ 'x-forwarded-for': 'fake, realclient, proxy1' });
+    expect(clientIp(req)).toBe('realclient');
+  });
+
+  it('(e) falls back to x-real-ip when XFF is absent, then to "unknown" with no headers', () => {
+    const reqRealIp = reqWithHeaders({ 'x-real-ip': '198.51.100.7' });
+    expect(clientIp(reqRealIp)).toBe('198.51.100.7');
+
+    const reqNone = reqWithHeaders({});
+    expect(clientIp(reqNone)).toBe('unknown');
+  });
+});
+
+// Mirrors the private `ipKey()` helper in rate-limit.ts (not exported) so the
+// rotating-spoof test can assert the underlying store bucket directly.
+function ipKeyForTest(ip: string): string {
+  return `rl:mlogin:ip:${ip}`;
+}
 
 // Photo-upload limiter (F3): per-user, defaults 60 per 600 s.
 const PHOTO_MAX = 60;
