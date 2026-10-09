@@ -1,6 +1,18 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-10-10 (loop slot 24 — v0.1.1 wave 9/9 un-gated fixes DONE, release gated on M-4b [WHAT] — 🌙 FULL AUTO)
+**Last updated:** 2026-10-10 (loop slot 24 — v0.1.1 RELEASED: 9 audit fixes merged to main + pushed; M-4b closed per D-33)
+
+- ✅ **v0.1.1 SHIPPED (2026-10-10).** Owner approved option (b) — keep repo dev-only, scope out M-4b (D-33) — then
+  "merge and push v0.1.1". All 10 fix branches merged to `main` (`--no-ff`, verified SHAs preserved; order
+  h1..h5,m1..m5). Two merge conflicts/integration issues caught + fixed by the COMBINED gate BEFORE push:
+  (1) `docker-compose.app.yml` ocr-service conflict — H-4's no-host-port supersedes M-4a's 127.0.0.1 bind (resolved);
+  (2) M-5 media route tests mocked the pre-H-2 `@/auth` while H-2 switched the routes to `resolveRequestUserId` —
+  tests re-mocked `@/server/request-auth` (production code unchanged). Combined main FULLY green: typecheck 10/10,
+  lint 10/10, test 7/7 workspaces (web 185, mobile 157, +jobs/storage/geofence/shared), web build. Then
+  `gen-release-notes` v0.1.0→v0.1.1 + CHANGELOG + annotated tag, pushed `main` + tag (D-32 pre-auth, allowlist,
+  STAGING ceiling — prod/demo stay MANUAL). See the release/push note below for the exact pushed SHA + CI.
+- Follow-up now un-gated (H-4 on main): OCR hmac constant-time compare polish. Post-v1 owner-gated: vite/vitest MAJOR upgrade (ORQ-51).
+
 - 🌙 **FULL AUTO MODE** (owner-set 2026-10-10, owner asleep) — run EVERY reboot, NO approval questions; serial
   one-task-at-a-time; `[HOW]`=self, `[WHAT]`=defer to PENDING_DECISIONS.md. Preset `library/full-auto-mode-preset.md`.
 - **CURRENT:** `main` @ `9ba2472`..(+docs, tip `31934fa`+this save) — PUBLIC repo `bonitobonita24/Orqafy-Self-Hosted`,

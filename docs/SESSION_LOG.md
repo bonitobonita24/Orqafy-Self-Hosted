@@ -4,6 +4,16 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-10-10 — Release: v0.1.1 security audit fixes merged + pushed
+
+**In your words:** "keep the repo dev-only, scope out M-4b, merge and push v0.1.1."
+
+✅ **Decision locked (D-33)** — M-4b (production compose) closed as will-not-do-in-repo; the repo stays dev-only and the prod/staging/demo stacks remain Komodo-managed server-side. M-4a's localhost binding already removed the exposure risk.
+✅ **All 10 fix branches merged to `main`** (H-1..H-5, M-1..M-5), each as a `--no-ff` merge so the verified commits are preserved. Resolved one real conflict (OCR service in the compose file — kept H-4's stronger "no host port at all") and one integration break the combined test run caught: M-5's media tests were mocking the old auth module, but H-2 had rewired those routes — fixed the test mocks (your app code was already correct).
+✅ **Full suite green on the merged result** before anything was pushed — typecheck 10/10, lint 10/10, tests across all workspaces (web 185, mobile 157, + the rest), and the web production build.
+✅ **Released v0.1.1** — version bumped, changelog generated, annotated tag, pushed `main` + tag. This reaches your CI/staging only; production and demo stay manual by rule.
+💬 **One follow-up now unblocked** (H-4 is on main): the small OCR constant-time-compare polish. The vite/vitest major upgrade stays a post-v1 task.
+
 ## 2026-10-10 — Full Auto: M-1…M-5 security fixes (9/9 un-gated done; release gated on one decision)
 
 **In your words:** (Full Auto, you asleep) — finish the v0.1.1 security-audit wave, M-1 onward.

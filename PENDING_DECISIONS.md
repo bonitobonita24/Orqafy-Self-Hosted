@@ -54,24 +54,15 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
 
 ## 🔴 Open
 
-- [ ] **[WHAT] Production compose — author now, or stay dev-only? (audit M-4b, surfaced 2026-10-10)**
-      The v0.1.1 audit fix M-4 was "bind dev ports to 127.0.0.1 **+ ship a prod compose**." The binding
-      half (**M-4a**) is done — un-gated security fix, branch `fix/audit-m4-compose-bind`. The **prod-compose
-      half is deferred** because it is a deploy-posture/topology decision, not a [HOW]:
-      • This repo ships **dev-only** by lock — `deploy/compose/start.sh` hard-refuses any non-dev env
-        ("only the 'dev' environment exists, HARD HOLD, D-3"), and only `deploy/compose/dev/*` exists.
-      • Staging/demo deploy to **EC2-Komodo**, prod to **Hostinger** (infra broadcast 2026-09-11) — those
-        stacks are Komodo-managed (files-on-host), so a correct prod compose needs the Komodo/Traefik labels,
-        image-registry source, mandatory resource limits (framework V32.10), and SOPS-sourced secrets, none of
-        which should be guessed into a **public AGPL repo**.
-      DECISION NEEDED: (a) author a canonical hardened prod compose in-repo now (owner confirms topology:
-      Komodo-managed vs standalone, image source, secrets wiring); (b) keep the repo dev-only and treat the
-      prod/staging stack as server-side (Server-Setups / Komodo), scoping M-4b OUT of the release; (c) defer
-      to a dedicated post-v0.1.1 infra task. **Recommendation: (b)** for v0.1.1 — the binding fix already
-      removes the LAN-exposure risk; the prod stack is an infra-topology concern better owned server-side.
-      ⚠ This is the ONLY item blocking the "all 10 fixes done → merge+push v0.1.1" gate; the other 9 fixes
-      (H-1…H-5, M-1…M-3, M-4a, M-5) are independent and will be merged/pushed once M-4b is answered or scoped out.
-      Back-port to `docs/DECISIONS_LOG.md` once answered.
+_(none)_
+
+## ✅ Resolved (2026-10-10, v0.1.1 release)
+
+- [x] **[WHAT] Production compose — author now, or stay dev-only? (audit M-4b)** → **D-33**: option (b) —
+      **keep the repo dev-only; scope M-4b OUT of v0.1.1** (owner, 2026-10-10: "keep the repo dev-only, scope
+      out M-4b, merge and push v0.1.1"). M-4a's 127.0.0.1 binding already removes the LAN-exposure risk; the
+      prod/staging/demo stacks are Komodo-managed server-side (EC2-Komodo + Hostinger), not committed into this
+      public AGPL repo. v0.1.1 ships the 9 verified fixes. Back-ported to `docs/DECISIONS_LOG.md` D-33.
 
 ## ✅ Resolved (2026-09-06, v1-scope resolution)
 

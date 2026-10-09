@@ -57,11 +57,10 @@ the fix is in + a regression test where the fix is app code + gates green (typec
   `2e6593c`, verified via `docker compose config` static render — all 10 published ports bind `127.0.0.1`,
   PM-verified; LOCAL/HARD HOLD). Fix: prefixed every published dev port (valkey/minio×2/mailhog×2/pgadmin/postgres/
   pgbouncer/app/ocr) with `127.0.0.1:`; internal container ports untouched. `source: audit 2026-09-27`
-- ⛔ **M-4b · Ship a production compose** — DEFERRED as `[WHAT]` (see `PENDING_DECISIONS.md` 🔴 Open, 2026-10-10).
-  Conflicts with the D-3/`start.sh` dev-only lock + the EC2-Komodo/Hostinger topology (infra broadcast); a correct
-  prod compose needs owner-confirmed topology/secrets/limits, risky to fabricate into a public AGPL repo.
-  Recommendation (b): keep repo dev-only for v0.1.1, prod stack owned server-side. **This is the ONLY item gating
-  the all-10-done → merge+push v0.1.1.** `source: audit 2026-09-27 (M-4 split)`
+- ✅ **M-4b · Ship a production compose** — CLOSED (will-not-do-in-repo) 2026-10-10 per **D-33**: owner chose
+  option (b) — keep the repo dev-only; the prod/staging/demo stacks are Komodo-managed server-side (EC2-Komodo +
+  Hostinger), not committed into this public AGPL repo. M-4a's 127.0.0.1 binding already removed the exposure.
+  `source: audit 2026-09-27 (M-4 split)`
 - ✅ **M-5 · `/api/media/[id]` serves client-declared Content-Type** — DONE 2026-10-10 (branch
   `fix/audit-m5-media-content-type` `1f02f74`, 16 regression tests (146 web tests), gates green, PM-verified;
   LOCAL/HARD HOLD). Fix: layer 1 — download route serves `safeDownloadContentType()` (risky types→octet-stream) +

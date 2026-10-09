@@ -424,3 +424,15 @@ the footer credit (D-29). Back-ported to PRODUCT.md 2026-09-27.
 audit — each on its own branch, verified locally, merged to `main` — then push as release **v0.1.1**. The owner
 pre-authorized that push once gates are green and PM-verified. The 10 LOW items (L-1…L-10) go to the backlog.
 **Source:** `test-artifacts/audit-2026-09-27/REPORT.md` (gitignored). Queue: `docs/TASK_QUEUE.md`.
+
+### D-33 · M-4 production compose — repo stays dev-only (owner, 2026-10-10)
+**Decision:** Audit fix M-4 splits in two. **M-4a (done):** every published dev-compose port binds to
+`127.0.0.1` only — this removes the LAN-exposure risk the finding was about. **M-4b (scoped OUT of v0.1.1):**
+do NOT author a production compose in this repo. The repo is deliberately **dev-only** (D-3; `deploy/compose/
+start.sh` refuses any non-dev env), and the staging/demo/prod stacks are **Komodo-managed on the server**
+(EC2-Komodo for staging/demo, Hostinger for prod — infra broadcast 2026-09-11). A production compose with the
+correct Komodo/Traefik labels, image source, resource limits, and SOPS-sourced secrets is owned **server-side**,
+not committed into this PUBLIC AGPL repo. Owner chose option (b): "keep the repo dev-only, scope out M-4b, merge
+and push v0.1.1." **Consequence:** the v0.1.1 release ships the 9 verified audit fixes (H-1…H-5, M-1…M-3, M-4a,
+M-5); M-4b is closed as will-not-do-in-repo. The OCR hmac constant-time polish remains an un-gated follow-up now
+that H-4 is on `main`.
