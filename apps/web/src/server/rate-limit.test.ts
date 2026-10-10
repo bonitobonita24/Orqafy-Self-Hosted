@@ -6,6 +6,7 @@ import {
   createMemoryStore,
   recordLoginFailure,
   recordLoginSuccess,
+  withMemoryFallback,
   type RateLimitStore,
 } from './rate-limit';
 
@@ -91,22 +92,60 @@ describe('rate-limit', () => {
     const key = 'rl:test:window';
 
     // First hit starts a 10s window; count climbs while inside it.
-    expect(await store.incr(key, 10)).toBe(1);
-    expect(await store.incr(key, 10)).toBe(2);
-    expect(await store.get(key)).toBe(2);
+    expect((await store.hit(key, 10_000)).count).toBe(1);
+    expect((await store.hit(key, 10_000)).count).toBe(2);
+    expect((await store.peek(key))?.count).toBe(2);
 
     // Advance past the window → counter restarts.
     now += 10_001;
-    expect(await store.get(key)).toBe(0);
-    expect(await store.incr(key, 10)).toBe(1);
+    expect(await store.peek(key)).toBeNull();
+    expect((await store.hit(key, 10_000)).count).toBe(1);
+  });
+
+  it('hit() is atomic — no separate read-then-write for concurrent callers to race', async () => {
+    // Drives N "concurrent" (same microtask-queued) hits against ONE key and
+    // asserts the final count is exactly N — the regression this store
+    // exists to prevent is two racing increments both reading a stale count
+    // and under-counting. The in-memory store's `hit` has no `await` between
+    // its read and its write, so every one of these resolves synchronously
+    // in registration order with no interleaving.
+    const store = createMemoryStore(() => 1_000_000);
+    const key = 'rl:test:concurrency';
+    const N = 50;
+
+    const results = await Promise.all(Array.from({ length: N }, () => store.hit(key, 10_000)));
+
+    const counts = results.map((r) => r.count).sort((a, b) => a - b);
+    expect(counts).toEqual(Array.from({ length: N }, (_, i) => i + 1));
+    expect((await store.peek(key))?.count).toBe(N);
+  });
+
+  it('hit() resetAt stays fixed within a window and only establishes TTL on the first hit', async () => {
+    const store = createMemoryStore(() => 1_000_000);
+    const key = 'rl:test:resetAt';
+
+    const first = await store.hit(key, 5_000);
+    const second = await store.hit(key, 5_000);
+    expect(first.resetAt).toBe(1_000_000 + 5_000);
+    expect(second.resetAt).toBe(first.resetAt);
+  });
+
+  it('peek() never mutates the counter', async () => {
+    const store = createMemoryStore(() => 1_000_000);
+    const key = 'rl:test:peek-readonly';
+
+    await store.hit(key, 10_000);
+    await store.peek(key);
+    await store.peek(key);
+    expect((await store.peek(key))?.count).toBe(1);
   });
 
   it('fails open when the store throws (never blocks a legit login)', async () => {
     const throwingStore: RateLimitStore = {
-      incr(): Promise<number> {
+      hit(): Promise<{ count: number; resetAt: number }> {
         return Promise.reject(new Error('store down'));
       },
-      get(): Promise<number> {
+      peek(): Promise<{ count: number; resetAt: number } | null> {
         return Promise.reject(new Error('store down'));
       },
       reset(): Promise<void> {
@@ -120,6 +159,54 @@ describe('rate-limit', () => {
     });
     expect(rl.allowed).toBe(true);
     expect(rl.retryAfterSec).toBe(0);
+  });
+});
+
+describe('withMemoryFallback', () => {
+  function throwingStore(): RateLimitStore {
+    return {
+      hit: () => Promise.reject(new Error('valkey down')),
+      peek: () => Promise.reject(new Error('valkey down')),
+      reset: () => Promise.reject(new Error('valkey down')),
+    };
+  }
+
+  it('falls back to the fallback store on hit() when primary throws', async () => {
+    const fallback = createMemoryStore(() => 1_000_000);
+    const store = withMemoryFallback(throwingStore(), fallback);
+
+    const result = await store.hit('rl:test:fb-a', 10_000);
+    expect(result.count).toBe(1);
+    // The fallback's own state was actually mutated, not just a one-off value.
+    expect((await fallback.peek('rl:test:fb-a'))?.count).toBe(1);
+  });
+
+  it('falls back on peek() and reset() too', async () => {
+    const fallback = createMemoryStore(() => 1_000_000);
+    const store = withMemoryFallback(throwingStore(), fallback);
+
+    await fallback.hit('rl:test:fb-b', 10_000);
+    expect((await store.peek('rl:test:fb-b'))?.count).toBe(1);
+
+    await store.reset('rl:test:fb-b');
+    expect(await fallback.peek('rl:test:fb-b')).toBeNull();
+  });
+
+  it('never throws even when both the primary error path and fallback succeed', async () => {
+    const fallback = createMemoryStore(() => 1_000_000);
+    const store = withMemoryFallback(throwingStore(), fallback);
+
+    await expect(store.hit('rl:test:fb-c', 10_000)).resolves.toBeDefined();
+  });
+
+  it('uses the primary store directly when it succeeds (no fallback mutation)', async () => {
+    const primary = createMemoryStore(() => 1_000_000);
+    const fallback = createMemoryStore(() => 1_000_000);
+    const store = withMemoryFallback(primary, fallback);
+
+    await store.hit('rl:test:fb-d', 10_000);
+    expect((await primary.peek('rl:test:fb-d'))?.count).toBe(1);
+    expect(await fallback.peek('rl:test:fb-d')).toBeNull();
   });
 });
 
@@ -169,7 +256,7 @@ describe('clientIp', () => {
     const r2 = await checkLoginRateLimit(store, { ip: ip2, email: null });
     expect(r1.allowed).toBe(true);
     expect(r2.allowed).toBe(true);
-    expect(await store.get(ipKeyForTest(ip1))).toBe(2);
+    expect((await store.peek(ipKeyForTest(ip1)))?.count).toBe(2);
   });
 
   it('(d) TRUSTED_PROXY_HOPS=2 resolves the 2nd-from-right entry (the hop before the edge proxy)', () => {
@@ -221,8 +308,8 @@ describe('checkPhotoUploadRateLimit', () => {
 
   it('fails open when the store throws', async () => {
     const throwingStore: RateLimitStore = {
-      incr: () => Promise.reject(new Error('store down')),
-      get: () => Promise.reject(new Error('store down')),
+      hit: () => Promise.reject(new Error('store down')),
+      peek: () => Promise.reject(new Error('store down')),
       reset: () => Promise.reject(new Error('store down')),
     };
     expect(await checkPhotoUploadRateLimit(throwingStore, 'u1')).toEqual({
