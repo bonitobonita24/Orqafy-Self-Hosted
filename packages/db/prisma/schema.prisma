@@ -484,7 +484,10 @@ model AuditLog {
   metadata   Json?
   timestamp  DateTime        @default(now())
 
-  user User? @relation(fields: [userId], references: [id])
+  /// RESTRICT (not the Prisma-implied SET NULL for an optional relation):
+  /// audit integrity requires a User row can never be hard-deleted while
+  /// AuditLog rows still point at it as the acting user.
+  user User? @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@index([targetType, targetId])
