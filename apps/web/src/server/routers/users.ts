@@ -4,40 +4,17 @@
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import type { Permission, PermissionGroup, UserPermissionOverride } from '@orqafy/db';
+import type { Permission } from '@orqafy/db';
 import { permissionEnum, systemRoleEnum, eraseUserSchema } from '@orqafy/shared';
 import { router, protectedProcedure, permissionProcedure } from '../trpc';
 import { omitUndefined } from '../util';
 import { writeAudit } from '../audit';
 import { hashPassword } from '../../lib/password';
+import { computeEffectivePermissions } from '../permissions';
 
 const manageUsers = () => permissionProcedure('manage_users');
 
 const ADMIN_PERMISSIONS: readonly Permission[] = ['manage_users', 'configure_server'];
-
-/**
- * Effective permission set for a user fetched with { role, groups, overrides }
- * (role ∪ groups, overrides applied last) — the SAME resolution algorithm as
- * `server/permissions.ts#resolveUserPermissions`, duplicated here so it runs
- * against `ctx.prisma` (test-mockable) instead of the global `prisma` import
- * that function uses internally.
- */
-function effectivePermissions(user: {
-  role: PermissionGroup;
-  groups: PermissionGroup[];
-  overrides: UserPermissionOverride[];
-}): Set<Permission> {
-  const effective = new Set<Permission>();
-  for (const perm of user.role.permissions) effective.add(perm);
-  for (const group of user.groups) {
-    for (const perm of group.permissions) effective.add(perm);
-  }
-  for (const override of user.overrides) {
-    if (override.granted) effective.add(override.permission);
-    else effective.delete(override.permission);
-  }
-  return effective;
-}
 
 function hasAdminPower(perms: ReadonlySet<Permission>): boolean {
   return ADMIN_PERMISSIONS.some((p) => perms.has(p));
@@ -157,12 +134,12 @@ export const usersRouter = router({
       // (manage_users or configure_server, via role ∪ groups ∪ overrides —
       // same resolution as context.ts/trpc.ts), at least one OTHER active,
       // non-erased user must retain that power after this erasure.
-      if (hasAdminPower(effectivePermissions(target))) {
+      if (hasAdminPower(computeEffectivePermissions(target))) {
         const others = await ctx.prisma.user.findMany({
           where: { id: { not: target.id }, isActive: true, anonymizedAt: null },
           include: { role: true, groups: true, overrides: true },
         });
-        const adminRemains = others.some((u) => hasAdminPower(effectivePermissions(u)));
+        const adminRemains = others.some((u) => hasAdminPower(computeEffectivePermissions(u)));
         if (!adminRemains) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
