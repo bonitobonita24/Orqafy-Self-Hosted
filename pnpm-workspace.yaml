@@ -8,3 +8,40 @@ packages:
 minimumReleaseAge: 1440
 trustPolicy: no-downgrade
 blockExoticSubdeps: true
+
+# trustPolicyExclude — investigated, confirmed-legitimate trust downgrades only.
+# tailwind-merge@2.6.1 (packages/ui dep): published 2026-01-30 by the SAME
+# long-standing maintainer (dcastil) as every other release incl. current
+# latest 3.7.0; GitHub release v2.6.1 is a real tagged release whose diff vs
+# v2.6.0 is a 1-line backported bugfix (src/lib/validators.ts, PR #591,
+# "backported from v3.3.1") plus routine CI/dependency-bump commits — no
+# unexpected code. npm registry tarball integrity for 2.6.1
+# (sha512-Oo6tHdpZsGpkKG88HJ8RR1rg/RdnEkQEfMoEk2x1XRI3F1AxeU+ijRXpiVUF4UbLfcxxRGw6TbUINKYdWVsQTQ==)
+# matches pnpm-lock.yaml exactly. The "downgrade" is real but benign: npm
+# provenance attestations are present on 2.0.0–2.5.5 and resume on 3.0.0+, but
+# are MISSING specifically on 2.6.0/2.6.1 — the same release that also carries
+# a "Update publish workflow" commit, i.e. a publish-pipeline/CI migration
+# that temporarily dropped provenance for that one patch release (the
+# documented legitimate-trust-downgrade case in pnpm's own supply-chain-
+# security guide). tailwind-merge v3 requires Tailwind CSS v4 (this repo is on
+# tailwindcss@^3.4.17, apps/web/package.json) so bumping past 2.x is a
+# separate, larger migration — not a substitute fix here.
+#
+# next-auth@5.0.0-beta.32 (apps/web dep, via @orqafy/api-client): published
+# 2026-07-20 by Gustavo Valverde (GitHub: gustavovalverde / npm: better-gustavo,
+# a listed maintainer alongside balazsorban + bekacru — not a replacement, an
+# addition). GitHub release next-auth@5.0.0-beta.32 in nextauthjs/next-auth is
+# real and tagged, with a legitimate security-fix changelog (malformed Bearer
+# token handling, OAuth check cookies, NFKC email normalization, fail-closed
+# auth checks). The compare vs beta.31 is a large (69-file) ordinary
+# maintenance diff — Dependabot security-advisory overrides, CI/docs repair
+# commits, multiple known contributors (Bereket Engida/bekacru, Gustavo
+# Valverde, Adrian Dobrzyński) — version-bumped by the repo's own "GitHub
+# Actions" release bot commit, not a manual/out-of-band publish. The missing
+# provenance vs beta.29 (which had it) lines up with commits in that same
+# diff actively repairing the CI/release pipeline ("fix repair main CI
+# formatting and proxy deploy") — the same legitimate CI-migration pattern as
+# tailwind-merge above, not a takeover indicator.
+trustPolicyExclude:
+  - tailwind-merge@2.6.1
+  - next-auth@5.0.0-beta.32

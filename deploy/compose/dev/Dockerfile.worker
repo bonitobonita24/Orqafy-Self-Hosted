@@ -29,6 +29,20 @@ COPY . .
 # so its Prisma client must be generated — same step as Dockerfile.app.
 # CI=true (install-scoped, not persistent ENV) lets pnpm purge any node_modules dir
 # that slips past .dockerignore without a TTY (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY).
+#
+# NOTE — scoping this install to `--filter "...@orqafy/jobs"` (jobs + its own
+# dependency graph: @orqafy/db, @orqafy/shared, @orqafy/storage — none of which
+# depend on @orqafy/ui) was investigated as a fix for the tailwind-merge trust
+# gate below, but does NOT work end-to-end: the later `pnpm deploy --legacy`
+# step (shared-lockfile based) still performs its own full-workspace
+# consistency pass and hits the same @orqafy/ui resolution regardless of this
+# install's scope. A scoped install also silently drops @orqafy/db's own
+# `prisma` devDependency unless db is ALSO named as its own explicit `--filter`
+# target (pnpm only installs devDependencies for projects named directly by a
+# selector, not ones reached only via `...`'s dependency walk) — two
+# non-obvious footguns for no net gain once the trust gate itself is fixed
+# below. Left as a plain full-workspace install; see
+# pnpm-workspace.yaml's `trustPolicyExclude` for the actual fix + evidence.
 RUN CI=true pnpm install --frozen-lockfile \
   && pnpm --filter @orqafy/db exec prisma generate
 
