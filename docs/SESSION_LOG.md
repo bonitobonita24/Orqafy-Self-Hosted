@@ -4,6 +4,21 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-10-10 (evening) — Follow-ups, audit LOW backlog, Phase 5/6, v1 data-privacy features
+
+**In your words:** "do all open follow-ups, then continue the remaining phases/stages to complete the development."
+
+✅ **3 follow-ups** — OCR sidecar hardening (constant-time secret, own size/page caps); login rate limiter now atomic on Valkey (closes the TOCTOU, live 429 on the 6th attempt); vite/vitest major upgrade (dev-image CRIT/HIGH 34 → 0).
+✅ **Audit LOW backlog** — L-1 (upload cap while streaming), L-4 (CI actions pinned + read-only), L-5 (pnpm supply-chain settings), L-6/L-8 (patched transitive deps), L-7/L-9 (via the upgrade), L-10 (worker image 2.18 GB → 551 MB, prod deps only).
+✅ **Phase 5 validation** — found 2 real v1 gaps vs the spec: SEO baseline (Rule 35) and the DPA mechanisms PRODUCT.md promises. 2 remaining Expo dev-tool CVEs have no upstream fix → accepted (D-34).
+✅ **SEO baseline** — whole app `noindex` (internal tool), robots/sitemap/metadata; Lighthouse SEO gate N/A (D-35).
+✅ **v1 data-privacy (DPA) features** — "Download my data" (header), admin export + erase per user (typed-email confirm, pseudonymize-in-place, last-admin/self guards), Settings → Privacy (DPO + retention days), daily retention sweep (report-only by default; SPI/payroll never touched), access audit log on document/photo downloads + SPI views. A background security review caught 3 export-permission holes → fixed (on-behalf export needs `manage_users`; SPI needs `view_finances`; photos follow photo-access rules).
+✅ **Phase 6 (Docker + visual QA)** — caught 2 integration blockers (worker build vs new trust policy; dev CSP blocking page hydration) and 2 data bugs (two Organization rows; first-run setup duplicating seeded roles) — all fixed. Final re-run on `main` `c7972d7`: every route renders + hydrates, OCR end-to-end, rate limiter on Valkey, all DPA flows, settings persist; app + worker FRESH.
+✅ **Board** — pipelineStage reconcile (no card claims `staging`); ORQ-53/19/51/57 → Ready to Test at `dev`.
+💬 **All LOCAL on `main` — not pushed** (HARD HOLD). `origin/main` is still v0.1.1.
+💬 **Waiting on you (PENDING_DECISIONS.md / board):** ORQ-54 (L-3 non-SPI document downloads — recommend accept), ORQ-55 (password change + admin reset — recommend yes; unblocks L-2), ORQ-56 (DPA defaults I built with), ORQ-37 (logo source).
+⛔ **Can't finish here:** Tauri desktop (needs signing certs, release host, sync-engine confirm), on-device mobile/geofence tests (hardware), Pangolin tunnel throughput (live tunnel).
+
 ## 2026-10-10 — Release: v0.1.1 security audit fixes merged + pushed
 
 **In your words:** "keep the repo dev-only, scope out M-4b, merge and push v0.1.1."

@@ -1,6 +1,21 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-10-10 (loop slot 24 — v0.1.1 RELEASED: 9 audit fixes merged to main + pushed; M-4b closed per D-33)
+**Last updated:** 2026-10-10 evening (interactive session — follow-ups + audit LOW + Phase 5/6 + v1 DPA, all on LOCAL main)
+
+- **CURRENT:** local `main` @ `c7972d7`+docs — **ahead of `origin/main` (v0.1.1 `2c86999`) by the whole 2026-10-10
+  evening wave, NOT pushed (HARD HOLD — interactive session, owner's word needed).** Combined `main`: turbo
+  typecheck/lint/test 27/27, web build green, `pnpm audit` 0 CRIT / 2 HIGH (no-fix Expo tooling, D-34). Dev stack
+  rebuilt off `c7972d7` (app + worker + ocr, `--profile ocr`), dev-freshness FRESH, 7 migrations applied, running.
+- **Done this wave (see SESSION_LOG + TASK_QUEUE Done):** ORQ-53 OCR hardening · ORQ-19 atomic Valkey rate limiter ·
+  ORQ-51 vite/vitest major · audit L-1/L-4…L-10 · Phase 5 (F-1 D-34, F-2 DPA, F-3 SEO D-35) · Phase 6 + re-run (2
+  blockers + Organization singleton + setup role reuse fixed) · ORQ-57 v1 DPA W1–W10 + export-authz review fixes.
+- **Phase status:** web v1 feature-complete vs PRODUCT.md incl. DPA; Phase 5 ✅ (residual framework-tooling items:
+  design-fidelity gate needs Playwright to render, visual baseline `tests/visual/` empty — advisory); Phase 6 ✅.
+  Mobile: build complete, on-device verification hardware-blocked. Desktop (Tauri): deferred, Q4–Q7 parked (D-30).
+- **Open [WHAT] (PENDING_DECISIONS.md):** L-3 doc downloads (ORQ-54) · password change/reset (ORQ-55, unblocks L-2) ·
+  DPA defaults (ORQ-56) · logo asset source (ORQ-37 sub-gate).
+- **NEXT un-gated:** none blocking. Optional: release the wave as v0.1.2 (push needs owner word); low items in
+  TASK_QUEUE (worker image bundling, request IP into writeAudit, uuid@14 native-build watch).
 
 - ✅ **v0.1.1 SHIPPED (2026-10-10).** Owner approved option (b) — keep repo dev-only, scope out M-4b (D-33) — then
   "merge and push v0.1.1". All 10 fix branches merged to `main` (`--no-ff`, verified SHAs preserved; order
