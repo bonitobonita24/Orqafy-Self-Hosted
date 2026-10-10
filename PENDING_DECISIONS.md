@@ -54,7 +54,20 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
 
 ## 🔴 Open
 
-_(none)_
+- [ ] **[WHAT] Audit L-3 — non-SPI document download scope** (surfaced 2026-10-10, Wave B). Any signed-in
+      user can download any document NOT flagged SPI — this matches what `documents.list` already shows them.
+      Options: (a) accept as designed (single-company install; non-SPI docs are org-shared) and document it;
+      (b) restrict download to assignees of the document's project + oversight roles (`view_all_projects`).
+      **Recommendation: (a).** Back-port to PRODUCT.md (Files section) + DECISIONS_LOG once answered.
+- [ ] **[WHAT] Password change / admin reset — not in v1 spec** (surfaced 2026-10-10 while scoping audit
+      L-2). PRODUCT.md has no password change or reset flow; the only password write is at user creation
+      (`users.create`, first-run `setup`). A user who forgets their password has no recovery path, and audit
+      L-2 (revoke the 60-day mobile token on password change) has nothing to hook into. Deactivation already
+      revokes access (per-request `isActive` re-check). Options: (a) add self-service "change password" +
+      admin "reset password" (`manage_users`), each bumping a `passwordChangedAt` that invalidates older
+      mobile tokens (closes L-2); (b) admin reset only; (c) leave out of v1. **Recommendation: (a)** — a
+      shipped multi-user app needs a recovery path, and it closes L-2 for free. No email-based reset (no
+      SMTP assumption in a LAN-first install).
 
 ## ✅ Resolved (2026-10-10, v0.1.1 release)
 
