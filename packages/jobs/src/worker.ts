@@ -8,6 +8,7 @@ import { Worker, type ConnectionOptions, type Processor } from 'bullmq';
 import type { JobDeps } from './deps';
 import { matchDocument, type ProjectRef } from './matching';
 import { QUEUE_NAMES, type JobTypeMap, type QueueKey } from './queues';
+import { runRetentionSweep } from './retention';
 
 /** A processor per queue key, each typed to that queue's data/result. */
 export type ProcessorMap = {
@@ -47,6 +48,10 @@ export const defaultProcessors: ProcessorMap = {
   // TODO(part-5): recompute milestone % + task counts for the project and
   // cache the roll-up.
   progressRollup: () => Promise.resolve(),
+
+  // Stub only used when no deps are injected (see `createProcessors` for the
+  // real implementation in `./retention.ts`).
+  retentionSweep: () => Promise.resolve({ mode: 'dry-run' as const, candidates: {}, deleted: {}, skipped: {} }),
 };
 
 /**
@@ -57,6 +62,8 @@ export const defaultProcessors: ProcessorMap = {
 export function createProcessors(deps: JobDeps): ProcessorMap {
   return {
     ...defaultProcessors,
+    retentionSweep: async (job): Promise<JobTypeMap['retentionSweep']['result']> =>
+      runRetentionSweep(deps.prisma, job.data.mode),
     ocr: async (job): Promise<JobTypeMap['ocr']['result']> => {
       const { documentId, storageKey } = job.data;
       const doc = await deps.prisma.document.findUnique({ where: { id: documentId } });
@@ -162,6 +169,7 @@ export function createWorkers(
     notificationDispatch: make('notificationDispatch'),
     scheduledReminders: make('scheduledReminders'),
     progressRollup: make('progressRollup'),
+    retentionSweep: make('retentionSweep'),
   };
 }
 

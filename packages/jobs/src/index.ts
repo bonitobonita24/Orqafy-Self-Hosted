@@ -5,5 +5,6 @@
 export * from './connection';
 export * from './queues';
 export * from './worker';
+export { runRetentionSweep } from './retention';
 export type { JobDeps } from './deps';
 export type { OcrClient, OcrExtraction } from './ocr';

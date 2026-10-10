@@ -15,7 +15,15 @@ describe('createProcessors', () => {
   it('returns a processor for every queue key', () => {
     const processors = createProcessors(fakeDeps);
     expect(Object.keys(processors).sort()).toEqual(
-      ['documentMatching', 'notificationDispatch', 'ocr', 'progressRollup', 'scheduledReminders', 'syncOrchestration'].sort(),
+      [
+        'documentMatching',
+        'notificationDispatch',
+        'ocr',
+        'progressRollup',
+        'retentionSweep',
+        'scheduledReminders',
+        'syncOrchestration',
+      ].sort(),
     );
   });
 });
