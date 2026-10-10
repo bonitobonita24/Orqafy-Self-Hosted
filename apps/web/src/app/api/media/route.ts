@@ -68,6 +68,50 @@ export function isAllowedUpload(name: string, mime: string): boolean {
   return ALLOWED_EXTENSIONS.has(extensionOf(name)) && ALLOWED_MIME_TYPES.has(mime.toLowerCase());
 }
 
+function tooLarge(): Response {
+  return NextResponse.json(
+    { error: `File exceeds the ${MAX_UPLOAD_BYTES}-byte limit.` },
+    { status: 413 },
+  );
+}
+
+/** Thrown by {@link readBodyWithCap} the instant the running total crosses the cap. */
+class PayloadTooLargeError extends Error {}
+
+/**
+ * Reads the request body as a stream, enforcing `capBytes` WHILE reading
+ * instead of after (audit L-1). A lying or missing Content-Length must never
+ * let an oversized body be buffered in memory before the limit is checked —
+ * so this never calls `req.arrayBuffer()`/`formData()`/`blob()` on the raw,
+ * unbounded body. The moment the accumulated byte count exceeds the cap, the
+ * reader is cancelled and reading stops.
+ */
+async function readBodyWithCap(req: Request, capBytes: number): Promise<Buffer> {
+  const reader = req.body?.getReader();
+  if (reader === undefined) {
+    return Buffer.alloc(0);
+  }
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > capBytes) {
+      // Stop pulling more chunks. Swallow a cancel() rejection — some
+      // Request body producers (notably a multipart/FormData-encoded body)
+      // throw from their internal source when cancelled mid-stream; that
+      // failure is irrelevant here since the body is being discarded anyway.
+      reader.cancel().catch(() => {});
+      throw new PayloadTooLargeError();
+    }
+    chunks.push(value);
+  }
+
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
+}
+
 export async function POST(req: Request): Promise<Response> {
   const userId = await resolveRequestUserId(req);
   if (userId === null) {
@@ -79,17 +123,47 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({ error: 'Missing permission: manage_files' }, { status: 403 });
   }
 
-  const form = await req.formData();
+  // Reject an oversized declared Content-Length before touching the body at
+  // all (audit L-1). This is an early fast-path only — a missing or
+  // understated/lying Content-Length falls through to the bounded stream
+  // read below, which is the actual enforcement.
+  const declaredRaw = req.headers.get('content-length');
+  if (declaredRaw !== null && /^\d+$/.test(declaredRaw.trim())) {
+    const declared = Number(declaredRaw.trim());
+    if (Number.isSafeInteger(declared) && declared > MAX_UPLOAD_BYTES) {
+      return tooLarge();
+    }
+  }
+
+  let buffered: Buffer;
+  try {
+    buffered = await readBodyWithCap(req, MAX_UPLOAD_BYTES);
+  } catch (err) {
+    if (err instanceof PayloadTooLargeError) return tooLarge();
+    return NextResponse.json({ error: 'Expected multipart/form-data.' }, { status: 400 });
+  }
+
+  // formData() needs a Request to parse the multipart boundary from; the
+  // original request's body stream is already fully consumed above, so
+  // rebuild one from the bounded buffer instead of re-reading it.
+  let form: FormData;
+  try {
+    form = await new Request(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body: new Uint8Array(buffered),
+    }).formData();
+  } catch {
+    return NextResponse.json({ error: 'Expected multipart/form-data.' }, { status: 400 });
+  }
+
   const file = form.get('file');
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
   }
 
   if (file.size > MAX_UPLOAD_BYTES) {
-    return NextResponse.json(
-      { error: `File exceeds the ${MAX_UPLOAD_BYTES}-byte limit.` },
-      { status: 413 },
-    );
+    return tooLarge();
   }
 
   const mimeType = file.type.length > 0 ? file.type : 'application/octet-stream';

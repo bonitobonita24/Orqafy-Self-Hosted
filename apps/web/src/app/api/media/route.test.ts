@@ -73,3 +73,60 @@ describe('POST /api/media — upload allowlist enforcement (audit M-5)', () => {
     expect((await res.json()).mimeType).toBe('image/png');
   });
 });
+
+// audit L-1 — the 50 MiB cap must be enforced WHILE the body is read, never
+// after the whole thing has already been buffered via arrayBuffer()/formData().
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+
+function uploadRequestOfSize(sizeBytes: number): Request {
+  const form = new FormData();
+  form.set('file', new File([new Uint8Array(sizeBytes)], 'big.png', { type: 'image/png' }));
+  return new Request('http://localhost/api/media', { method: 'POST', body: form });
+}
+
+/**
+ * A raw oversized body with an explicit (possibly lying) Content-Length.
+ * Deliberately NOT FormData-encoded: the cap must be enforced on raw body
+ * bytes before any multipart parsing is attempted, so a plain byte stream
+ * exercises the same `readBodyWithCap` path without engaging the FormData
+ * multipart encoder (whose chunked producer keeps pushing after a consumer
+ * cancel — a Node/undici body-stream quirk unrelated to this fix).
+ */
+function rawBodyRequest(sizeBytes: number, contentLengthHeader: string | undefined): Request {
+  const headers = new Headers({ 'content-type': 'multipart/form-data; boundary=x' });
+  if (contentLengthHeader !== undefined) headers.set('content-length', contentLengthHeader);
+  return new Request('http://localhost/api/media', {
+    method: 'POST',
+    headers,
+    body: new Blob([new Uint8Array(sizeBytes)]),
+  });
+}
+
+describe('POST /api/media — upload size cap enforced while streaming (audit L-1)', () => {
+  it('413s when the declared Content-Length exceeds the cap, without reading the body', async () => {
+    const req = rawBodyRequest(1024, String(MAX_UPLOAD_BYTES + 1));
+    const res = await POST(req);
+    expect(res.status).toBe(413);
+    expect((await res.json()).error).toContain(`${MAX_UPLOAD_BYTES}-byte limit`);
+  });
+
+  it('413s an oversized body even with a lying/understated Content-Length header', async () => {
+    const req = rawBodyRequest(MAX_UPLOAD_BYTES + 1024, '10');
+    const res = await POST(req);
+    expect(res.status).toBe(413);
+  });
+
+  it('413s an oversized body with no Content-Length header at all', async () => {
+    const req = rawBodyRequest(MAX_UPLOAD_BYTES + 1024, undefined);
+    const res = await POST(req);
+    expect(res.status).toBe(413);
+  });
+
+  it('accepts an in-cap upload unchanged', async () => {
+    const res = await POST(uploadRequestOfSize(1024));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.name).toBe('big.png');
+    expect(json.size).toBeGreaterThan(0);
+  });
+});
