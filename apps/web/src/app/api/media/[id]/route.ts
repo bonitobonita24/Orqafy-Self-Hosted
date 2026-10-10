@@ -20,6 +20,7 @@ import { ObjectNotFoundError } from '@orqafy/storage';
 import { resolveRequestUserId } from '@/server/request-auth';
 import { resolveUserPermissions } from '@/server/permissions';
 import { getStorageAdapter } from '@/server/storage';
+import { writeAudit } from '@/server/audit';
 
 // Streaming a Buffer/Uint8Array body needs the Node.js runtime.
 export const runtime = 'nodejs';
@@ -93,6 +94,21 @@ export async function GET(
       return NextResponse.json({ error: 'File bytes missing.' }, { status: 404 });
     }
     throw err;
+  }
+
+  // DPA W10: log the SUCCESSFUL authorized byte download (never a denial — the
+  // 401/403/404 branches above already returned). Audit write failure must
+  // never break the download: fail-open on the audit write, never on authz.
+  try {
+    await writeAudit(prisma, {
+      userId,
+      action: 'document.download',
+      targetType: 'document',
+      targetId: doc.id,
+      metadata: { isSPI: doc.isSPI },
+    });
+  } catch (err) {
+    console.warn('Audit write failed (document.download)', err);
   }
 
   const safeName = headerSafeName(doc.name);

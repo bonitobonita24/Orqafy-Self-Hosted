@@ -15,6 +15,7 @@ import { resolveRequestUserId } from '@/server/request-auth';
 import { resolveUserPermissions } from '@/server/permissions';
 import { getStorageAdapter } from '@/server/storage';
 import { handlePhotoDownload } from '@/server/photo-download';
+import { writeAudit } from '@/server/audit';
 
 // Streaming a Uint8Array body + the aws-sdk require the Node.js runtime.
 export const runtime = 'nodejs';
@@ -50,6 +51,13 @@ export async function GET(
         }),
       resolvePermissions: resolveUserPermissions,
       getObject: (key) => getStorageAdapter().getObject(key),
+      writeAudit: ({ userId, targetId }) =>
+        writeAudit(prisma, {
+          userId,
+          action: 'photo.download',
+          targetType: 'photo',
+          targetId,
+        }),
     },
     { photoId: id, req },
   );

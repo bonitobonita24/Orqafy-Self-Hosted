@@ -32,6 +32,14 @@ export interface PhotoDownloadDeps {
   findPhoto(id: string): Promise<StoredPhoto | null>;
   resolvePermissions(userId: string): Promise<ReadonlySet<Permission>>;
   getObject(key: string): Promise<{ body: Uint8Array; size: number; contentType?: string }>;
+  /**
+   * DPA W10 access audit — called ONLY on a successful (200) authorized
+   * download, never on a 401/404/500. Injected (rather than importing
+   * `writeAudit` + prisma directly) so this handler stays DB-free and
+   * unit-testable. The route wraps the real `writeAudit` and MUST swallow its
+   * own errors — a broken audit write must never break the download.
+   */
+  writeAudit(input: { userId: string; targetId: string }): Promise<void>;
 }
 
 /** A normalized result the thin route maps to a NextResponse (no Next import here). */
@@ -76,6 +84,16 @@ export async function handlePhotoDownload(
   } catch (err) {
     if (err instanceof ObjectNotFoundError) return NOT_FOUND;
     return { status: 500, message: 'Failed to read photo.' };
+  }
+
+  // DPA W10: log the SUCCESSFUL authorized download only — the 401/404/500
+  // branches above already returned, so a denial is never recorded as one.
+  // Fail-open on the audit write (never on authz): a broken audit insert must
+  // never prevent the already-authorized bytes from being served.
+  try {
+    await deps.writeAudit({ userId, targetId: photo.id });
+  } catch (err) {
+    console.warn('Audit write failed (photo.download)', err);
   }
 
   return {
