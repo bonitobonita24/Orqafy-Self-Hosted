@@ -14,3 +14,4 @@ export * from './leave-type';
 export * from './leave-balance';
 export * from './leave-request';
 export * from './audit-log';
+export * from './privacy';
