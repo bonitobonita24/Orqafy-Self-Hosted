@@ -68,6 +68,16 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       mobile tokens (closes L-2); (b) admin reset only; (c) leave out of v1. **Recommendation: (a)** — a
       shipped multi-user app needs a recovery path, and it closes L-2 for free. No email-based reset (no
       SMTP assumption in a LAN-first install).
+- [ ] **[WHAT] DPA wave defaults (Phase 5 F-2 build, 2026-10-10)** — building now with the conservative,
+      reversible defaults below; confirm or change:
+      (1) **Breach-notification path** — NOT in PRODUCT.md/D-20 (only a framework gap-reminder). Default:
+      **not built** (Rule 10). Optional later: minimal `breach_incident` audit action + DPO checklist page.
+      (2) **Retention categories** — `audit_log, notification, photo, document, completed_project,
+      leave_request`; 0/absent = never auto-delete; SPI/payroll never a category. Retention job ships
+      **dry-run by default**.
+      (3) **Erasure vs SPI/payroll docs** — default **retain** (controller's legal records); uploader
+      reference is pseudonymized.
+      (4) **Who can erase** — default **admin-only** (`manage_users`); every user can self-export.
 
 ## ✅ Resolved (2026-10-10, v0.1.1 release)
 
