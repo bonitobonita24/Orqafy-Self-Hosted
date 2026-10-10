@@ -154,22 +154,42 @@ export function withMemoryFallback(
 const globalForRateLimit = globalThis as unknown as { orqafyRateLimitStore?: RateLimitStore };
 
 /**
+ * Resolves the Valkey/Redis connection URL the rate limiter should use, with
+ * the SAME `VALKEY_URL ?? REDIS_URL` precedence as
+ * `packages/jobs/src/connection.ts` (`connectionFromEnv`) — an installer that
+ * only sets `REDIS_URL` must get the Valkey-backed limiter too, not silently
+ * fall back to in-memory. Returns `undefined` when neither is set (or set to
+ * an empty string), which selects the in-memory store. Exported standalone
+ * (pure function of `env`) so each env combination is unit-testable without
+ * touching the globalThis-cached singleton below.
+ */
+export function resolveRateLimitBackendUrl(
+  env: Record<string, string | undefined> = process.env,
+): string | undefined {
+  const valkeyUrl = env.VALKEY_URL;
+  if (valkeyUrl !== undefined && valkeyUrl.length > 0) return valkeyUrl;
+  const redisUrl = env.REDIS_URL;
+  if (redisUrl !== undefined && redisUrl.length > 0) return redisUrl;
+  return undefined;
+}
+
+/**
  * The process-wide rate-limit store, built lazily and cached on globalThis so
  * Next.js dev HMR never resets the counters mid-session (same pattern as the
  * queue registry).
  *
- * Selects a Valkey-backed store when `VALKEY_URL` is set (multi-instance /
- * restart-durable limiting), else the in-memory store (v1 posture, e.g. local
- * dev with no Valkey configured). A Valkey store is always wrapped with
- * `withMemoryFallback` — see that function's doc comment for the fail-open
- * posture and rationale.
+ * Selects a Valkey-backed store when `resolveRateLimitBackendUrl()` resolves
+ * a URL (multi-instance / restart-durable limiting), else the in-memory
+ * store (v1 posture, e.g. local dev with no Valkey configured). A Valkey
+ * store is always wrapped with `withMemoryFallback` — see that function's
+ * doc comment for the fail-open posture and rationale.
  */
 export function getRateLimitStore(): RateLimitStore {
   const existing = globalForRateLimit.orqafyRateLimitStore;
   if (existing !== undefined) return existing;
 
   const memory = createMemoryStore();
-  const valkeyUrl = process.env.VALKEY_URL;
+  const valkeyUrl = resolveRateLimitBackendUrl();
   let store: RateLimitStore;
   if (valkeyUrl !== undefined && valkeyUrl.length > 0) {
     try {
