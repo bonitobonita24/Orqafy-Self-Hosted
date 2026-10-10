@@ -6,7 +6,8 @@
 // (custom groups + per-user overrides UI) is a SEPARATE later chunk; the role /
 // permission data and mutations for it already exist on the API.
 import Link from 'next/link';
-import { Plus, Pencil, KeyRound, SlidersHorizontal } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { Plus, Pencil, KeyRound, SlidersHorizontal, UserX } from 'lucide-react';
 import {
   Button,
   Card,
@@ -23,12 +24,16 @@ import {
 import { trpc } from '@/trpc/react';
 import { UserFormDialog } from '@/components/forms/user-form';
 import { UserOverridesDialog } from '@/components/forms/user-overrides-form';
+import { UserExportButton } from '@/components/forms/user-export-button';
+import { UserEraseDialog } from '@/components/forms/user-erase-dialog';
 
 export default function UsersRolesPage() {
+  const { data: session } = useSession();
   const users = trpc.users.list.useQuery(undefined, { retry: false });
   const roles = trpc.roles.list.useQuery();
 
   const forbidden = users.error?.data?.code === 'FORBIDDEN';
+  const currentUserId = session?.user.id;
 
   return (
     <div className="space-y-6">
@@ -64,14 +69,27 @@ export default function UsersRolesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.data?.map((u) => (
+                {users.data?.map((u) => {
+                  const isErased = u.anonymizedAt !== null;
+                  const isSelf = u.id === currentUserId;
+                  return (
                   <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-2">
+                        {u.name}
+                        {isErased ? (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                            Erased
+                          </span>
+                        ) : null}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell>{u.role.name}</TableCell>
                     <TableCell>{u.isActive ? 'Yes' : 'No'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <UserExportButton userId={u.id} userEmail={u.email} />
                         <UserOverridesDialog
                           userId={u.id}
                           userName={u.name}
@@ -100,10 +118,28 @@ export default function UsersRolesPage() {
                             </Button>
                           }
                         />
+                        {!isSelf && !isErased ? (
+                          <UserEraseDialog
+                            userId={u.id}
+                            userEmail={u.email}
+                            userName={u.name}
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Erase ${u.name}`}
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <UserX />
+                              </Button>
+                            }
+                          />
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
