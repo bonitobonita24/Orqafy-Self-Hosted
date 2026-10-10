@@ -70,46 +70,29 @@ the fix is in + a regression test where the fix is app code + gates green (typec
 
 ### Other open
 
-- 🔴 **[security][chore] Dev/test toolchain major-upgrade — 34 residual image CRIT/HIGH (H-5 carve-out)** — the
-  `orqafy_dev-app`/`orqafy_dev-worker` images retain 34 FIXABLE CRIT/HIGH all in one cluster: `vite@5.4.21`,
-  `vitest@2.1.9`, `tinypool`, `deepmerge-ts`, `image-size`, + esbuild's bundled Go stdlib (×27, tied to the same
-  vite major). These are app devDependencies, NOT stale base layers, and need MAJOR bumps (vite 5→latest, vitest
-  2→latest) with full test-suite re-verification — real regression risk, own dedicated task. Supersedes/absorbs
-  audit **L-7** (vitest 2.1.9 bump). Done: vite/vitest upgraded across the 6 workspaces, all gates + Trivy image
-  re-scan green. `gate: owner (post-v0.1.1 — does NOT block the 10-item wave)` `source: agent-found 2026-10-10 (H-5)`
-- 🔴 **[security][LOW] OCR service hardening follow-up (constant-time compare + input cap)** — `deploy/compose/ocr/app.py`.
-  TWO defense-in-depth items, both LOW (service has NO host port — internal compose DNS only — and is shared-secret
-  gated; only caller is the authenticated worker on files already bounded by the 50 MiB web-upload cap):
-  (1) `x_ocr_secret != OCR_SHARED_SECRET` → swap for `hmac.compare_digest` (constant-time).
-  (2) [push-review 2026-10-10] `data = await file.read()` reads the whole upload into memory with NO independent
-  byte cap, and `convert_from_bytes` has no PDF page-count cap → resource-exhaustion if a caller ever sends a large
-  payload (currently bounded upstream by the 50 MiB web cap, so not externally exploitable — but the service should
-  enforce its OWN cap rather than trust upstream). Add a MAX_OCR_BYTES check before read + a page-count guard.
-  Now UN-GATED (H-4 is on `main` as of v0.1.1). `gate: none (un-gated, post-v0.1.1 polish)` `source: agent-found 2026-10-10 (H-4 review + push security review)`
-- 🟡 **[security][LOW][KNOWN] Login rate-limiter check-then-increment is non-atomic (TOCTOU)** — [push-review 2026-10-10]
-  `credentials-auth.ts`/`rate-limit.ts`: `checkLoginRateLimit` (read) then `recordLoginFailure` (increment) are not
-  atomic in the in-memory store, so high-concurrency bursts can slip a few extra attempts past the per-window limit.
-  KNOWN + ACCEPTED for v1 (mirrors the pre-existing mobile limiter; the limiter still massively raises the brute-force
-  bar vs. the previous NO limit). Fix = the already-documented Valkey-backed atomic INCR store.
-  `gate: owner (POST-V1 — Valkey atomic rate-limit store seam)` `source: agent-found 2026-10-10 (H-3 push review; dup of H-3 note)`
-- 🔴 **Audit LOW backlog (L-1…L-10)** — from `test-artifacts/audit-2026-09-27/REPORT.md`. `gate: owner (backlog — outside v0.1.1 scope, D-32)` `source: audit 2026-09-27`
-  - L-1 `/api/media` reads whole body before its 50 MiB check (`route.ts:56`).
-  - L-2 60-day mobile token not revoked on password change.
-  - L-3 any signed-in user can download non-SPI docs (matches `documents.list`) — confirm intended.
-  - L-4 GitHub Actions use mutable tags, no `permissions:` block.
-  - L-5 `pnpm-workspace.yaml` lacks `minimumReleaseAge` / `trustPolicy` / `blockExoticSubdeps`.
-  - L-6 `decode-uri-component@0.2.2` (transitive via @react-navigation / expo-router; fixed 0.5.0).
-  - L-7 `vitest@2.1.9` direct devDep in 6 workspaces → bump ≥4.1.11 (dev only).
-  - L-8 `postcss@8.4.31`/`8.4.49` transitive via next + expo (build time only).
-  - L-9 `deepmerge-ts@7.1.5`, `image-size@1.2.1`, `uuid@7.0.3` (tooling, no untrusted input).
-  - L-10 worker image ships full dev `node_modules` → prune to prod deps in runtime stage.
+- 🟡 **Audit LOW backlog — only L-2 + L-3 remain (owner decisions)** — L-1, L-4…L-10 ✅ DONE 2026-10-10 (see Done).
+  - L-2 60-day mobile token not revoked on password change → **blocked on [WHAT] ORQ-55** (no password-change/reset
+    flow exists in the spec; deactivation already revokes via per-request `isActive`). `gate: owner`
+  - L-3 any signed-in user can download non-SPI docs → **[WHAT] ORQ-54** (recommend accept-as-designed). `gate: owner`
+- 🔴 **[bug][HIGH] Two Organization rows break the single-org invariant (D-5)** — Phase 6 re-run 2026-10-10: dev DB
+  has seed `org_default` + first-run-setup org; `org.ts` `findFirst()` unordered → Settings→Privacy save/read hit
+  different rows. Fix in flight on `fix/single-organization` (deterministic lookup, setup/seed reuse, dedupe
+  migration). Done: exactly one Organization row; privacy settings persist across reload. `source: agent-found 2026-10-10`
+- 🔴 **[chore] Worker image build resolves the WHOLE workspace** — `pnpm deploy --legacy` (Dockerfile.worker) re-resolves
+  every workspace package, so any future `trustPolicy`/`minimumReleaseAge` hit in web/ui/mobile deps blocks the worker
+  build too (hit 2026-10-10: tailwind-merge@2.6.1, next-auth@5.0.0-beta.32 → narrow `trustPolicyExclude`). Option: a
+  bundled (esbuild/tsup) worker so the runtime image needs only its own deps. `gate: none (low)` `source: agent-found 2026-10-10`
+- 🟡 **[watch] `uuid@14` (ESM-only) forced onto Expo's `xcode` via root override** — works on Node 24 (`require(esm)`),
+  verified; an EAS/native build host on Node <20.19 would fail. Revisit at first real native build. `source: agent-found 2026-10-10 (ORQ-51)`
+- 🔴 **[chore][LOW] Thread request IP into `writeAudit`** — `apps/web/src/server/audit.ts` accepts `ip` but tRPC
+  `context.ts` carries no request IP, so audit rows from routers have `ip=null` (route handlers could pass it).
+  `source: agent-found 2026-10-10 (DPA W3)`
+- 🟡 **[watch] Expo dev-tooling CVEs with no upstream fix** — `node-forge`, `braces` (HIGH) via `expo` CLI/Metro;
+  risk accepted D-34; re-check `pnpm audit` on next Expo SDK bump. `source: Phase 5 2026-10-10`
 - 🔴 **AIEF tooling defects found during the audit/release (cross-scope — fix in the Powerbyte-AIEF seat, NOT here)** — `gate: external (AIEF seat)` `source: agent-found 2026-09-27`
   (a) `scripts/audit-app.sh:284` ESLint detection misses `eslint.base.mjs` (only looks for `eslint.config.*` /
   `.eslintrc*`); (b) `audit-app.sh` reports a Trivy DB download failure as a CVE finding; (c)
   `gen-release-notes` writes a stale "Claude Opus 4.8" co-author trailer.
-- 🔴 **Board reconcile: pipelineStage** — ~20 Ready-to-Test Squirlnote cards show `pipelineStage=staging`, but
-  this repo has never had a staging env. Set code cards on `main` → `pushed`; planning/[WHAT]-only cards → null.
-  Done: no card shows `staging`. `source: agent-found 2026-09-27`
 
 _The three below are BLOCKED — they require real hardware / a running stack / a live tunnel, none of which
 exist yet. They are NOT actionable now; they gate a later phase._
@@ -206,11 +189,35 @@ exist yet. They are NOT actionable now; they gate a later phase._
   (D-11/D-14). ✅ Wave PLAN written: `docs/planning/R7a_TAURI_WAVE_PLAN.md` (chunks 1–7 + 7 open [WHAT]s).
   BUILD is owner-gated (D-3 later track). **D-30 (2026-09-27):** stays deferred post-v1; Q2 = reuse `apps/web`
   in the WebView, Q3 = Auth.js cookie same-origin; Q4–Q7 parked in R7a §7. `<source: plan 2026-09-08>`
-- 🔴 **[POST-V1, security] Valkey-backed rate-limit store** — the mobile-login limiter is in-memory (resets on `gate: owner`
-  restart, per-instance). Drop in a Valkey `RateLimitStore` adapter at the `getRateLimitStore()` SEAM for
-  restart-durable / multi-instance limiting when the app graduates past single-process. `<source: agent-found 2026-09-10>`
 
 ## ✅ Done recently
+
+All 2026-10-10 items below: merged to LOCAL `main` (HARD HOLD — not pushed); combined `main` turbo 27/27 green,
+web build green; dev stack rebuilt off `main` and Phase-6 re-run live-verified (see SESSION_LOG 2026-10-10).
+- ✅ **ORQ-53 OCR hardening** — `hmac.compare_digest`; own `MAX_OCR_BYTES` (bounded read → 413) + `MAX_OCR_PAGES`
+  (pdfinfo probe → 413); pytest 9/9; live wrong-secret → 401. (`25ec369`, 2026-10-10)
+- ✅ **ORQ-19 Valkey atomic rate-limit store (closes login-limiter TOCTOU)** — atomic `hit()` (Lua INCR+PEXPIRE) for
+  per-IP AND per-email, fail-open-to-memory, `VALKEY_URL ?? REDIS_URL`; 50-parallel test → exactly limit; live 429 on
+  6th attempt with `rl:*` keys in Valkey. (`9dc8ffb`/`0ef1c40`/`2004015`, compose `d324eff`, 2026-10-10)
+- ✅ **ORQ-51 vite/vitest major upgrade (absorbs L-7, L-9)** — vitest 5.0.3, vite 8.3.4; overrides deepmerge-ts/
+  image-size/uuid; tests 407 identical; Trivy dev images 34 → 0 fixable CRIT/HIGH. (`1166766`, 2026-10-10)
+- ✅ **Audit L-1** media upload cap enforced while streaming (`04d099b`) · **L-4** CI actions SHA-pinned +
+  `permissions: contents: read` · **L-5** pnpm `minimumReleaseAge`/`trustPolicy`/`blockExoticSubdeps` · **L-6**
+  decode-uri-component 0.5.0 · **L-8** postcss 8.5.29 (`ca7f283`) · **L-10** worker runtime = prod deps only,
+  2.18GB → 551MB, Trivy HIGH 3 → 0 (`2df91c6`) + trust-policy fix (`87e83ab`). (2026-10-10)
+- ✅ **Phase 5 F-3 SEO Foundation (Rule 35)** — noindex everywhere, robots `Disallow: /`, empty sitemap, `/login`
+  `/setup` metadata; D-35 (Lighthouse gate N/A). (`4035f8f`, 2026-10-10)
+- ✅ **Phase 6 blockers** — worker image build (trust-policy) + dev-only CSP `unsafe-eval` for Fast Refresh (prod CSP
+  byte-identical). (`87e83ab`, `41ca850`, 2026-10-10)
+- ✅ **Phase 5 F-2 v1 DPA mechanisms (ORQ-57)** — W1 contracts · W2 `User.anonymizedAt` · W3 `writeAudit` + org
+  DPO/retention router · W4 export-my-data (self; on-behalf needs `manage_users`, SPI needs `view_finances`, photos
+  need oversight) · W5 erasure (pseudonymize-in-place, last-admin + self guards) · W6 daily retention sweep (dry-run
+  default; `AuditLog.userId` nullable for system actor, FK RESTRICT kept) · W7 Settings→Privacy page · W8 admin
+  export/erase (typed-email confirm) · W9 "Download my data" · W10 access audit log on document/photo downloads +
+  SPI views. Security-review export-authz findings fixed (`ea0db24`); single permission resolver (`ef6e33f`).
+  Live-verified in Phase 6 re-run except Settings→Privacy persistence (Organization-row bug above). (2026-10-10)
+- ✅ **Board reconcile: pipelineStage** — 22 code cards → `pushed`, 7 planning cards → null; no card shows `staging`.
+  (2026-10-10)
 
 - ✅ **H-4 · OCR sidecar hardened (audit, v0.1.1)** — `fix/audit-h4-ocr-hardening` `47da244` (LOCAL, not merged/pushed).
   pillow 11.1→12.3.0, python-multipart 0.0.20→0.0.31, fastapi 0.115.6→0.140.13 + `starlette>=1.3.1` (resolved 1.7.0);
