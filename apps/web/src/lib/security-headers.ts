@@ -72,6 +72,13 @@ export function buildSecurityHeaders(
     { key: 'X-Frame-Options', value: 'DENY' },
     // No Permissions-Policy here by design: the map-picker may request
     // geolocation, and a restrictive default would break it.
+    // Rule 35 SEO Foundation (.ai_prompt/seo.md §1): Orqafy has no public
+    // marketing surface — every route is noindex,nofollow (see
+    // app/layout.tsx, app/login/page.tsx, app/setup/page.tsx `robots`
+    // metadata + app/robots.ts/app/sitemap.ts). Applied as a response header
+    // on EVERY route (not just authed ones) because that decision holds
+    // uniformly here; a crawler respecting either signal is blocked.
+    { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
   ];
 }
 
