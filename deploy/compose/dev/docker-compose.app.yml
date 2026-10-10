@@ -78,6 +78,10 @@ services:
     environment:
       # Shared secret required on /ocr (audit H-4) — fails closed if unset.
       OCR_SHARED_SECRET: ${OCR_SHARED_SECRET}
+      # Own input caps (audit follow-up, defense-in-depth) — 50 MiB / 50 pages
+      # by default; override per-env if a legitimate doc exceeds these.
+      MAX_OCR_BYTES: ${MAX_OCR_BYTES:-52428800}
+      MAX_OCR_PAGES: ${MAX_OCR_PAGES:-50}
     # No host port publish (audit H-4; supersedes M-4a's 127.0.0.1 bind for this
     # service) — the worker reaches this sidecar via internal compose DNS
     # (http://ocr:9003); it never needs host exposure.
