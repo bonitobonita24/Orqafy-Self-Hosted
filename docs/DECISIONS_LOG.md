@@ -436,3 +436,16 @@ not committed into this PUBLIC AGPL repo. Owner chose option (b): "keep the repo
 and push v0.1.1." **Consequence:** the v0.1.1 release ships the 9 verified audit fixes (H-1…H-5, M-1…M-3, M-4a,
 M-5); M-4b is closed as will-not-do-in-repo. The OCR hmac constant-time polish remains an un-gated follow-up now
 that H-4 is on `main`.
+
+### D-34 · Residual dev-tooling CVEs with no upstream fix — risk accepted (agent [HOW], 2026-10-10)
+**Context:** After the 2026-10-10 follow-up wave (ORQ-51 vite/vitest major upgrade + audit L-6/L-8/L-9
+overrides), `pnpm audit --audit-level=high` on `main` reports **0 CRITICAL, 2 HIGH, 4 moderate** (was 3/6/11).
+The 2 HIGH are both inside the **Expo mobile developer toolchain** and have **no patched release upstream**
+(advisory "Patched versions: <0.0.0"): `node-forge` (GHSA-86w9-cpqp-85rv, via `expo > @expo/cli`) and `braces`
+(GHSA-vfj7-8cjw-p6xm, via `expo > @expo/metro > metro-file-map > micromatch`).
+**Decision — risk accepted: YES.** Neither package ships in any runtime artifact: the web app and worker images
+have 0 fixable CRIT/HIGH in Trivy after ORQ-51 + L-10, and both paths execute only on a developer machine
+during `expo` CLI / Metro bundling over trusted local input. A forced override to an unreleased-fixed major
+risks breaking the Expo CLI with no security gain.
+**Mitigation:** re-run `pnpm audit` on every dependency bump; when Expo ships a release pulling patched versions,
+upgrade and drop this acceptance. Revisit at the next Expo SDK upgrade at the latest.
