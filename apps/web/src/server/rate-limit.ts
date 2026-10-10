@@ -1,25 +1,52 @@
 // Rate limiting for the mobile bearer-login endpoint (brute force) and the
 // site-photo upload endpoint (per-user volume).
 //
-// v1 posture: a single-process, in-memory fixed-window limiter behind a small
-// dependency-injected interface — the same precedent as the in-memory SSE
-// realtime bus. State lives only in this process, so it resets on restart and
-// is NOT shared across instances. That is an accepted v1 tradeoff.
+// v2 posture: the attempt-consume operation is ATOMIC — `hit()` is a single
+// store call that increments a fixed-window counter and returns the new count
+// + the window's reset time in one round trip, so callers decide block/allow
+// from the returned count with no separate read-then-write (no TOCTOU window
+// for a concurrent racer to slip through between a read and a later write).
+// `peek()` is a read-only, non-mutating lookup. No login/upload gate below
+// calls it anymore (see checkLoginRateLimit's doc comment for why a `peek()`
+// pre-check on the email key was itself a TOCTOU) — it is kept on the
+// interface as a non-mutating introspection primitive for store-contract
+// tests and potential future read-only callers (e.g. an admin/observability
+// endpoint), never for a decide-to-block check.
 //
-// SEAM: a Valkey-backed adapter (INCR + EXPIRE on a `rl:*` key) drops in here as
-// an alternate `RateLimitStore` implementation for multi-instance / restart-
-// durable limiting (POST-V1). No route code changes — only getRateLimitStore()
-// swaps which store it builds. Do NOT add ioredis for v1.
+// Two RateLimitStore implementations:
+//  - `createMemoryStore()` — single-process, in-memory. Synchronous Map
+//    mutation under the hood, so `hit()` is trivially atomic in-process, but
+//    state resets on restart and is NOT shared across instances.
+//  - `createValkeyStore()` (rate-limit-valkey-store.ts) — Valkey/Redis-backed
+//    via a single Lua script (INCR + conditional PEXPIRE), atomic across
+//    instances and restart-durable. Selected by `getRateLimitStore()` when
+//    `VALKEY_URL` is set; wrapped to fail open to the in-memory store on any
+//    Valkey error (see `withMemoryFallback` below) so login availability never
+//    depends on Valkey being up.
 import 'server-only';
+import { createValkeyStore } from './rate-limit-valkey-store';
 
 /**
- * A minimal fixed-window counter store. `incr` bumps and returns the current
- * count within the window, establishing/keeping a TTL of `windowSec` on first
- * hit. `get` reads the current count without mutating. `reset` clears a key.
+ * A minimal fixed-window counter store.
+ *
+ * `hit` is the ONE atomic attempt-consume operation: increments the counter
+ * for `key` and returns the new count plus `resetAt` (ms epoch when the
+ * window ends). On the first hit of a window the TTL is established; later
+ * hits within the same window return an incremented count against the SAME
+ * `resetAt` (fixed window, not sliding). Single call, no intermediate read —
+ * this is what makes concurrent callers race-free.
+ *
+ * `peek` reads the current count + `resetAt` WITHOUT mutating — `null` if the
+ * key is absent or its window has expired. A decide-to-block check must
+ * NEVER use `peek` (a read-then-later-write split reopens the exact TOCTOU
+ * this store exists to close under concurrent callers) — it exists purely
+ * for non-mutating introspection (tests, future read-only observability).
+ *
+ * `reset` clears a key (e.g. on successful login).
  */
 export interface RateLimitStore {
-  incr(key: string, windowSec: number): Promise<number>;
-  get(key: string): Promise<number>;
+  hit(key: string, windowMs: number): Promise<{ count: number; resetAt: number }>;
+  peek(key: string): Promise<{ count: number; resetAt: number } | null>;
   reset(key: string): Promise<void>;
 }
 
@@ -30,41 +57,96 @@ interface Entry {
 
 /**
  * In-memory fixed-window store backed by a Map. `now` is injectable for
- * deterministic tests (defaults to `Date.now`).
+ * deterministic tests (defaults to `Date.now`). All mutation happens
+ * synchronously inside a single turn of the event loop (no `await` between
+ * the read and the write), so concurrent in-process callers never race —
+ * the Promise wrapping is only to satisfy the (genuinely async) interface
+ * shared with the Valkey store.
  */
 export function createMemoryStore(now: () => number = Date.now): RateLimitStore {
   const entries = new Map<string, Entry>();
 
-  // Methods are synchronous but return Promises to satisfy RateLimitStore — the
-  // async Valkey adapter is genuinely async, so the interface is Promise-based.
   return {
-    incr(key: string, windowSec: number): Promise<number> {
+    hit(key: string, windowMs: number): Promise<{ count: number; resetAt: number }> {
       const t = now();
       const existing = entries.get(key);
       if (existing === undefined || existing.expiresAt <= t) {
         // Start a fresh window.
-        entries.set(key, { count: 1, expiresAt: t + windowSec * 1000 });
-        return Promise.resolve(1);
+        const expiresAt = t + windowMs;
+        entries.set(key, { count: 1, expiresAt });
+        return Promise.resolve({ count: 1, resetAt: expiresAt });
       }
       existing.count += 1;
-      return Promise.resolve(existing.count);
+      return Promise.resolve({ count: existing.count, resetAt: existing.expiresAt });
     },
 
-    get(key: string): Promise<number> {
+    peek(key: string): Promise<{ count: number; resetAt: number } | null> {
       const t = now();
       const existing = entries.get(key);
-      if (existing === undefined) return Promise.resolve(0);
+      if (existing === undefined) return Promise.resolve(null);
       if (existing.expiresAt <= t) {
         // Prune expired entry on read.
         entries.delete(key);
-        return Promise.resolve(0);
+        return Promise.resolve(null);
       }
-      return Promise.resolve(existing.count);
+      return Promise.resolve({ count: existing.count, resetAt: existing.expiresAt });
     },
 
     reset(key: string): Promise<void> {
       entries.delete(key);
       return Promise.resolve();
+    },
+  };
+}
+
+/**
+ * Wraps a primary store so that any error from `primary` (e.g. a Valkey
+ * connection drop) falls back to `fallback` for that call instead of
+ * rejecting. Chosen posture: FAIL-OPEN-TO-MEMORY-STORE, not fail-open-to-
+ * allow-everything — a Valkey outage degrades to single-process in-memory
+ * limiting (still enforced, just not cross-instance/durable) rather than
+ * disabling rate limiting entirely. Login/upload availability must never
+ * depend on Valkey being reachable. Logs once per process to avoid spamming
+ * on every request during an outage.
+ */
+export function withMemoryFallback(
+  primary: RateLimitStore,
+  fallback: RateLimitStore,
+): RateLimitStore {
+  let warned = false;
+  function warnOnce(err: unknown): void {
+    if (warned) return;
+    warned = true;
+    console.warn(
+      '[rate-limit] Valkey store failed; falling back to in-memory limiting for this process:',
+      err,
+    );
+  }
+
+  return {
+    async hit(key, windowMs) {
+      try {
+        return await primary.hit(key, windowMs);
+      } catch (err) {
+        warnOnce(err);
+        return fallback.hit(key, windowMs);
+      }
+    },
+    async peek(key) {
+      try {
+        return await primary.peek(key);
+      } catch (err) {
+        warnOnce(err);
+        return fallback.peek(key);
+      }
+    },
+    async reset(key) {
+      try {
+        await primary.reset(key);
+      } catch (err) {
+        warnOnce(err);
+        await fallback.reset(key);
+      }
     },
   };
 }
@@ -76,14 +158,33 @@ const globalForRateLimit = globalThis as unknown as { orqafyRateLimitStore?: Rat
  * Next.js dev HMR never resets the counters mid-session (same pattern as the
  * queue registry).
  *
- * SEAM: replace `createMemoryStore()` here with a Valkey-backed store to make
- * limiting durable across restarts and shared across instances (POST-V1).
+ * Selects a Valkey-backed store when `VALKEY_URL` is set (multi-instance /
+ * restart-durable limiting), else the in-memory store (v1 posture, e.g. local
+ * dev with no Valkey configured). A Valkey store is always wrapped with
+ * `withMemoryFallback` — see that function's doc comment for the fail-open
+ * posture and rationale.
  */
 export function getRateLimitStore(): RateLimitStore {
   const existing = globalForRateLimit.orqafyRateLimitStore;
   if (existing !== undefined) return existing;
 
-  const store = createMemoryStore();
+  const memory = createMemoryStore();
+  const valkeyUrl = process.env.VALKEY_URL;
+  let store: RateLimitStore;
+  if (valkeyUrl !== undefined && valkeyUrl.length > 0) {
+    try {
+      store = withMemoryFallback(createValkeyStore(valkeyUrl), memory);
+    } catch (err) {
+      console.warn(
+        '[rate-limit] failed to construct the Valkey store; using in-memory limiting:',
+        err,
+      );
+      store = memory;
+    }
+  } else {
+    store = memory;
+  }
+
   globalForRateLimit.orqafyRateLimitStore = store;
   return store;
 }
@@ -166,9 +267,19 @@ function emailKey(email: string): string {
  * Decide whether a login attempt may proceed. Called BEFORE the DB lookup.
  *
  * - Always increments the per-IP counter; over IP_MAX → blocked.
- * - Reads (does NOT increment) the per-email failure counter; at/over EMAIL_MAX
- *   → blocked. The email counter is bumped only on an actual failed attempt via
- *   `recordLoginFailure`, so a correct password is never penalized.
+ * - Always increments the per-email counter too — ATOMICALLY, via the same
+ *   `hit()` the IP check uses. This counts every ATTEMPT for that email (not
+ *   just failures); over EMAIL_MAX → blocked. A correct password clears this
+ *   counter via `recordLoginSuccess`, so a legit user is never penalized for
+ *   accumulated past attempts.
+ *   SECURITY (closes a TOCTOU, audit follow-up): the previous version only
+ *   `peek()`ed the email counter here and relied on a SEPARATE later call
+ *   (`recordLoginFailure`) to increment it. N concurrent requests for the
+ *   SAME email could all `peek()` the same under-limit count before any of
+ *   them incremented it, letting all N through regardless of EMAIL_MAX. A
+ *   single atomic `hit()` up front — exactly like the IP counter — closes
+ *   that window: the count every racing request observes already reflects
+ *   every other racing request's hit.
  * - FAIL-OPEN: any store error returns `allowed: true` (never block a legit
  *   login because the limiter is unhealthy).
  */
@@ -177,14 +288,17 @@ export async function checkLoginRateLimit(
   args: { ip: string; email: string | null },
 ): Promise<{ allowed: boolean; retryAfterSec: number }> {
   try {
-    const ipCount = await store.incr(ipKey(args.ip), WINDOW_SEC);
-    if (ipCount > IP_MAX) {
+    // Atomic increment+check — no separate read-then-write, so concurrent
+    // requests from the same IP can never both observe a count under the
+    // limit and both proceed.
+    const ipHit = await store.hit(ipKey(args.ip), WINDOW_SEC * 1000);
+    if (ipHit.count > IP_MAX) {
       return { allowed: false, retryAfterSec: WINDOW_SEC };
     }
 
     if (args.email !== null) {
-      const emailFails = await store.get(emailKey(args.email));
-      if (emailFails >= EMAIL_MAX) {
+      const emailHit = await store.hit(emailKey(args.email), WINDOW_SEC * 1000);
+      if (emailHit.count > EMAIL_MAX) {
         return { allowed: false, retryAfterSec: WINDOW_SEC };
       }
     }
@@ -193,15 +307,6 @@ export async function checkLoginRateLimit(
   } catch (err) {
     console.warn('[rate-limit] checkLoginRateLimit failed open:', err);
     return { allowed: true, retryAfterSec: 0 };
-  }
-}
-
-/** Record a failed login for an email (increments its failure counter). */
-export async function recordLoginFailure(store: RateLimitStore, email: string): Promise<void> {
-  try {
-    await store.incr(emailKey(email), WINDOW_SEC);
-  } catch (err) {
-    console.warn('[rate-limit] recordLoginFailure failed:', err);
   }
 }
 
@@ -221,8 +326,8 @@ export async function checkPhotoUploadRateLimit(
   userId: string,
 ): Promise<{ allowed: boolean; retryAfterSec: number }> {
   try {
-    const count = await store.incr(`rl:photo:user:${userId}`, PHOTO_UPLOAD_WINDOW_SEC);
-    if (count > PHOTO_UPLOAD_MAX) {
+    const hit = await store.hit(`rl:photo:user:${userId}`, PHOTO_UPLOAD_WINDOW_SEC * 1000);
+    if (hit.count > PHOTO_UPLOAD_MAX) {
       return { allowed: false, retryAfterSec: PHOTO_UPLOAD_WINDOW_SEC };
     }
     return { allowed: true, retryAfterSec: 0 };
@@ -232,7 +337,12 @@ export async function checkPhotoUploadRateLimit(
   }
 }
 
-/** Record a successful login for an email (clears its failure counter). */
+/**
+ * Record a successful login for an email — clears its per-email attempt
+ * counter (incremented by `checkLoginRateLimit`'s `hit()` on every attempt,
+ * success or failure) so a legit user isn't later blocked by attempts that
+ * already succeeded.
+ */
 export async function recordLoginSuccess(store: RateLimitStore, email: string): Promise<void> {
   try {
     await store.reset(emailKey(email));

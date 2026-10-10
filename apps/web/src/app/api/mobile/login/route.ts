@@ -11,7 +11,6 @@ import {
   checkLoginRateLimit,
   clientIp,
   getRateLimitStore,
-  recordLoginFailure,
   recordLoginSuccess,
 } from '@/server/rate-limit';
 
@@ -53,15 +52,16 @@ export async function POST(req: Request): Promise<Response> {
 
   if (!parsed.success || email === null) return invalid();
 
+  // The per-email attempt counter was already incremented atomically inside
+  // checkLoginRateLimit above — no separate "record a failure" step needed
+  // (or possible to race) here.
   const user = await prisma.user.findUnique({ where: { email } });
   if (user === null || !user.isActive) {
-    await recordLoginFailure(store, email);
     return invalid();
   }
 
   const ok = await verifyPassword(parsed.data.password, user.passwordHash);
   if (!ok) {
-    await recordLoginFailure(store, email);
     return invalid();
   }
 

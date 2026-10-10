@@ -4,8 +4,8 @@ import {
   checkPhotoUploadRateLimit,
   clientIp,
   createMemoryStore,
-  recordLoginFailure,
   recordLoginSuccess,
+  withMemoryFallback,
   type RateLimitStore,
 } from './rate-limit';
 
@@ -38,20 +38,25 @@ describe('rate-limit', () => {
     expect(blocked.retryAfterSec).toBe(WINDOW_SEC);
   });
 
-  it('blocks an email after EMAIL_MAX recorded failures', async () => {
+  // audit fix: checkLoginRateLimit now consumes the email counter ATOMICALLY
+  // via hit() up front (same mechanism as the IP counter) instead of only
+  // peek()ing it here and relying on a later, separately-timed
+  // recordLoginFailure() call to increment it — that split was itself a
+  // TOCTOU (N concurrent requests for the same email could all peek() the
+  // same under-limit count before any of them incremented it). The allowed-
+  // attempt count is unchanged: EMAIL_MAX attempts allowed, the
+  // (EMAIL_MAX+1)th blocked — same as before the fix, same shape as the IP
+  // test above.
+  it('allows EMAIL_MAX attempts for one email and blocks the (EMAIL_MAX+1)th', async () => {
     const store = frozenStore();
     const email = 'attacker@example.com';
 
-    // Under threshold: still allowed.
-    for (let i = 0; i < EMAIL_MAX - 1; i++) {
-      await recordLoginFailure(store, email);
+    for (let i = 0; i < EMAIL_MAX; i++) {
+      const rl = await checkLoginRateLimit(store, { ip: `198.51.100.${i + 1}`, email });
+      expect(rl.allowed).toBe(true);
     }
-    const stillOk = await checkLoginRateLimit(store, { ip: '198.51.100.1', email });
-    expect(stillOk.allowed).toBe(true);
 
-    // One more failure reaches the threshold → blocked.
-    await recordLoginFailure(store, email);
-    const blocked = await checkLoginRateLimit(store, { ip: '198.51.100.2', email });
+    const blocked = await checkLoginRateLimit(store, { ip: '198.51.100.99', email });
     expect(blocked.allowed).toBe(false);
     expect(blocked.retryAfterSec).toBe(WINDOW_SEC);
   });
@@ -61,21 +66,24 @@ describe('rate-limit', () => {
     const email = 'user@example.com';
 
     for (let i = 0; i < EMAIL_MAX; i++) {
-      await recordLoginFailure(store, email);
+      await checkLoginRateLimit(store, { ip: `192.0.2.${i + 1}`, email });
     }
-    const blocked = await checkLoginRateLimit(store, { ip: '192.0.2.1', email });
+    const blocked = await checkLoginRateLimit(store, { ip: '192.0.2.50', email });
     expect(blocked.allowed).toBe(false);
 
     await recordLoginSuccess(store, email);
-    const afterReset = await checkLoginRateLimit(store, { ip: '192.0.2.2', email });
+    const afterReset = await checkLoginRateLimit(store, { ip: '192.0.2.51', email });
     expect(afterReset.allowed).toBe(true);
   });
 
   it('email keys are canonicalized (trim + lowercase) consistently', async () => {
     const store = frozenStore();
-    // Failures recorded under a messy-cased/spaced email…
+    // EMAIL_MAX attempts recorded under a messy-cased/spaced email…
     for (let i = 0; i < EMAIL_MAX; i++) {
-      await recordLoginFailure(store, '  MixedCase@Example.COM ');
+      await checkLoginRateLimit(store, {
+        ip: `192.0.2.${100 + i}`,
+        email: '  MixedCase@Example.COM ',
+      });
     }
     // …block the canonical form used by the route.
     const blocked = await checkLoginRateLimit(store, {
@@ -85,28 +93,84 @@ describe('rate-limit', () => {
     expect(blocked.allowed).toBe(false);
   });
 
+  it('50 "concurrent" checkLoginRateLimit calls for one email allow exactly EMAIL_MAX (closes the email TOCTOU)', async () => {
+    const store = frozenStore();
+    const email = 'race@example.com';
+    const N = 50;
+
+    // Distinct IPs so only the EMAIL_MAX gate can trigger a block here — the
+    // per-IP counter (IP_MAX=20) never factors in since each IP is hit once.
+    const results = await Promise.all(
+      Array.from({ length: N }, (_, i) => checkLoginRateLimit(store, { ip: `10.0.0.${i}`, email })),
+    );
+
+    const allowedCount = results.filter((r) => r.allowed).length;
+    expect(allowedCount).toBe(EMAIL_MAX);
+    for (const r of results) {
+      if (!r.allowed) expect(r.retryAfterSec).toBe(WINDOW_SEC);
+    }
+  });
+
   it('resets the counter once the window expires (injected clock)', async () => {
     let now = 0;
     const store = createMemoryStore(() => now);
     const key = 'rl:test:window';
 
     // First hit starts a 10s window; count climbs while inside it.
-    expect(await store.incr(key, 10)).toBe(1);
-    expect(await store.incr(key, 10)).toBe(2);
-    expect(await store.get(key)).toBe(2);
+    expect((await store.hit(key, 10_000)).count).toBe(1);
+    expect((await store.hit(key, 10_000)).count).toBe(2);
+    expect((await store.peek(key))?.count).toBe(2);
 
     // Advance past the window → counter restarts.
     now += 10_001;
-    expect(await store.get(key)).toBe(0);
-    expect(await store.incr(key, 10)).toBe(1);
+    expect(await store.peek(key)).toBeNull();
+    expect((await store.hit(key, 10_000)).count).toBe(1);
+  });
+
+  it('hit() is atomic — no separate read-then-write for concurrent callers to race', async () => {
+    // Drives N "concurrent" (same microtask-queued) hits against ONE key and
+    // asserts the final count is exactly N — the regression this store
+    // exists to prevent is two racing increments both reading a stale count
+    // and under-counting. The in-memory store's `hit` has no `await` between
+    // its read and its write, so every one of these resolves synchronously
+    // in registration order with no interleaving.
+    const store = createMemoryStore(() => 1_000_000);
+    const key = 'rl:test:concurrency';
+    const N = 50;
+
+    const results = await Promise.all(Array.from({ length: N }, () => store.hit(key, 10_000)));
+
+    const counts = results.map((r) => r.count).sort((a, b) => a - b);
+    expect(counts).toEqual(Array.from({ length: N }, (_, i) => i + 1));
+    expect((await store.peek(key))?.count).toBe(N);
+  });
+
+  it('hit() resetAt stays fixed within a window and only establishes TTL on the first hit', async () => {
+    const store = createMemoryStore(() => 1_000_000);
+    const key = 'rl:test:resetAt';
+
+    const first = await store.hit(key, 5_000);
+    const second = await store.hit(key, 5_000);
+    expect(first.resetAt).toBe(1_000_000 + 5_000);
+    expect(second.resetAt).toBe(first.resetAt);
+  });
+
+  it('peek() never mutates the counter', async () => {
+    const store = createMemoryStore(() => 1_000_000);
+    const key = 'rl:test:peek-readonly';
+
+    await store.hit(key, 10_000);
+    await store.peek(key);
+    await store.peek(key);
+    expect((await store.peek(key))?.count).toBe(1);
   });
 
   it('fails open when the store throws (never blocks a legit login)', async () => {
     const throwingStore: RateLimitStore = {
-      incr(): Promise<number> {
+      hit(): Promise<{ count: number; resetAt: number }> {
         return Promise.reject(new Error('store down'));
       },
-      get(): Promise<number> {
+      peek(): Promise<{ count: number; resetAt: number } | null> {
         return Promise.reject(new Error('store down'));
       },
       reset(): Promise<void> {
@@ -120,6 +184,54 @@ describe('rate-limit', () => {
     });
     expect(rl.allowed).toBe(true);
     expect(rl.retryAfterSec).toBe(0);
+  });
+});
+
+describe('withMemoryFallback', () => {
+  function throwingStore(): RateLimitStore {
+    return {
+      hit: () => Promise.reject(new Error('valkey down')),
+      peek: () => Promise.reject(new Error('valkey down')),
+      reset: () => Promise.reject(new Error('valkey down')),
+    };
+  }
+
+  it('falls back to the fallback store on hit() when primary throws', async () => {
+    const fallback = createMemoryStore(() => 1_000_000);
+    const store = withMemoryFallback(throwingStore(), fallback);
+
+    const result = await store.hit('rl:test:fb-a', 10_000);
+    expect(result.count).toBe(1);
+    // The fallback's own state was actually mutated, not just a one-off value.
+    expect((await fallback.peek('rl:test:fb-a'))?.count).toBe(1);
+  });
+
+  it('falls back on peek() and reset() too', async () => {
+    const fallback = createMemoryStore(() => 1_000_000);
+    const store = withMemoryFallback(throwingStore(), fallback);
+
+    await fallback.hit('rl:test:fb-b', 10_000);
+    expect((await store.peek('rl:test:fb-b'))?.count).toBe(1);
+
+    await store.reset('rl:test:fb-b');
+    expect(await fallback.peek('rl:test:fb-b')).toBeNull();
+  });
+
+  it('never throws even when both the primary error path and fallback succeed', async () => {
+    const fallback = createMemoryStore(() => 1_000_000);
+    const store = withMemoryFallback(throwingStore(), fallback);
+
+    await expect(store.hit('rl:test:fb-c', 10_000)).resolves.toBeDefined();
+  });
+
+  it('uses the primary store directly when it succeeds (no fallback mutation)', async () => {
+    const primary = createMemoryStore(() => 1_000_000);
+    const fallback = createMemoryStore(() => 1_000_000);
+    const store = withMemoryFallback(primary, fallback);
+
+    await store.hit('rl:test:fb-d', 10_000);
+    expect((await primary.peek('rl:test:fb-d'))?.count).toBe(1);
+    expect(await fallback.peek('rl:test:fb-d')).toBeNull();
   });
 });
 
@@ -169,7 +281,7 @@ describe('clientIp', () => {
     const r2 = await checkLoginRateLimit(store, { ip: ip2, email: null });
     expect(r1.allowed).toBe(true);
     expect(r2.allowed).toBe(true);
-    expect(await store.get(ipKeyForTest(ip1))).toBe(2);
+    expect((await store.peek(ipKeyForTest(ip1)))?.count).toBe(2);
   });
 
   it('(d) TRUSTED_PROXY_HOPS=2 resolves the 2nd-from-right entry (the hop before the edge proxy)', () => {
@@ -221,8 +333,8 @@ describe('checkPhotoUploadRateLimit', () => {
 
   it('fails open when the store throws', async () => {
     const throwingStore: RateLimitStore = {
-      incr: () => Promise.reject(new Error('store down')),
-      get: () => Promise.reject(new Error('store down')),
+      hit: () => Promise.reject(new Error('store down')),
+      peek: () => Promise.reject(new Error('store down')),
       reset: () => Promise.reject(new Error('store down')),
     };
     expect(await checkPhotoUploadRateLimit(throwingStore, 'u1')).toEqual({

@@ -142,7 +142,7 @@ describe('authorizeCredentials — web login brute-force gate (audit H-3)', () =
     expect(called).toBe(false);
   });
 
-  it('rejects an inactive user and records the failure', async () => {
+  it('rejects an inactive user', async () => {
     const store = frozenStore();
     const result = await authorizeCredentials(
       deps({ store, passwordOk: true, user: { ...USER, isActive: false } }),
