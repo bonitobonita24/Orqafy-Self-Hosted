@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
@@ -15,10 +15,14 @@ import {
   Bell,
   Users,
   LogOut,
+  Download,
+  Loader2,
 } from 'lucide-react';
 import { Button, cn } from '@orqafy/ui';
 import { OrqafyWordmark } from '@/components/orqafy-wordmark';
 import { APP_VERSION } from '@/lib/app-version';
+import { trpc } from '@/trpc/react';
+import { buildExportFilename, downloadJson } from '@/lib/download-json';
 
 interface NavItem {
   href: string;
@@ -42,6 +46,22 @@ const NAV: NavItem[] = [
 
 export function AppShell({ userName, children }: { userName: string; children: ReactNode }) {
   const pathname = usePathname();
+  const utils = trpc.useUtils();
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  async function handleDownloadMyData() {
+    setIsExporting(true);
+    setExportError(null);
+    try {
+      const data = await utils.privacy.exportData.fetch({});
+      downloadJson(data, buildExportFilename('orqafy-my-data'));
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Download failed. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -89,10 +109,25 @@ export function AppShell({ userName, children }: { userName: string; children: R
         <header className="flex h-14 items-center justify-between border-b bg-card px-4 sm:px-6">
           <span className="text-sm text-muted-foreground md:hidden">Orqafy</span>
           <div className="ml-auto flex items-center gap-3">
+            {exportError !== null ? (
+              <span className="text-xs text-destructive">{exportError}</span>
+            ) : null}
             <span className="text-sm font-medium">{userName}</span>
             <Button
               variant="ghost"
               size="icon"
+              title="Download my data"
+              aria-label="Download my data"
+              disabled={isExporting}
+              onClick={() => void handleDownloadMyData()}
+            >
+              {isExporting ? <Loader2 className="animate-spin" /> : <Download />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Sign out"
+              aria-label="Sign out"
               onClick={() => void signOut({ callbackUrl: '/login' })}
             >
               <LogOut />
