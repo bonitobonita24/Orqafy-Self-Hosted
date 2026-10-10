@@ -1,7 +1,19 @@
 # Dev image for @orqafy/jobs (BullMQ worker). dev_build:true — built from source.
 # ⚠ Rebuild alongside the app (deploy-discipline): an app-only rebuild leaves this
 # worker on stale code.
-FROM node:22-alpine
+#
+# Multi-stage (audit L-10): the runtime stage ships ONLY @orqafy/jobs's own
+# production dependency subgraph via `pnpm deploy --prod` — vitest/vite/
+# typescript/eslint (+ every other workspace package's devDependencies) never
+# reach the final image. tsx is a declared DEPENDENCY of @orqafy/jobs (not a
+# devDependency) because this architecture intentionally runs the worker's
+# TypeScript source directly via tsx at runtime — there is no compiled-JS
+# build output for @orqafy/jobs or for the workspace packages it imports as
+# runtime values (@orqafy/db, @orqafy/storage). Converting those to emit
+# compiled JS is a larger, multi-package change — out of scope here.
+
+# ---- deps: full workspace install (needs the `prisma` CLI devDependency) ----
+FROM node:22-alpine AS deps
 
 RUN apk add --no-cache libc6-compat openssl bash \
   && apk upgrade --no-cache
@@ -20,10 +32,65 @@ COPY . .
 RUN CI=true pnpm install --frozen-lockfile \
   && pnpm --filter @orqafy/db exec prisma generate
 
+# ---- pruned: isolate @orqafy/jobs's OWN prod-only dependency subgraph ----
+FROM deps AS pruned
+
+# --legacy: pnpm v10 defaults to injected-workspace-packages deploys, which
+# requires opting every workspace package into `inject-workspace-packages` in
+# pnpm-workspace.yaml (a workspace-wide config change). --legacy keeps the
+# original copy-based deploy so this stays scoped to the worker Dockerfile.
+RUN pnpm --filter @orqafy/jobs --prod deploy --legacy /prod/jobs
+
+# `@prisma/client`'s own package code (default.js) requires a SIBLING
+# `.prisma/client` dir that `prisma generate` writes at install time — but
+# `pnpm deploy` reinstalls @prisma/client fresh from the store, which does
+# NOT carry that generated output over. Copy it from the `deps` stage's
+# already-generated tree into the matching virtual-store slot in the pruned
+# tree (globbed — the pnpm virtual-store dir name is a peer-dep-encoded hash,
+# not a fixed string, but identical between stages since both resolve the
+# same lockfile).
+RUN set -eu; \
+  src="$(find /app/node_modules/.pnpm -maxdepth 1 -type d -name '@prisma+client@*')/node_modules/.prisma"; \
+  dst="$(find /prod/jobs/node_modules/.pnpm -maxdepth 1 -type d -name '@prisma+client@*')/node_modules/.prisma"; \
+  test -d "$src"; \
+  cp -r "$src" "$dst"
+
+# `pnpm deploy --legacy` prunes @orqafy/jobs's OWN devDependencies, but not a
+# workspace dependency's — @orqafy/db's devDependencies (`typescript`, the
+# `prisma` CLI) still land in the pruned tree as @prisma/client's resolved
+# peer deps. Neither is `require()`-d by the generated client or by anything
+# on the worker's actual runtime path (verified by booting the worker off
+# this exact image); drop them.
+RUN rm -rf \
+  /prod/jobs/node_modules/.pnpm/typescript@* \
+  /prod/jobs/node_modules/.pnpm/prisma@*_typescript@* \
+  /prod/jobs/node_modules/.bin/tsc \
+  /prod/jobs/node_modules/.bin/tsserver \
+  /prod/jobs/node_modules/.bin/prisma
+
+# ---- runtime: lean alpine, no build tooling, no devDependencies anywhere ----
+FROM node:22-alpine
+
+RUN apk add --no-cache libc6-compat openssl \
+  && apk upgrade --no-cache
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable
+
+WORKDIR /app
+COPY --from=pruned /prod/jobs .
+
 # Drop npm's bundled tree (audit H-5) — carries CRITICAL tar/pacote/sigstore/
 # brace-expansion CVEs and never runs at runtime (corepack->pnpm only, not npm).
-# Must run AFTER pnpm install; corepack is a separate bundle, unaffected.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
-# tsx watch — the worker bootstrap (src/main.ts) starts every BullMQ consumer.
-CMD ["pnpm", "--filter", "@orqafy/jobs", "dev"]
+# tsx — the worker bootstrap (src/main.ts) starts every BullMQ consumer. tsx is
+# a production dependency here (see header note), kept by the --prod deploy.
+# Invoke the tsx bin directly, NOT `pnpm start` — pnpm's dependency-verification
+# preflight tries to re-resolve the deployed package.json's literal
+# `workspace:*` specifiers (pnpm deploy's --legacy path doesn't rewrite them),
+# which fails outside the monorepo, and corepack has no pinned `packageManager`
+# in the deployed manifest so any `pnpm` invocation fetches a pnpm release
+# from the registry at container start — both avoided by running tsx directly.
+CMD ["node_modules/.bin/tsx", "src/main.ts"]
