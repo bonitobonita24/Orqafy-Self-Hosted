@@ -1,94 +1,31 @@
-'use client';
+// Server page carrying this route's metadata (Rule 35 — .ai_prompt/seo.md §1).
+// `next.js` only allows `metadata`/`generateMetadata` exports from a Server
+// Component, and the sign-in form itself needs client state/handlers — so the
+// form lives in the sibling 'use client' file and this file re-exports it as
+// the route's default, the exact pattern Next.js documents/tests for pairing
+// static metadata with a client-rendered page.
+import type { Metadata } from 'next';
+import LoginPageContent from './login-page-content';
 
-import { useState, type FormEvent } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Input,
-  Label,
-} from '@orqafy/ui';
-import { OrqafyWordmark } from '@/components/orqafy-wordmark';
-import { trpc } from '@/trpc/react';
+// Index policy (documented, see app/layout.tsx + app/robots.ts + app/sitemap.ts
+// for the rest of this decision): noindex,nofollow — Orqafy has no public
+// marketing surface (D-5 single-org self-hosted app); the sign-in page is
+// install-specific and not meant to rank in search. Title/description/
+// canonical/OG are still set for a clean link preview when an operator shares
+// this install's login URL internally (Slack/Teams/email unfurl).
+export const metadata: Metadata = {
+  title: 'Sign in',
+  description: 'Sign in to your Orqafy install.',
+  alternates: { canonical: '/login' },
+  robots: { index: false, follow: false },
+  openGraph: {
+    title: 'Sign in · Orqafy',
+    description: 'Sign in to your Orqafy install.',
+    url: '/login',
+    siteName: 'Orqafy',
+    type: 'website',
+  },
+  twitter: { card: 'summary' },
+};
 
-export default function LoginPage() {
-  const router = useRouter();
-  // On a fresh install (no users yet) surface a direct link to first-run setup —
-  // belt-and-suspenders alongside the root RSC's /setup redirect.
-  const setupStatus = trpc.setup.status.useQuery();
-  const needsSetup = setupStatus.data?.needsSetup === true;
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    const res = await signIn('credentials', { email, password, redirect: false });
-    setLoading(false);
-    if (res?.error !== undefined && res.error !== null) {
-      setError('Invalid email or password.');
-      return;
-    }
-    router.push('/dashboard');
-    router.refresh();
-  }
-
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-4">
-      <OrqafyWordmark size="lg" />
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Sign in to Orqafy</CardTitle>
-          <CardDescription>Use your Orqafy account for this install.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="username"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error !== null ? <p className="text-sm text-destructive">{error}</p> : null}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in…' : 'Sign in'}
-            </Button>
-          </form>
-          {needsSetup ? (
-            <p className="mt-4 text-center text-sm text-muted-foreground">
-              First time here?{' '}
-              <Link href="/setup" className="font-medium text-primary hover:underline">
-                Set up this install
-              </Link>
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
-    </main>
-  );
-}
+export default LoginPageContent;

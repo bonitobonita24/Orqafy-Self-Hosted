@@ -28,8 +28,15 @@ describe('security headers (audit M-3)', () => {
         'X-Content-Type-Options',
         'Referrer-Policy',
         'X-Frame-Options',
+        'X-Robots-Tag',
       ]),
     );
+  });
+
+  it('sends X-Robots-Tag: noindex, nofollow on every route (Rule 35 — no public surface)', () => {
+    const headers = buildSecurityHeaders();
+    const robotsTag = headers.find((h) => h.key === 'X-Robots-Tag')?.value;
+    expect(robotsTag).toBe('noindex, nofollow');
   });
 
   it('builds an app-correct CSP (self-hosted fonts, OSM tiles, no framing)', () => {
