@@ -18,6 +18,7 @@ import {
   taskSchema,
   taskPriorityEnum,
   documentSchema,
+  type RetentionCategory,
 } from '@orqafy/shared';
 
 // ── Client ────────────────────────────────────────────────────────────────
@@ -165,6 +166,53 @@ export const documentFormSchema = documentSchema
     clientId: z.string().optional(),
   });
 export type DocumentFormValues = z.infer<typeof documentFormSchema>;
+
+// ── Privacy / DPA settings (Settings → Privacy, Rule 33 / `.ai_prompt/privacy.md`) ──
+// `retention` carries one string-per-category day count (native <input type="number">
+// shape); '' means "not set" (no auto-deletion). `RETENTION_CATEGORIES` fixes the
+// display order + human labels — kept here so the page and any future surface share
+// one source. SPI/payroll entities are deliberately NOT a category (never
+// auto-deleted); see packages/shared/src/schemas/privacy.ts.
+const retentionDaysField = z
+  .string()
+  .regex(/^\d*$/, 'Enter a whole number of days, or leave blank');
+
+export const privacyRetentionFormSchema = z.object({
+  audit_log: retentionDaysField,
+  notification: retentionDaysField,
+  photo: retentionDaysField,
+  document: retentionDaysField,
+  completed_project: retentionDaysField,
+  leave_request: retentionDaysField,
+});
+
+export const privacySettingsFormSchema = z.object({
+  dpoName: z.string().max(200).optional(),
+  dpoContact: z.string().max(200).optional(),
+  retention: privacyRetentionFormSchema,
+});
+export type PrivacySettingsFormValues = z.infer<typeof privacySettingsFormSchema>;
+
+export const RETENTION_CATEGORIES: ReadonlyArray<{ key: RetentionCategory; label: string }> = [
+  { key: 'audit_log', label: 'Audit log' },
+  { key: 'notification', label: 'Notifications' },
+  { key: 'photo', label: 'Photos' },
+  { key: 'document', label: 'Documents (non-sensitive)' },
+  { key: 'completed_project', label: 'Completed projects' },
+  { key: 'leave_request', label: 'Leave requests' },
+];
+
+// Confirms the fixed-field form above still covers every enum value (TS-time
+// check only — an enum addition without a matching field here fails `tsc`).
+const _retentionCategoryCoverage: Record<RetentionCategory, true> = {
+  audit_log: true,
+  notification: true,
+  photo: true,
+  document: true,
+  completed_project: true,
+  leave_request: true,
+};
+export const _assertRetentionCategoryCoverage = _retentionCategoryCoverage;
 
 /** '' | undefined → undefined; otherwise a Date built from the input value. */
 export function toDate(value: string | undefined): Date | undefined {
