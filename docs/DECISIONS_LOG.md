@@ -449,3 +449,16 @@ during `expo` CLI / Metro bundling over trusted local input. A forced override t
 risks breaking the Expo CLI with no security gain.
 **Mitigation:** re-run `pnpm audit` on every dependency bump; when Expo ships a release pulling patched versions,
 upgrade and drop this acceptance. Revisit at the next Expo SDK upgrade at the latest.
+
+### D-35 · SEO posture — noindex everywhere; Lighthouse SEO gate N/A (agent [HOW], 2026-10-10)
+**Context:** Phase 5 finding F-3 (Rule 35 SEO Foundation missing). Rule 35's adaptive baseline gives public
+routes full SEO and private routes `noindex`. Orqafy-Self-Hosted is a single-org internal tool (D-5) installed
+on an unknown, per-install domain; its only unauthenticated routes are `/login` and `/setup`, neither of which
+should surface in search.
+**Decision:** treat the whole app as private. `noindex,nofollow` on every route (root metadata default +
+`X-Robots-Tag` header), `robots.txt` `Disallow: /`, empty sitemap, no JSON-LD. `/login` and `/setup` still carry
+their own title/description/canonical/OpenGraph so shared links render a sensible preview. `metadataBase`
+resolves from `NEXT_PUBLIC_APP_URL` → `AUTH_URL` → localhost; no hardcoded domain. Shipped `fb62748`.
+**Consequence:** the Rule 35 Phase-5 hard gate (Lighthouse SEO ≥ 90) applies only to apps with a public-facing
+surface — this app has none, so the gate is **N/A** (Lighthouse will, correctly, report "blocked from indexing").
+If a public marketing/landing surface is ever added, it gets full Rule 35 SEO and the gate applies to it.
