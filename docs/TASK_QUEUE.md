@@ -6,6 +6,8 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 ## 🔴 / 🟡 Open
 
+- 🔴 **setup.ts duplicate-PermissionGroup risk** — `apps/web/src/server/routers/setup.ts` `createFirstAdmin` unconditionally `tx.permissionGroup.create()`s all `SYSTEM_ROLE_ORDER` roles inside the first-run transaction. `PermissionGroup.systemKey` is `@unique` (schema.prisma). If `packages/db/prisma/seed.ts`'s `seedSystemRoles()` (an upsert) already ran — same ordering bug class just fixed for `Organization` in `fix/single-organization` — first-run setup's `permissionGroup.create` throws a unique-constraint violation instead of reusing the seeded rows, and the whole setup transaction (incl. the admin user) rolls back. Done: setup.ts upserts/reuses existing `PermissionGroup` rows by `systemKey` instead of blind `create`. `source: agent-found 2026-10-10` (found while fixing the sibling Organization dedup bug; explicitly out of scope for that task).
+
 ### Security audit fixes → release v0.1.1 (D-32, un-gated, ordered)
 
 Source: `test-artifacts/audit-2026-09-27/REPORT.md` (gitignored). One branch per fix, verified locally, merged
