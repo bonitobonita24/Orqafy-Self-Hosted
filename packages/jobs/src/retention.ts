@@ -29,6 +29,7 @@
 // owner locks one (PENDING_DECISIONS.md) — this job never invents one.
 
 import type { Prisma, PrismaClient } from '@orqafy/db';
+import { getOrganization } from '@orqafy/db';
 import { retentionSettingsSchema, type RetentionCategory, type RetentionSettings } from '@orqafy/shared';
 
 import type { RetentionSweepJobData, RetentionSweepJobResult } from './queues';
@@ -108,7 +109,7 @@ export async function runRetentionSweep(
   const deleted: CategoryTally = {};
   const skipped: CategoryTally = {};
 
-  const org = await prisma.organization.findFirst();
+  const org = await getOrganization(prisma);
 
   let settings: RetentionSettings = {};
   if (org !== null && org.retentionSettings !== null && org.retentionSettings !== undefined) {

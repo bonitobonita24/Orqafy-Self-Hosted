@@ -7,6 +7,7 @@
 import { PrismaClient } from '@prisma/client';
 
 export * from '@prisma/client';
+export { getOrganization, getOrganizationOrThrow } from './organization';
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 

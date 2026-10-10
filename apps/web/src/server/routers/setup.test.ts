@@ -20,6 +20,7 @@ const SETUP_TOKEN = 'test-setup-token-xxxxxxxxxxxxxxxx';
 function createSharedDb() {
   return {
     users: [] as Array<{ id: string; email: string }>,
+    organizations: [] as Array<{ id: string; name: string }>,
     locked: false,
     waiters: [] as Array<() => void>,
     nextId: 0,
@@ -63,7 +64,20 @@ function makeTx(db: SharedDb) {
       },
     },
     organization: {
-      create: () => Promise.resolve({ id: 'org1' }),
+      // Oldest-first, same deterministic ordering as the real
+      // `orderBy: { createdAt: 'asc' }` — array push order models creation order.
+      findFirst: () => Promise.resolve(db.organizations[0] ?? null),
+      create: ({ data }: { data: { name: string } }) => {
+        const org = { id: `org${++db.nextId}`, name: data.name };
+        db.organizations.push(org);
+        return Promise.resolve(org);
+      },
+      update: ({ where, data }: { where: { id: string }; data: { name: string } }) => {
+        const org = db.organizations.find((o) => o.id === where.id);
+        if (org === undefined) throw new Error('org not found');
+        org.name = data.name;
+        return Promise.resolve(org);
+      },
     },
     permissionGroup: {
       create: ({ data }: { data: { systemKey: string } }) =>
@@ -142,6 +156,23 @@ describe('setup.createFirstAdmin', () => {
     expect(result.ok).toBe(true);
     expect(db.users).toHaveLength(1);
     expect(db.users[0]?.email).toBe('ada@example.com');
+    expect(db.organizations).toHaveLength(1);
+  });
+
+  // Regression: first-run setup used to unconditionally INSERT a new
+  // Organization row, even when one already existed (e.g. the dev seed's
+  // 'org_default') — producing two Organization rows and a settings
+  // read/write that could silently hit different rows.
+  it('reuses an existing Organization row (e.g. a dev seed) instead of creating a second', async () => {
+    process.env.SETUP_TOKEN = SETUP_TOKEN;
+    const db = createSharedDb();
+    db.organizations.push({ id: 'org_default', name: 'My Firm' });
+
+    const c = caller(db);
+    await c.createFirstAdmin(validInput);
+
+    expect(db.organizations).toHaveLength(1);
+    expect(db.organizations[0]).toMatchObject({ id: 'org_default', name: 'Acme' });
   });
 
   it('rejects a second setup attempt once one owner already exists', async () => {

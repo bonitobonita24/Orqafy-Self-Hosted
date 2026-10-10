@@ -92,7 +92,20 @@ export const setupRouter = router({
         throw new TRPCError({ code: 'CONFLICT', message: 'Setup has already been completed.' });
       }
 
-      await tx.organization.create({ data: { name: input.orgName } });
+      // Reuse the existing Organization row (e.g. the dev seed's
+      // `org_default`) if one is already there instead of blindly creating a
+      // second — the single-org invariant (D-5) means there is ONLY EVER one
+      // row, and first-run setup must not be the thing that breaks it when
+      // the dev seed happened to run first.
+      const existingOrg = await tx.organization.findFirst({ orderBy: { createdAt: 'asc' } });
+      if (existingOrg === null) {
+        await tx.organization.create({ data: { name: input.orgName } });
+      } else {
+        await tx.organization.update({
+          where: { id: existingOrg.id },
+          data: { name: input.orgName },
+        });
+      }
 
       // Seed the predefined system roles as PermissionGroups (D-17).
       const roleGroups = new Map<string, string>();

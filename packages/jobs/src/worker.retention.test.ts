@@ -40,6 +40,19 @@ describe('runRetentionSweep', () => {
     vi.useRealTimers();
   });
 
+  // Regression: a bare `findFirst()` with no `orderBy` gives Postgres no
+  // ordering guarantee — if more than one Organization row ever existed, the
+  // sweep could read a DIFFERENT row than apps/web's org.ts settings router
+  // just wrote. getOrganization() (packages/db) fixes this with a
+  // deterministic `orderBy: { createdAt: 'asc' }`.
+  it('reads the Organization row via a deterministic orderBy (immune to row ordering)', async () => {
+    const prisma = makePrisma({});
+    await runRetentionSweep(asPrisma(prisma), 'dry-run');
+    expect(prisma.organization.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { createdAt: 'asc' } }),
+    );
+  });
+
   it('dry-run counts candidates and deletes nothing', async () => {
     const prisma = makePrisma({ audit_log: 30, document: 60 });
     prisma.auditLog.count.mockResolvedValue(5);

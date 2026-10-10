@@ -45,10 +45,18 @@ const LEAVE_TYPES: ReadonlyArray<{
 ];
 
 async function seedOrganization(): Promise<void> {
-  await prisma.organization.upsert({
-    where: { id: 'org_default' },
-    update: {},
-    create: { id: 'org_default', name: 'My Firm', timezone: 'UTC' },
+  // Single-organization install (D-5): there is EXACTLY ONE Organization row
+  // for the lifetime of an install, created either by this seed (dev) OR by
+  // interactive first-run setup (apps/web routers/setup.ts), whichever runs
+  // first. An upsert keyed on a FIXED id ('org_default') is only idempotent
+  // against ITSELF — it does nothing to stop a second row appearing under a
+  // DIFFERENT id (exactly how a stale 'org_default' row + a real
+  // first-run-created row both ended up live). So check for ANY existing
+  // row first, regardless of id, and skip entirely if one is already there.
+  const existing = await prisma.organization.findFirst();
+  if (existing !== null) return;
+  await prisma.organization.create({
+    data: { id: 'org_default', name: 'My Firm', timezone: 'UTC' },
   });
 }
 
