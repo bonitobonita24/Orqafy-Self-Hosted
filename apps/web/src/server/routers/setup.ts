@@ -107,11 +107,25 @@ export const setupRouter = router({
         });
       }
 
-      // Seed the predefined system roles as PermissionGroups (D-17).
+      // Seed the predefined system roles as PermissionGroups (D-17). Upsert
+      // by `systemKey` — NEVER a blind `create` — so first-run setup reuses
+      // rows the db seed already created (`systemKey` is `@unique`; a second
+      // `create` for the same key threw a unique-constraint violation that
+      // rolled back the whole transaction, including the admin user). On an
+      // existing row, refresh name/permissions/isSystem from the SAME
+      // canonical grant source the seed consumes (@orqafy/shared, ORQ-27) so
+      // the two paths can never drift — mirrors `seedSystemRoles()` in
+      // packages/db/prisma/seed.ts exactly.
       const roleGroups = new Map<string, string>();
       for (const role of SYSTEM_ROLE_ORDER) {
-        const group = await tx.permissionGroup.create({
-          data: {
+        const group = await tx.permissionGroup.upsert({
+          where: { systemKey: role },
+          update: {
+            name: SYSTEM_ROLE_LABEL[role],
+            permissions: SYSTEM_ROLE_PERMISSIONS[role],
+            isSystem: true,
+          },
+          create: {
             name: SYSTEM_ROLE_LABEL[role],
             permissions: SYSTEM_ROLE_PERMISSIONS[role],
             isSystem: true,
