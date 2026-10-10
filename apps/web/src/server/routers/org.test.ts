@@ -32,10 +32,14 @@ function caller(opts: { org?: OrgRow | null; permissions?: Permission[] } = {}) 
 
   const auditRows: Array<Record<string, unknown>> = [];
   let updatedWith: Record<string, unknown> | undefined;
+  let findFirstArgs: unknown;
 
   const prisma = {
     organization: {
-      findFirst: () => Promise.resolve(org),
+      findFirst: (args: unknown) => {
+        findFirstArgs = args;
+        return Promise.resolve(org);
+      },
       update: ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
         updatedWith = data;
         return Promise.resolve({ ...org, id: where.id, ...data });
@@ -60,6 +64,7 @@ function caller(opts: { org?: OrgRow | null; permissions?: Permission[] } = {}) 
     c: createCallerFactory(orgRouter)(ctx),
     auditRows,
     updatedWith: () => updatedWith,
+    findFirstArgs: () => findFirstArgs,
   };
 }
 
@@ -93,6 +98,17 @@ describe('org.getSettings', () => {
       retentionSettings: { audit_log: 30 },
       timezone: 'Asia/Manila',
     });
+  });
+
+  // Regression: a bare `findFirst()` with no `orderBy` gives Postgres no
+  // ordering guarantee, so a getSettings read and an updateSettings write
+  // could silently resolve to DIFFERENT Organization rows if more than one
+  // ever existed (the root cause of the "settings don't save" bug — see
+  // packages/db/src/organization.ts + migration enforce_single_organization_row).
+  it('reads the Organization row via a deterministic orderBy (immune to row ordering)', async () => {
+    const { c, findFirstArgs } = caller();
+    await c.getSettings();
+    expect(findFirstArgs()).toMatchObject({ orderBy: { createdAt: 'asc' } });
   });
 
   it('returns null for retentionSettings when stored JSON fails validation', async () => {
@@ -131,6 +147,12 @@ describe('org.updateSettings', () => {
     await expect(c.updateSettings({ dpoName: 'Jane' })).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+
+  it('reads the Organization row via a deterministic orderBy before updating it', async () => {
+    const { c, findFirstArgs } = caller();
+    await c.updateSettings({ dpoName: 'Jane' });
+    expect(findFirstArgs()).toMatchObject({ orderBy: { createdAt: 'asc' } });
   });
 
   it('updates only provided keys and writes an audit row', async () => {

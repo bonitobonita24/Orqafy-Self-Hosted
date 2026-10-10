@@ -3,7 +3,7 @@
 // `configure_server`. Never creates an Organization row — that is owned by
 // the setup flow (routers/setup.ts); a missing row is NOT_FOUND here.
 import { TRPCError } from '@trpc/server';
-import { Prisma } from '@orqafy/db';
+import { Prisma, getOrganization } from '@orqafy/db';
 import { orgSettingsUpdateSchema, retentionSettingsSchema } from '@orqafy/shared';
 import { router, permissionProcedure } from '../trpc';
 import { writeAudit } from '../audit';
@@ -12,7 +12,7 @@ const configureServer = () => permissionProcedure('configure_server');
 
 export const orgRouter = router({
   getSettings: configureServer().query(async ({ ctx }) => {
-    const org = await ctx.prisma.organization.findFirst();
+    const org = await getOrganization(ctx.prisma);
     if (org === null) throw new TRPCError({ code: 'NOT_FOUND' });
 
     // Stored JSON may predate a schema change / be hand-edited — never throw
@@ -31,7 +31,7 @@ export const orgRouter = router({
   updateSettings: configureServer()
     .input(orgSettingsUpdateSchema)
     .mutation(async ({ ctx, input }) => {
-      const org = await ctx.prisma.organization.findFirst();
+      const org = await getOrganization(ctx.prisma);
       if (org === null) throw new TRPCError({ code: 'NOT_FOUND' });
 
       // `.nullish()` input fields: `undefined` = not provided (omit from the
