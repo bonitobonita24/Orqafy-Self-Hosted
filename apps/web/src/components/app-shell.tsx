@@ -14,6 +14,7 @@ import {
   CalendarClock,
   Bell,
   Users,
+  ShieldCheck,
   LogOut,
 } from 'lucide-react';
 import { Button, cn } from '@orqafy/ui';
@@ -38,6 +39,11 @@ const NAV: NavItem[] = [
   { href: '/leave', label: 'Leave', icon: CalendarClock },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/settings/users', label: 'Users & Roles', icon: Users },
+  // `configure_server`-gated, same as Users & Roles above: the nav link is
+  // always rendered, the page itself shows a FORBIDDEN message to a user
+  // without the permission (no client-side permission probe exists yet to
+  // conditionally hide nav items — see Users & Roles precedent).
+  { href: '/settings/privacy', label: 'Privacy', icon: ShieldCheck },
 ];
 
 export function AppShell({ userName, children }: { userName: string; children: ReactNode }) {
