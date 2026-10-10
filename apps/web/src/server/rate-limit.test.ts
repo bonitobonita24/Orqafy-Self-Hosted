@@ -4,7 +4,6 @@ import {
   checkPhotoUploadRateLimit,
   clientIp,
   createMemoryStore,
-  recordLoginFailure,
   recordLoginSuccess,
   withMemoryFallback,
   type RateLimitStore,
@@ -39,20 +38,25 @@ describe('rate-limit', () => {
     expect(blocked.retryAfterSec).toBe(WINDOW_SEC);
   });
 
-  it('blocks an email after EMAIL_MAX recorded failures', async () => {
+  // audit fix: checkLoginRateLimit now consumes the email counter ATOMICALLY
+  // via hit() up front (same mechanism as the IP counter) instead of only
+  // peek()ing it here and relying on a later, separately-timed
+  // recordLoginFailure() call to increment it — that split was itself a
+  // TOCTOU (N concurrent requests for the same email could all peek() the
+  // same under-limit count before any of them incremented it). The allowed-
+  // attempt count is unchanged: EMAIL_MAX attempts allowed, the
+  // (EMAIL_MAX+1)th blocked — same as before the fix, same shape as the IP
+  // test above.
+  it('allows EMAIL_MAX attempts for one email and blocks the (EMAIL_MAX+1)th', async () => {
     const store = frozenStore();
     const email = 'attacker@example.com';
 
-    // Under threshold: still allowed.
-    for (let i = 0; i < EMAIL_MAX - 1; i++) {
-      await recordLoginFailure(store, email);
+    for (let i = 0; i < EMAIL_MAX; i++) {
+      const rl = await checkLoginRateLimit(store, { ip: `198.51.100.${i + 1}`, email });
+      expect(rl.allowed).toBe(true);
     }
-    const stillOk = await checkLoginRateLimit(store, { ip: '198.51.100.1', email });
-    expect(stillOk.allowed).toBe(true);
 
-    // One more failure reaches the threshold → blocked.
-    await recordLoginFailure(store, email);
-    const blocked = await checkLoginRateLimit(store, { ip: '198.51.100.2', email });
+    const blocked = await checkLoginRateLimit(store, { ip: '198.51.100.99', email });
     expect(blocked.allowed).toBe(false);
     expect(blocked.retryAfterSec).toBe(WINDOW_SEC);
   });
@@ -62,21 +66,24 @@ describe('rate-limit', () => {
     const email = 'user@example.com';
 
     for (let i = 0; i < EMAIL_MAX; i++) {
-      await recordLoginFailure(store, email);
+      await checkLoginRateLimit(store, { ip: `192.0.2.${i + 1}`, email });
     }
-    const blocked = await checkLoginRateLimit(store, { ip: '192.0.2.1', email });
+    const blocked = await checkLoginRateLimit(store, { ip: '192.0.2.50', email });
     expect(blocked.allowed).toBe(false);
 
     await recordLoginSuccess(store, email);
-    const afterReset = await checkLoginRateLimit(store, { ip: '192.0.2.2', email });
+    const afterReset = await checkLoginRateLimit(store, { ip: '192.0.2.51', email });
     expect(afterReset.allowed).toBe(true);
   });
 
   it('email keys are canonicalized (trim + lowercase) consistently', async () => {
     const store = frozenStore();
-    // Failures recorded under a messy-cased/spaced email…
+    // EMAIL_MAX attempts recorded under a messy-cased/spaced email…
     for (let i = 0; i < EMAIL_MAX; i++) {
-      await recordLoginFailure(store, '  MixedCase@Example.COM ');
+      await checkLoginRateLimit(store, {
+        ip: `192.0.2.${100 + i}`,
+        email: '  MixedCase@Example.COM ',
+      });
     }
     // …block the canonical form used by the route.
     const blocked = await checkLoginRateLimit(store, {
@@ -84,6 +91,24 @@ describe('rate-limit', () => {
       email: 'mixedcase@example.com',
     });
     expect(blocked.allowed).toBe(false);
+  });
+
+  it('50 "concurrent" checkLoginRateLimit calls for one email allow exactly EMAIL_MAX (closes the email TOCTOU)', async () => {
+    const store = frozenStore();
+    const email = 'race@example.com';
+    const N = 50;
+
+    // Distinct IPs so only the EMAIL_MAX gate can trigger a block here — the
+    // per-IP counter (IP_MAX=20) never factors in since each IP is hit once.
+    const results = await Promise.all(
+      Array.from({ length: N }, (_, i) => checkLoginRateLimit(store, { ip: `10.0.0.${i}`, email })),
+    );
+
+    const allowedCount = results.filter((r) => r.allowed).length;
+    expect(allowedCount).toBe(EMAIL_MAX);
+    for (const r of results) {
+      if (!r.allowed) expect(r.retryAfterSec).toBe(WINDOW_SEC);
+    }
   });
 
   it('resets the counter once the window expires (injected clock)', async () => {

@@ -6,8 +6,12 @@
 // + the window's reset time in one round trip, so callers decide block/allow
 // from the returned count with no separate read-then-write (no TOCTOU window
 // for a concurrent racer to slip through between a read and a later write).
-// `peek()` is a read-only, non-mutating lookup (used only for the email
-// failure-count pre-check, which must NOT itself count as an attempt).
+// `peek()` is a read-only, non-mutating lookup. No login/upload gate below
+// calls it anymore (see checkLoginRateLimit's doc comment for why a `peek()`
+// pre-check on the email key was itself a TOCTOU) — it is kept on the
+// interface as a non-mutating introspection primitive for store-contract
+// tests and potential future read-only callers (e.g. an admin/observability
+// endpoint), never for a decide-to-block check.
 //
 // Two RateLimitStore implementations:
 //  - `createMemoryStore()` — single-process, in-memory. Synchronous Map
@@ -33,8 +37,10 @@ import { createValkeyStore } from './rate-limit-valkey-store';
  * this is what makes concurrent callers race-free.
  *
  * `peek` reads the current count + `resetAt` WITHOUT mutating — `null` if the
- * key is absent or its window has expired. Used only where a counter must be
- * inspected without counting as an attempt (the email failure-count check).
+ * key is absent or its window has expired. A decide-to-block check must
+ * NEVER use `peek` (a read-then-later-write split reopens the exact TOCTOU
+ * this store exists to close under concurrent callers) — it exists purely
+ * for non-mutating introspection (tests, future read-only observability).
  *
  * `reset` clears a key (e.g. on successful login).
  */
@@ -261,9 +267,19 @@ function emailKey(email: string): string {
  * Decide whether a login attempt may proceed. Called BEFORE the DB lookup.
  *
  * - Always increments the per-IP counter; over IP_MAX → blocked.
- * - Reads (does NOT increment) the per-email failure counter; at/over EMAIL_MAX
- *   → blocked. The email counter is bumped only on an actual failed attempt via
- *   `recordLoginFailure`, so a correct password is never penalized.
+ * - Always increments the per-email counter too — ATOMICALLY, via the same
+ *   `hit()` the IP check uses. This counts every ATTEMPT for that email (not
+ *   just failures); over EMAIL_MAX → blocked. A correct password clears this
+ *   counter via `recordLoginSuccess`, so a legit user is never penalized for
+ *   accumulated past attempts.
+ *   SECURITY (closes a TOCTOU, audit follow-up): the previous version only
+ *   `peek()`ed the email counter here and relied on a SEPARATE later call
+ *   (`recordLoginFailure`) to increment it. N concurrent requests for the
+ *   SAME email could all `peek()` the same under-limit count before any of
+ *   them incremented it, letting all N through regardless of EMAIL_MAX. A
+ *   single atomic `hit()` up front — exactly like the IP counter — closes
+ *   that window: the count every racing request observes already reflects
+ *   every other racing request's hit.
  * - FAIL-OPEN: any store error returns `allowed: true` (never block a legit
  *   login because the limiter is unhealthy).
  */
@@ -281,10 +297,8 @@ export async function checkLoginRateLimit(
     }
 
     if (args.email !== null) {
-      // Read-only: only an actual failed attempt (recordLoginFailure) bumps
-      // this counter, so checking it here must never count as a hit.
-      const emailPeek = await store.peek(emailKey(args.email));
-      if (emailPeek !== null && emailPeek.count >= EMAIL_MAX) {
+      const emailHit = await store.hit(emailKey(args.email), WINDOW_SEC * 1000);
+      if (emailHit.count > EMAIL_MAX) {
         return { allowed: false, retryAfterSec: WINDOW_SEC };
       }
     }
@@ -293,15 +307,6 @@ export async function checkLoginRateLimit(
   } catch (err) {
     console.warn('[rate-limit] checkLoginRateLimit failed open:', err);
     return { allowed: true, retryAfterSec: 0 };
-  }
-}
-
-/** Record a failed login for an email (increments its failure counter). */
-export async function recordLoginFailure(store: RateLimitStore, email: string): Promise<void> {
-  try {
-    await store.hit(emailKey(email), WINDOW_SEC * 1000);
-  } catch (err) {
-    console.warn('[rate-limit] recordLoginFailure failed:', err);
   }
 }
 
@@ -332,7 +337,12 @@ export async function checkPhotoUploadRateLimit(
   }
 }
 
-/** Record a successful login for an email (clears its failure counter). */
+/**
+ * Record a successful login for an email — clears its per-email attempt
+ * counter (incremented by `checkLoginRateLimit`'s `hit()` on every attempt,
+ * success or failure) so a legit user isn't later blocked by attempts that
+ * already succeeded.
+ */
 export async function recordLoginSuccess(store: RateLimitStore, email: string): Promise<void> {
   try {
     await store.reset(emailKey(email));

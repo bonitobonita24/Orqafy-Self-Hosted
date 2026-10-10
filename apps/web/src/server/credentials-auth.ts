@@ -11,7 +11,6 @@ import { z } from 'zod';
 import {
   checkLoginRateLimit,
   clientIp,
-  recordLoginFailure,
   recordLoginSuccess,
   type RateLimitStore,
 } from './rate-limit';
@@ -61,15 +60,16 @@ export async function authorizeCredentials(
 
   if (!parsed.success || email === null) return null;
 
+  // The per-email attempt counter was already incremented atomically inside
+  // checkLoginRateLimit above — no separate "record a failure" step needed
+  // (or possible to race) here.
   const user = await deps.findUserByEmail(email);
   if (user === null || !user.isActive) {
-    await recordLoginFailure(deps.store, email);
     return null;
   }
 
   const ok = await deps.verifyPassword(parsed.data.password, user.passwordHash);
   if (!ok) {
-    await recordLoginFailure(deps.store, email);
     return null;
   }
 
