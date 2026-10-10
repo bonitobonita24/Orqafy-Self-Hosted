@@ -6,7 +6,7 @@
 
 import { Queue, type ConnectionOptions } from 'bullmq';
 
-import type { DocumentReviewStatus, NotificationType, OcrStatus } from '@orqafy/shared';
+import type { DocumentReviewStatus, NotificationType, OcrStatus, RetentionCategory } from '@orqafy/shared';
 
 /** Canonical queue names (kebab-case, stable — used as Redis key prefixes). */
 export const QUEUE_NAMES = {
@@ -16,6 +16,7 @@ export const QUEUE_NAMES = {
   notificationDispatch: 'notification-dispatch',
   scheduledReminders: 'scheduled-reminders',
   progressRollup: 'progress-rollup',
+  retentionSweep: 'retention-sweep',
 } as const;
 
 export type QueueKey = keyof typeof QUEUE_NAMES;
@@ -72,6 +73,26 @@ export interface ProgressRollupJobData {
   projectId: string;
 }
 
+/**
+ * Scheduled DPA retention sweep (Rule 33 / `.ai_prompt/privacy.md`
+ * RetentionPolicy sketch, DPA W6). `dry-run` (the scheduler's default) only
+ * counts candidates; `enforce` deletes expired rows, skipping any category
+ * whose rows have dependents (never cascade-deletes business data).
+ */
+export interface RetentionSweepJobData {
+  mode: 'dry-run' | 'enforce';
+}
+export interface RetentionSweepJobResult {
+  mode: 'dry-run' | 'enforce';
+  /** Rows older than the category's configured retention window. */
+  candidates: Partial<Record<RetentionCategory, number>>;
+  /** Rows actually deleted (enforce mode only; always `{}` in dry-run). */
+  deleted: Partial<Record<RetentionCategory, number>>;
+  /** Candidate rows left alone because deleting them would violate an FK
+   * (dependents still reference them) — never force/cascade-deleted. */
+  skipped: Partial<Record<RetentionCategory, number>>;
+}
+
 /** Map each queue key to its `{ data, result }` payload types. */
 export interface JobTypeMap {
   ocr: { data: OcrJobData; result: OcrJobResult };
@@ -80,6 +101,7 @@ export interface JobTypeMap {
   notificationDispatch: { data: NotificationDispatchJobData; result: void };
   scheduledReminders: { data: ScheduledReminderJobData; result: void };
   progressRollup: { data: ProgressRollupJobData; result: void };
+  retentionSweep: { data: RetentionSweepJobData; result: RetentionSweepJobResult };
 }
 
 /** All producer-side queues, one per key, typed to their payloads. */
@@ -104,5 +126,6 @@ export function createQueues(connection: ConnectionOptions): QueueRegistry {
     notificationDispatch: make('notificationDispatch'),
     scheduledReminders: make('scheduledReminders'),
     progressRollup: make('progressRollup'),
+    retentionSweep: make('retentionSweep'),
   };
 }
