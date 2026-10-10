@@ -5,6 +5,7 @@ import {
   clientIp,
   createMemoryStore,
   recordLoginSuccess,
+  resolveRateLimitBackendUrl,
   withMemoryFallback,
   type RateLimitStore,
 } from './rate-limit';
@@ -341,5 +342,43 @@ describe('checkPhotoUploadRateLimit', () => {
       allowed: true,
       retryAfterSec: 0,
     });
+  });
+});
+
+// Cross-scope note: packages/jobs/src/connection.ts (connectionFromEnv) uses
+// the same VALKEY_URL ?? REDIS_URL precedence for BullMQ. Keep the two in
+// lockstep — an installer setting only REDIS_URL must get Valkey-backed
+// behavior in BOTH the job queue and the rate limiter, never just one.
+describe('resolveRateLimitBackendUrl (VALKEY_URL / REDIS_URL fallback precedence)', () => {
+  it('neither set → undefined (selects the in-memory store)', () => {
+    expect(resolveRateLimitBackendUrl({})).toBeUndefined();
+  });
+
+  it('REDIS_URL only → used (does not silently fall back to in-memory)', () => {
+    expect(resolveRateLimitBackendUrl({ REDIS_URL: 'redis://redis-host:6379' })).toBe(
+      'redis://redis-host:6379',
+    );
+  });
+
+  it('VALKEY_URL only → used', () => {
+    expect(resolveRateLimitBackendUrl({ VALKEY_URL: 'redis://valkey-host:6379' })).toBe(
+      'redis://valkey-host:6379',
+    );
+  });
+
+  it('both set → VALKEY_URL wins', () => {
+    expect(
+      resolveRateLimitBackendUrl({
+        VALKEY_URL: 'redis://valkey-host:6379',
+        REDIS_URL: 'redis://redis-host:6379',
+      }),
+    ).toBe('redis://valkey-host:6379');
+  });
+
+  it('empty-string values are treated as unset', () => {
+    expect(resolveRateLimitBackendUrl({ VALKEY_URL: '', REDIS_URL: '' })).toBeUndefined();
+    expect(resolveRateLimitBackendUrl({ VALKEY_URL: '', REDIS_URL: 'redis://redis-host:6379' })).toBe(
+      'redis://redis-host:6379',
+    );
   });
 });
