@@ -14,6 +14,16 @@
 //    'unsafe-inline' for v1. POST-V1 SEAM: swap to a per-request nonce
 //    (Next middleware `x-nonce` header + `next/script` nonce prop) and drop
 //    'unsafe-inline' from both directives once that's in place.
+//  - DEV-ONLY: `pnpm dev`'s React Fast Refresh runtime reconstructs
+//    server-side error stacks via `eval()` in the browser — Next.js's own
+//    CSP guidance (vercel/next.js docs, content-security-policy.mdx)
+//    requires `'unsafe-eval'` in script-src for this in development, else
+//    every page throws `EvalError: ... violates CSP ... (no 'unsafe-eval')`
+//    and React never hydrates. Gated strictly on NODE_ENV==='development' —
+//    the PRODUCTION directive string is byte-identical to before this
+//    change (verified by a test). `connect-src 'self'` already covers the
+//    same-origin HMR WebSocket (ws:) per the CSP spec's origin-matching for
+//    'self' — no extra token needed there.
 //
 // Deployment hook: set CSP_EXTRA_IMG_SRC (space-separated origins) to extend
 // img-src for a deployment that points NEXT_PUBLIC_MAP_TILE_URL at a custom
@@ -31,6 +41,7 @@ const BASE_CSP_DIRECTIVES: readonly string[] = [
   "frame-ancestors 'none'",
   "form-action 'self'",
   // v1 posture: no nonce pipeline wired up yet (see module header) — POST-V1 seam.
+  // 'unsafe-eval' is appended ONLY in development (see buildCsp below).
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",
@@ -43,12 +54,21 @@ const BASE_CSP_DIRECTIVES: readonly string[] = [
  * Builds the Content-Security-Policy value, honoring the CSP_EXTRA_IMG_SRC
  * deployment hook (space-separated extra img-src origins — e.g. a custom
  * NEXT_PUBLIC_MAP_TILE_URL host).
+ *
+ * DEV-ONLY (NODE_ENV==='development'): appends `'unsafe-eval'` to
+ * script-src so Next.js Fast Refresh's error-stack reconstruction doesn't
+ * trip the CSP (see module header). Production's directive string is
+ * unchanged — this never fires outside development.
  */
 export function buildCsp(env: Record<string, string | undefined> = process.env): string {
+  const isDev = env.NODE_ENV === 'development';
   const directives = BASE_CSP_DIRECTIVES.map((directive) => {
-    const extra = env.CSP_EXTRA_IMG_SRC?.trim();
-    if (directive.startsWith('img-src') && extra) {
-      return `${directive} ${extra}`;
+    if (directive.startsWith('img-src')) {
+      const extra = env.CSP_EXTRA_IMG_SRC?.trim();
+      return extra ? `${directive} ${extra}` : directive;
+    }
+    if (isDev && directive.startsWith('script-src')) {
+      return `${directive} 'unsafe-eval'`;
     }
     return directive;
   });
