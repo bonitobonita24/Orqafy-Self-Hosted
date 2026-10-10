@@ -14,6 +14,7 @@ import { router, protectedProcedure, permissionProcedure } from '../trpc';
 import { isUniqueViolation, omitUndefined } from '../util';
 import { enqueueOcr } from '../queues';
 import { getStorageAdapter } from '../storage';
+import { writeAudit } from '../audit';
 
 /**
  * Generic refusal for a storageKey that already backs a Document (ORQ-26). It
@@ -55,6 +56,22 @@ export const documentsRouter = router({
       if (doc === null) throw new TRPCError({ code: 'NOT_FOUND' });
       if (doc.isSPI && !ctx.permissions.has('view_finances')) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'This document is restricted.' });
+      }
+      // DPA W10: log the SPI metadata VIEW itself (not just the byte download) —
+      // audit write failure must never break the read (fail-open on audit,
+      // never on authz — the FORBIDDEN/NOT_FOUND branches above already ran).
+      if (doc.isSPI) {
+        try {
+          await writeAudit(ctx.prisma, {
+            userId: ctx.userId,
+            action: 'document.view_spi',
+            targetType: 'document',
+            targetId: doc.id,
+            metadata: { isSPI: true },
+          });
+        } catch (err) {
+          console.warn('Audit write failed (document.view_spi)', err);
+        }
       }
       return doc;
     }),

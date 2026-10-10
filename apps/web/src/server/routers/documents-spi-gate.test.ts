@@ -45,10 +45,13 @@ function caller(opts: {
   permissions: Permission[];
   doc?: Record<string, unknown> | null;
   review?: ReviewFixture | null;
+  /** Rejects writeAudit's underlying insert — must never break the caller. */
+  auditWriteError?: Error;
 }) {
   let updated: Record<string, unknown> | null = null;
   let deleted = false;
   let reviewWhere: unknown;
+  const auditWrites: Array<Record<string, unknown>> = [];
   const prisma = {
     document: {
       findUnique: ({ select }: { select?: Record<string, boolean> } = {}) =>
@@ -71,6 +74,13 @@ function caller(opts: {
         return Promise.resolve([]);
       },
     },
+    auditLog: {
+      create: ({ data }: { data: Record<string, unknown> }) => {
+        if (opts.auditWriteError !== undefined) return Promise.reject(opts.auditWriteError);
+        auditWrites.push(data);
+        return Promise.resolve(data);
+      },
+    },
   };
   const ctx = {
     prisma: prisma as unknown as TRPCContext['prisma'],
@@ -83,6 +93,7 @@ function caller(opts: {
     updated: () => updated,
     deleted: () => deleted,
     reviewWhere: () => reviewWhere,
+    auditWrites: () => auditWrites,
   };
 }
 
@@ -186,5 +197,48 @@ describe('documents.reviewTray SPI gate (audit H-1)', () => {
     const { c, reviewWhere } = caller({ permissions: FINANCE });
     await c.reviewTray();
     expect(reviewWhere()).not.toHaveProperty('file');
+  });
+});
+
+describe('documents.byId SPI-view access audit (DPA W10)', () => {
+  it('logs one document.view_spi row when a finance holder reads an SPI document', async () => {
+    const { c, auditWrites } = caller({ permissions: FINANCE, doc: SPI_DOC });
+    await c.byId({ id: 'spi-1' });
+    expect(auditWrites()).toHaveLength(1);
+    expect(auditWrites()[0]).toMatchObject({
+      userId: 'u1',
+      action: 'document.view_spi',
+      targetType: 'document',
+      targetId: 'spi-1',
+    });
+  });
+
+  it('logs nothing when reading a non-SPI document (list/metadata reads are not logged)', async () => {
+    const { c, auditWrites } = caller({ permissions: PM, doc: NON_SPI_DOC });
+    await c.byId({ id: 'doc-1' });
+    expect(auditWrites()).toHaveLength(0);
+  });
+
+  it('logs nothing on a denied SPI read (denials are never logged as successful)', async () => {
+    const { c, auditWrites } = caller({ permissions: PM, doc: SPI_DOC });
+    await expect(c.byId({ id: 'spi-1' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(auditWrites()).toHaveLength(0);
+  });
+
+  it('logs nothing on a 404 (missing document)', async () => {
+    const { c, auditWrites } = caller({ permissions: FINANCE, doc: null });
+    await expect(c.byId({ id: 'missing' })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(auditWrites()).toHaveLength(0);
+  });
+
+  it('still returns the SPI document when the audit write throws (fail-open on audit)', async () => {
+    const { c, auditWrites } = caller({
+      permissions: FINANCE,
+      doc: SPI_DOC,
+      auditWriteError: new Error('db down'),
+    });
+    const result = await c.byId({ id: 'spi-1' });
+    expect(result).toMatchObject({ id: 'spi-1' });
+    expect(auditWrites()).toHaveLength(0); // the write rejected; never queued
   });
 });

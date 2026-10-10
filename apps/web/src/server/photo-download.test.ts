@@ -34,6 +34,7 @@ function deps(opts: {
   photo?: StoredPhoto | null;
   permissions?: readonly Permission[];
   getObject?: PhotoDownloadDeps['getObject'];
+  writeAudit?: PhotoDownloadDeps['writeAudit'];
 } = {}): PhotoDownloadDeps {
   return {
     resolveUserId: () => Promise.resolve(opts.userId === undefined ? 'assignee' : opts.userId),
@@ -42,6 +43,7 @@ function deps(opts: {
     getObject:
       opts.getObject ??
       (() => Promise.resolve({ body: BYTES, size: BYTES.byteLength })),
+    writeAudit: opts.writeAudit ?? (() => Promise.resolve()),
   };
 }
 
@@ -163,5 +165,65 @@ describe('handlePhotoDownload — errors', () => {
     if (png.status !== 200) throw new Error('unreachable');
     expect(png.contentType).toBe('image/png');
     expect(png.ext).toBe('png');
+  });
+});
+
+describe('handlePhotoDownload — access audit log (DPA W10)', () => {
+  it('writes one audit call on a successful (200) download', async () => {
+    const calls: Array<{ userId: string; targetId: string }> = [];
+    const res = await call(
+      deps({
+        userId: 'assignee',
+        permissions: SYSTEM_ROLE_PERMISSIONS.field_staff,
+        writeAudit: (input) => {
+          calls.push(input);
+          return Promise.resolve();
+        },
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(calls).toEqual([{ userId: 'assignee', targetId: 'p1' }]);
+  });
+
+  it('writes nothing on a 401 (unauthenticated)', async () => {
+    const calls: unknown[] = [];
+    await call(deps({ userId: null, writeAudit: (i) => { calls.push(i); return Promise.resolve(); } }));
+    expect(calls).toHaveLength(0);
+  });
+
+  it('writes nothing on a 404 (denied, not an assignee)', async () => {
+    const calls: unknown[] = [];
+    await call(
+      deps({
+        userId: 'stranger',
+        permissions: SYSTEM_ROLE_PERMISSIONS.field_staff,
+        writeAudit: (i) => { calls.push(i); return Promise.resolve(); },
+      }),
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it('writes nothing on a 500 (storage error)', async () => {
+    const calls: unknown[] = [];
+    await call(
+      deps({
+        userId: 'assignee',
+        permissions: SYSTEM_ROLE_PERMISSIONS.field_staff,
+        getObject: () => Promise.reject(new Error('S3 down')),
+        writeAudit: (i) => { calls.push(i); return Promise.resolve(); },
+      }),
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it('still serves the download when the audit write throws (fail-open on audit, never on bytes)', async () => {
+    const res = await call(
+      deps({
+        userId: 'assignee',
+        permissions: SYSTEM_ROLE_PERMISSIONS.field_staff,
+        writeAudit: () => Promise.reject(new Error('db down')),
+      }),
+    );
+    expect(res.status).toBe(200);
   });
 });
