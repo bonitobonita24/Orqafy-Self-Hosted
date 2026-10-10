@@ -314,13 +314,13 @@ importers:
       bullmq:
         specifier: ^5.34.0
         version: 5.81.4
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.1
-      tsx:
-        specifier: ^4.23.13
-        version: 4.23.13
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
