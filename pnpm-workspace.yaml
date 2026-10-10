@@ -1,3 +1,10 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Supply-chain hardening (pnpm >=10.21 trustPolicy, >=10.16 minimumReleaseAge,
+# >=10.26 blockExoticSubdeps — all confirmed present in pnpm@10.34.6 via
+# context7 /pnpm/pnpm.io release notes).
+minimumReleaseAge: 1440
+trustPolicy: no-downgrade
+blockExoticSubdeps: true
