@@ -6,8 +6,6 @@ Not a decisions log — owner-gated `[WHAT]`s live in `PENDING_DECISIONS.md`.
 
 ## 🔴 / 🟡 Open
 
-- 🔴 **setup.ts duplicate-PermissionGroup risk** — `apps/web/src/server/routers/setup.ts` `createFirstAdmin` unconditionally `tx.permissionGroup.create()`s all `SYSTEM_ROLE_ORDER` roles inside the first-run transaction. `PermissionGroup.systemKey` is `@unique` (schema.prisma). If `packages/db/prisma/seed.ts`'s `seedSystemRoles()` (an upsert) already ran — same ordering bug class just fixed for `Organization` in `fix/single-organization` — first-run setup's `permissionGroup.create` throws a unique-constraint violation instead of reusing the seeded rows, and the whole setup transaction (incl. the admin user) rolls back. Done: setup.ts upserts/reuses existing `PermissionGroup` rows by `systemKey` instead of blind `create`. `source: agent-found 2026-10-10` (found while fixing the sibling Organization dedup bug; explicitly out of scope for that task).
-
 ### Security audit fixes → release v0.1.1 (D-32, un-gated, ordered)
 
 Source: `test-artifacts/audit-2026-09-27/REPORT.md` (gitignored). One branch per fix, verified locally, merged
@@ -76,10 +74,6 @@ the fix is in + a regression test where the fix is app code + gates green (typec
   - L-2 60-day mobile token not revoked on password change → **blocked on [WHAT] ORQ-55** (no password-change/reset
     flow exists in the spec; deactivation already revokes via per-request `isActive`). `gate: owner`
   - L-3 any signed-in user can download non-SPI docs → **[WHAT] ORQ-54** (recommend accept-as-designed). `gate: owner`
-- 🔴 **[bug][HIGH] Two Organization rows break the single-org invariant (D-5)** — Phase 6 re-run 2026-10-10: dev DB
-  has seed `org_default` + first-run-setup org; `org.ts` `findFirst()` unordered → Settings→Privacy save/read hit
-  different rows. Fix in flight on `fix/single-organization` (deterministic lookup, setup/seed reuse, dedupe
-  migration). Done: exactly one Organization row; privacy settings persist across reload. `source: agent-found 2026-10-10`
 - 🔴 **[chore] Worker image build resolves the WHOLE workspace** — `pnpm deploy --legacy` (Dockerfile.worker) re-resolves
   every workspace package, so any future `trustPolicy`/`minimumReleaseAge` hit in web/ui/mobile deps blocks the worker
   build too (hit 2026-10-10: tailwind-merge@2.6.1, next-auth@5.0.0-beta.32 → narrow `trustPolicyExclude`). Option: a
@@ -193,6 +187,15 @@ exist yet. They are NOT actionable now; they gate a later phase._
   in the WebView, Q3 = Auth.js cookie same-origin; Q4–Q7 parked in R7a §7. `<source: plan 2026-09-08>`
 
 ## ✅ Done recently
+
+- ✅ **setup.ts duplicate-PermissionGroup risk** — `createFirstAdmin` now `tx.permissionGroup.upsert()`s by
+  `systemKey` (mirrors `seed.ts` `seedSystemRoles()`) instead of blind `create`, so a pre-seeded DB no longer
+  rolls back the whole first-run transaction on a unique-constraint violation; 2 new regression tests (fresh
+  + pre-seeded paths), turbo typecheck/lint/test 27/27 green. (`0db98c9`, 2026-10-10, branch
+  `fix/setup-reuse-system-roles`, LOCAL/HARD HOLD, not merged)
+- ✅ **[bug][HIGH] Two Organization rows break the single-org invariant (D-5)** — fixed on
+  `fix/single-organization` (deterministic `findFirst` ordering + setup/seed reuse + dedupe migration), merged
+  to local `main`. (`2f607d0`, merge `b389b9d`, 2026-10-10)
 
 All 2026-10-10 items below: merged to LOCAL `main` (HARD HOLD — not pushed); combined `main` turbo 27/27 green,
 web build green; dev stack rebuilt off `main` and Phase-6 re-run live-verified (see SESSION_LOG 2026-10-10).

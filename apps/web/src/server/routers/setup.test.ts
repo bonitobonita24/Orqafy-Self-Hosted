@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCallerFactory } from '../trpc';
 import type { TRPCContext } from '../context';
+import { SYSTEM_ROLE_ORDER } from '@orqafy/shared';
 
 vi.mock('../../lib/password', () => ({
   hashPassword: (plain: string) => Promise.resolve(`hashed:${plain}`),
@@ -19,8 +20,15 @@ const SETUP_TOKEN = 'test-setup-token-xxxxxxxxxxxxxxxx';
 /** A shared in-memory "database" + advisory-lock mutex for one test's DB. */
 function createSharedDb() {
   return {
-    users: [] as Array<{ id: string; email: string }>,
+    users: [] as Array<{ id: string; email: string; roleId: string }>,
     organizations: [] as Array<{ id: string; name: string }>,
+    permissionGroups: [] as Array<{
+      id: string;
+      systemKey: string;
+      name: string;
+      permissions: unknown;
+      isSystem: boolean;
+    }>,
     locked: false,
     waiters: [] as Array<() => void>,
     nextId: 0,
@@ -57,8 +65,8 @@ function makeTx(db: SharedDb) {
     },
     user: {
       count: () => Promise.resolve(db.users.length),
-      create: ({ data }: { data: { email: string } }) => {
-        const user = { id: `u${++db.nextId}`, email: data.email };
+      create: ({ data }: { data: { email: string; roleId: string } }) => {
+        const user = { id: `u${++db.nextId}`, email: data.email, roleId: data.roleId };
         db.users.push(user);
         return Promise.resolve(user);
       },
@@ -80,8 +88,34 @@ function makeTx(db: SharedDb) {
       },
     },
     permissionGroup: {
-      create: ({ data }: { data: { systemKey: string } }) =>
-        Promise.resolve({ id: `pg-${data.systemKey}` }),
+      // Models the real `upsert` by `systemKey` — reuse the existing row
+      // (refreshing its grants) instead of ever inserting a duplicate.
+      upsert: ({
+        where,
+        update,
+        create,
+      }: {
+        where: { systemKey: string };
+        update: { name: string; permissions: unknown; isSystem: boolean };
+        create: { name: string; permissions: unknown; isSystem: boolean; systemKey: string };
+      }) => {
+        const existing = db.permissionGroups.find((g) => g.systemKey === where.systemKey);
+        if (existing !== undefined) {
+          existing.name = update.name;
+          existing.permissions = update.permissions;
+          existing.isSystem = update.isSystem;
+          return Promise.resolve(existing);
+        }
+        const group = {
+          id: `pg-${create.systemKey}`,
+          systemKey: create.systemKey,
+          name: create.name,
+          permissions: create.permissions,
+          isSystem: create.isSystem,
+        };
+        db.permissionGroups.push(group);
+        return Promise.resolve(group);
+      },
     },
   };
 }
@@ -157,6 +191,51 @@ describe('setup.createFirstAdmin', () => {
     expect(db.users).toHaveLength(1);
     expect(db.users[0]?.email).toBe('ada@example.com');
     expect(db.organizations).toHaveLength(1);
+    // Fresh-DB path unchanged: every system role gets its own PermissionGroup.
+    expect(db.permissionGroups).toHaveLength(SYSTEM_ROLE_ORDER.length);
+    const ownerGroup = db.permissionGroups.find((g) => g.systemKey === 'owner_admin');
+    expect(ownerGroup).toBeDefined();
+    expect(db.users[0]?.roleId).toBe(ownerGroup?.id);
+  });
+
+  // AUDIT (ORQ, 2026-10-10): createFirstAdmin used to unconditionally `create`
+  // a PermissionGroup per system role. `systemKey` is `@unique`, and the db
+  // seed's `seedSystemRoles()` upserts the SAME rows — so on a pre-seeded DB
+  // (dev compose, or any install where the seed ran first) the blind create
+  // threw a unique-constraint violation and rolled back the WHOLE
+  // transaction, including the admin user. Setup must reuse (upsert) the
+  // existing rows instead.
+  it('reuses pre-seeded system-role PermissionGroups instead of duplicate-creating them', async () => {
+    process.env.SETUP_TOKEN = SETUP_TOKEN;
+    const db = createSharedDb();
+    for (const role of SYSTEM_ROLE_ORDER) {
+      db.permissionGroups.push({
+        id: `seeded-${role}`,
+        systemKey: role,
+        name: 'stale-seed-name',
+        permissions: [],
+        isSystem: true,
+      });
+    }
+
+    const c = caller(db);
+    const result = await c.createFirstAdmin(validInput);
+
+    expect(result.ok).toBe(true);
+    // No transaction rollback: the admin user + org were created.
+    expect(db.users).toHaveLength(1);
+    expect(db.organizations).toHaveLength(1);
+    // No duplicate rows — still exactly one PermissionGroup per system role,
+    // reusing the SAME ids the seed created.
+    expect(db.permissionGroups).toHaveLength(SYSTEM_ROLE_ORDER.length);
+    expect(db.permissionGroups.map((g) => g.id).sort()).toEqual(
+      SYSTEM_ROLE_ORDER.map((role) => `seeded-${role}`).sort(),
+    );
+    // Grants refreshed from the canonical source, not left stale.
+    const ownerGroup = db.permissionGroups.find((g) => g.systemKey === 'owner_admin');
+    expect(ownerGroup?.name).not.toBe('stale-seed-name');
+    // The admin user is assigned the EXISTING (reused) owner_admin role id.
+    expect(db.users[0]?.roleId).toBe('seeded-owner_admin');
   });
 
   // Regression: first-run setup used to unconditionally INSERT a new
