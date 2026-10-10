@@ -14,6 +14,7 @@ import { photosRouter } from './routers/photos';
 import { notificationsRouter } from './routers/notifications';
 import { leaveRouter } from './routers/leave';
 import { dashboardRouter } from './routers/dashboard';
+import { orgRouter } from './routers/org';
 
 export const appRouter = router({
   setup: setupRouter,
@@ -29,6 +30,7 @@ export const appRouter = router({
   notifications: notificationsRouter,
   leave: leaveRouter,
   dashboard: dashboardRouter,
+  org: orgRouter,
 });
 
 export type AppRouter = typeof appRouter;
