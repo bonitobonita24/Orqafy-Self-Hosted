@@ -9,5 +9,12 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     exclude: ['src/offline/sqlite/**', 'node_modules/**'],
+    // Vitest 5 defaults `clearMocks` to true (vi.clearAllMocks() before every
+    // test), which wipes mock-call history recorded at MODULE-SCOPE import time
+    // — exactly task.registration.test.ts's "module-scope registration" case
+    // (expo-task-manager.defineTask is called when `./task` is imported, before
+    // any test runs). Restore the pre-v5 behavior so that assertion still holds.
+    // https://vitest.dev/guide/migration/#clearmocks-is-enabled-by-default
+    clearMocks: false,
   },
 });
