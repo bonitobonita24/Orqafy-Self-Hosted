@@ -57,10 +57,12 @@ function caller(opts: {
   permissions?: Permission[];
   users?: UserRow[];
   docs?: Array<Record<string, unknown>>;
+  photos?: Array<Record<string, unknown>>;
 }) {
   const callerId = opts.callerId ?? 'u1';
   const users = opts.users ?? [SELF_USER, OTHER_USER];
   const docs = opts.docs ?? [];
+  const photos = opts.photos ?? [];
   const auditRows: Array<Record<string, unknown>> = [];
 
   const empty = () => Promise.resolve([]);
@@ -83,7 +85,10 @@ function caller(opts: {
           ),
         ),
     },
-    photo: { findMany: empty },
+    photo: {
+      findMany: ({ where }: { where: { capturedBy: string } }) =>
+        Promise.resolve(photos.filter((p) => p.capturedBy === where.capturedBy)),
+    },
     leaveRequest: { findMany: empty },
     leaveBalance: { findMany: empty },
     notification: { findMany: empty },
@@ -114,8 +119,8 @@ describe('privacy.exportData', () => {
     expect(result.profile.email).toBe('self@orqafy.test');
   });
 
-  it('admin export of another user with export_data succeeds', async () => {
-    const { c } = caller({ callerId: 'u1', permissions: ['export_data'] });
+  it('admin export of another user with manage_users succeeds', async () => {
+    const { c } = caller({ callerId: 'u1', permissions: ['manage_users'] });
     const result = await c.exportData({ userId: 'u2' });
     expect(result.profile.id).toBe('u2');
   });
@@ -125,8 +130,16 @@ describe('privacy.exportData', () => {
     await expect(c.exportData({ userId: 'u2' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
-  it('unknown id returns NOT_FOUND', async () => {
+  it('project_manager with export_data but no manage_users is FORBIDDEN for on-behalf export', async () => {
     const { c } = caller({ callerId: 'u1', permissions: ['export_data'] });
+    await expect(c.exportData({ userId: 'u2' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      message: expect.stringContaining('manage_users'),
+    });
+  });
+
+  it('unknown id returns NOT_FOUND', async () => {
+    const { c } = caller({ callerId: 'u1', permissions: ['manage_users'] });
     await expect(c.exportData({ userId: 'ghost' })).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
@@ -140,7 +153,7 @@ describe('privacy.exportData', () => {
   it('excludes SPI document metadata for an admin lacking view_finances', async () => {
     const { c } = caller({
       callerId: 'u1',
-      permissions: ['export_data'],
+      permissions: ['manage_users'],
       docs: [
         {
           id: 'd1',
@@ -169,7 +182,7 @@ describe('privacy.exportData', () => {
   it('includes SPI document metadata for an admin holding view_finances', async () => {
     const { c } = caller({
       callerId: 'u1',
-      permissions: ['export_data', 'view_finances'],
+      permissions: ['manage_users', 'view_finances'],
       docs: [
         {
           id: 'd1',
@@ -186,7 +199,7 @@ describe('privacy.exportData', () => {
     expect(result.documents.map((d) => d.id)).toEqual(['d1']);
   });
 
-  it('includes own SPI documents on self export regardless of permissions', async () => {
+  it('subject without view_finances gets no SPI docs in self export (gate parity with documents.ts)', async () => {
     const { c } = caller({
       callerId: 'u1',
       permissions: [],
@@ -203,11 +216,70 @@ describe('privacy.exportData', () => {
       ],
     });
     const result = await c.exportData({});
+    expect(result.documents).toEqual([]);
+  });
+
+  it('subject WITH view_finances gets own SPI docs in self export', async () => {
+    const { c } = caller({
+      callerId: 'u1',
+      permissions: ['view_finances'],
+      docs: [
+        {
+          id: 'd1',
+          name: 'payroll.pdf',
+          storageKey: 'documents/x/payroll.pdf',
+          category: 'other',
+          createdAt: new Date(),
+          uploadedBy: 'u1',
+          isSPI: true,
+        },
+      ],
+    });
+    const result = await c.exportData({});
     expect(result.documents.map((d) => d.id)).toEqual(['d1']);
   });
 
+  const PHOTO_OF_U2 = {
+    id: 'p1',
+    storageKey: 'photos/p1/photo.jpg',
+    taskId: null,
+    milestoneId: null,
+    capturedAt: new Date(),
+    capturedBy: 'u2',
+  };
+
+  it('manage_users caller without photo oversight gets photos: [] on an on-behalf export', async () => {
+    const { c } = caller({
+      callerId: 'u1',
+      permissions: ['manage_users'],
+      photos: [PHOTO_OF_U2],
+    });
+    const result = await c.exportData({ userId: 'u2' });
+    expect(result.photos).toEqual([]);
+  });
+
+  it('manage_users caller WITH photo oversight (view_all_projects) gets photos on an on-behalf export', async () => {
+    const { c } = caller({
+      callerId: 'u1',
+      permissions: ['manage_users', 'view_all_projects'],
+      photos: [PHOTO_OF_U2],
+    });
+    const result = await c.exportData({ userId: 'u2' });
+    expect(result.photos.map((p) => p.id)).toEqual(['p1']);
+  });
+
+  it("self export always includes the subject's own captured photos, no gate", async () => {
+    const { c } = caller({
+      callerId: 'u1',
+      permissions: [],
+      photos: [{ ...PHOTO_OF_U2, id: 'p2', capturedBy: 'u1' }],
+    });
+    const result = await c.exportData({});
+    expect(result.photos.map((p) => p.id)).toEqual(['p2']);
+  });
+
   it('writes an audit row with byAdmin flag set correctly', async () => {
-    const { c, auditRows } = caller({ callerId: 'u1', permissions: ['export_data'] });
+    const { c, auditRows } = caller({ callerId: 'u1', permissions: ['manage_users'] });
     await c.exportData({ userId: 'u2' });
     expect(auditRows).toHaveLength(1);
     expect(auditRows[0]).toMatchObject({
