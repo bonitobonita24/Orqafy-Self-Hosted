@@ -15,6 +15,7 @@ import { notificationsRouter } from './routers/notifications';
 import { leaveRouter } from './routers/leave';
 import { dashboardRouter } from './routers/dashboard';
 import { orgRouter } from './routers/org';
+import { privacyRouter } from './routers/privacy';
 
 export const appRouter = router({
   setup: setupRouter,
@@ -31,6 +32,7 @@ export const appRouter = router({
   leave: leaveRouter,
   dashboard: dashboardRouter,
   org: orgRouter,
+  privacy: privacyRouter,
 });
 
 export type AppRouter = typeof appRouter;
