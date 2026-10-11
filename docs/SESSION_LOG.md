@@ -4,6 +4,14 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-10-12 — Board sync wrap + session saved, reboot loop stopped
+
+**In your words:** "save session for now, make sure that those recommendations are handed off properly to the next session. stop reboot loop."
+
+✅ **Squirlnote board reconciled** — posted the 4 answer comments on the decision/logo cards, cleared the 3 stale `next` markers, moved the orca logo card to Ready to Test.
+✅ **Handoff refreshed + loop stopped** — rewrote the next-session handoff to carry the two open recommendations (push v0.1.2, paste the PRODUCT.md back-port paragraphs) plus the remaining un-gated LOW chores; stopped the reboot loop (owner-initiated). Tree clean at `32e8c48`, 76 commits ahead of origin — all LOCAL, HARD HOLD.
+💬 **Nothing pushed.** The two items above wait on your explicit word; everything else from this wave is done and verified.
+
 ## 2026-10-11 — Resolved the 4 open decisions, built password reset, added the orca logo
 
 **In your words:** resume session → answered the four pending calls (document download scope, password reset, DPA defaults, logo), then: build password change/reset, and make the logo "3 orcas moving forward" (Orqafy = orca). Also "also force web re-login" on a password change.
