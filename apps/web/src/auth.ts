@@ -36,16 +36,26 @@ const nextAuth = NextAuth({
   ],
   callbacks: {
     jwt({ token, user }) {
-      if (user?.id !== undefined) token.id = user.id;
+      if (user?.id !== undefined) {
+        token.id = user.id;
+        // Stamp the IMMUTABLE sign-in time only on an actual sign-in (`user`
+        // present). Auth.js v5 re-encodes/rotates the JWT on rolling-session
+        // refresh (past `updateAge`), which re-stamps `iat` — so `iat` is NOT
+        // safe as a revocation anchor (a continuously-active session would
+        // keep getting a fresh `iat` and survive a password change). `authTime`
+        // is set once here and never touched again on rotation.
+        token.authTime = Math.floor(Date.now() / 1000);
+      }
       return token;
     },
     session({ session, token }) {
       if (typeof token.id === 'string') session.user.id = token.id;
-      // Expose the JWT's issue time so the cookie-session path (server/context.ts,
-      // server/request-auth.ts) can reject a session issued before the user's
-      // last password change (L-2 web) — mirrors the mobile bearer check
-      // (server/bearer-identity.ts) using the same `passwordChangedAt` column.
-      if (typeof token.iat === 'number') session.iat = token.iat;
+      // Expose the immutable sign-in time so the cookie-session path
+      // (server/context.ts, server/request-auth.ts) can reject a session
+      // issued before the user's last password change (L-2 web) — mirrors the
+      // mobile bearer check (server/bearer-identity.ts) using the same
+      // `passwordChangedAt` column.
+      if (typeof token.authTime === 'number') session.authTime = token.authTime;
       return session;
     },
   },

@@ -13,8 +13,8 @@ import { resolveBearerIdentity } from './bearer-identity';
  * The cookie-session path is re-checked fresh from the DB (H-2 + L-2) — a
  * deactivated user's existing cookie session must stop authenticating
  * immediately, same as the bearer path already does; so must a session whose
- * JWT was issued BEFORE the user's last password change. A missing `iat`
- * while `passwordChangedAt` is set is rejected fail-closed.
+ * immutable sign-in time predates the user's last password change. A missing
+ * `authTime` while `passwordChangedAt` is set is rejected fail-closed.
  */
 export async function resolveRequestUserId(
   req: Request,
@@ -32,8 +32,8 @@ export async function resolveRequestUserId(
 
   const notRevoked =
     state.passwordChangedAt == null ||
-    (typeof session?.iat === 'number' &&
-      session.iat >= Math.floor(state.passwordChangedAt.getTime() / 1000));
+    (typeof session?.authTime === 'number' &&
+      session.authTime >= Math.floor(state.passwordChangedAt.getTime() / 1000));
 
   return notRevoked ? id : null;
 }

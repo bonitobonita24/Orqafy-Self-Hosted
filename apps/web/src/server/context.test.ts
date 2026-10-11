@@ -1,8 +1,9 @@
 // H-2 regression: a deactivated user's Auth.js cookie session must resolve to
 // NO user and NO permissions (treated as unauthenticated), not a stale
 // authenticated context carried from login time.
-// L-2 regression: a cookie session whose JWT was issued BEFORE the user's
-// last password change must likewise resolve to NO user/session.
+// L-2 regression: a cookie session whose immutable sign-in time (authTime)
+// predates the user's last password change must likewise resolve to NO
+// user/session.
 import { describe, expect, it, vi } from 'vitest';
 import type { Permission } from '@orqafy/shared';
 import type { Session } from 'next-auth';
@@ -16,16 +17,16 @@ vi.mock('./bearer-identity', () => ({
 }));
 
 // Permission resolution hits Prisma for real; stub it so these tests assert
-// only the isActive/iat gating, not RBAC resolution (covered elsewhere).
+// only the isActive/authTime gating, not RBAC resolution (covered elsewhere).
 vi.mock('./permissions', () => ({
   resolveUserPermissions: () => Promise.resolve(new Set<Permission>(['manage_files'])),
 }));
 
 const { createTRPCContext } = await import('./context');
 
-function session(userId: string, iat?: number): Session {
+function session(userId: string, authTime?: number): Session {
   const base: Session = { user: { id: userId }, expires: '2099-01-01T00:00:00.000Z' };
-  return iat !== undefined ? { ...base, iat } : base;
+  return authTime !== undefined ? { ...base, authTime } : base;
 }
 
 describe('createTRPCContext — cookie-session isActive re-check (H-2)', () => {
@@ -97,7 +98,7 @@ describe('createTRPCContext — cookie-session passwordChangedAt re-check (L-2 w
   });
 
   it('keeps the session when passwordChangedAt is null (back-compat, never changed)', async () => {
-    authMock.mockResolvedValue(session('u1')); // no iat
+    authMock.mockResolvedValue(session('u1')); // no authTime
     const ctx = await createTRPCContext(undefined, {
       getUserAuthState: () => Promise.resolve({ isActive: true, passwordChangedAt: null }),
     });
@@ -105,8 +106,8 @@ describe('createTRPCContext — cookie-session passwordChangedAt re-check (L-2 w
     expect(ctx.userId).toBe('u1');
   });
 
-  it('rejects (fail-closed) when iat is missing but passwordChangedAt is set', async () => {
-    authMock.mockResolvedValue(session('u1')); // no iat
+  it('rejects (fail-closed) when authTime is missing but passwordChangedAt is set', async () => {
+    authMock.mockResolvedValue(session('u1')); // no authTime
     const changedAt = new Date('2026-01-01T00:00:10.000Z');
     const ctx = await createTRPCContext(undefined, {
       getUserAuthState: () => Promise.resolve({ isActive: true, passwordChangedAt: changedAt }),
