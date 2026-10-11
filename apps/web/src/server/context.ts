@@ -47,15 +47,26 @@ export async function createTRPCContext(
   }
 
   // 2. Cookie session fallback — only when no valid bearer identity. The
-  //    resolved user is re-checked for `isActive` fresh from the DB (H-2): a
-  //    deactivated user resolves to NO session and NO user, same as an absent
-  //    cookie, so protectedProcedure rejects with UNAUTHORIZED.
+  //    resolved user is re-checked fresh from the DB (H-2 + L-2): a
+  //    deactivated user, OR a session whose immutable sign-in time predates
+  //    the user's last password change, resolves to NO session and NO user —
+  //    same as an absent cookie, so protectedProcedure rejects with
+  //    UNAUTHORIZED. A missing `authTime` while `passwordChangedAt` is set is
+  //    rejected fail-closed (never trust an un-timestamped session once a
+  //    revocation point exists).
   if (userId === null) {
     const cookieSession = await auth();
     const cookieUserId = cookieSession?.user?.id ?? null;
-    if (cookieUserId !== null && (await activeUserDeps.isUserActive(cookieUserId))) {
-      session = cookieSession;
-      userId = cookieUserId;
+    if (cookieUserId !== null) {
+      const state = await activeUserDeps.getUserAuthState(cookieUserId);
+      const notRevoked =
+        state?.passwordChangedAt == null ||
+        (typeof cookieSession?.authTime === 'number' &&
+          cookieSession.authTime >= Math.floor(state.passwordChangedAt.getTime() / 1000));
+      if (state?.isActive === true && notRevoked) {
+        session = cookieSession;
+        userId = cookieUserId;
+      }
     }
   }
 

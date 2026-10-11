@@ -77,6 +77,37 @@ export const usersRouter = router({
       return ctx.prisma.user.update({ where: { id }, data: omitUndefined(rest) });
     }),
 
+  /**
+   * Admin-set password reset (ORQ-55). The admin types the new password
+   * directly — no system-generated OTP (owner decision). passwordHash and
+   * passwordChangedAt are always set together in one update call (L-2).
+   */
+  resetPassword: manageUsers()
+    .input(
+      z.object({
+        userId: z.string().min(1),
+        newPassword: z.string().min(8),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.prisma.user.update({
+        where: { id: input.userId },
+        data: {
+          passwordHash: await hashPassword(input.newPassword),
+          passwordChangedAt: new Date(),
+        },
+      });
+
+      await writeAudit(ctx.prisma, {
+        userId: ctx.userId,
+        action: 'auth.password_reset',
+        targetType: 'user',
+        targetId: input.userId,
+      });
+
+      return { ok: true as const };
+    }),
+
   /** Per-user permission override (D-17): grant or revoke a single permission. */
   setOverride: manageUsers()
     .input(

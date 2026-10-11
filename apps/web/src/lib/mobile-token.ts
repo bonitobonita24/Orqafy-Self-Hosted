@@ -38,17 +38,27 @@ export async function signMobileToken(userId: string): Promise<string> {
   return token;
 }
 
+/** The verified identity + issuance time of a mobile bearer token. */
+export interface VerifiedMobileToken {
+  userId: string;
+  /** `iat` claim, in seconds since epoch — when this token was issued. */
+  issuedAt: number;
+}
+
 /**
- * Verify a mobile bearer token. Returns the user id (subject) on success, or
- * null on ANY failure: bad signature, wrong/absent/`none` algorithm, expiry,
- * a `typ` that is not "mobile", a missing subject, or a malformed token.
+ * Verify a mobile bearer token. Returns the user id (subject) + issuedAt (the
+ * `iat` claim, seconds) on success, or null on ANY failure: bad signature,
+ * wrong/absent/`none` algorithm, expiry, a `typ` that is not "mobile", a
+ * missing subject, a missing/non-numeric `iat`, or a malformed token.
  * NEVER throws — a caller treats null as "not authenticated by bearer".
  */
-export async function verifyMobileToken(token: string): Promise<string | null> {
+export async function verifyMobileToken(token: string): Promise<VerifiedMobileToken | null> {
   try {
     const { payload } = await jwtVerify(token, getAuthSecret(), { algorithms: [ALG] });
     if (payload.typ !== MOBILE_TYP) return null;
-    return typeof payload.sub === 'string' ? payload.sub : null;
+    if (typeof payload.sub !== 'string' || payload.sub.length === 0) return null;
+    if (typeof payload.iat !== 'number') return null;
+    return { userId: payload.sub, issuedAt: payload.iat };
   } catch {
     return null;
   }

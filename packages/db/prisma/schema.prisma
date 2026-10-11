@@ -192,6 +192,7 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   anonymizedAt DateTime?
+  passwordChangedAt DateTime?
 
   role      PermissionGroup          @relation("UserRole", fields: [roleId], references: [id])
   groups    PermissionGroup[]        @relation("UserGroups")

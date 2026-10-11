@@ -370,3 +370,64 @@ export async function recordLoginSuccess(store: RateLimitStore, email: string): 
     console.warn('[rate-limit] recordLoginSuccess failed:', err);
   }
 }
+
+// ── Self-service password-change limiter (ORQ-55 W2b) ─────────────────────
+// `changePassword` (server/routers/auth.ts) verifies `currentPassword` with
+// bcrypt — the same online-guessing surface the login path already hardens,
+// just against an AUTHENTICATED caller (a stolen/hijacked session guessing
+// the real password to pivot past 2FA-less reauth, or to outlast a future
+// forced-rotation). Reuses the exact SAME store + SAME atomic-hit/reset
+// shape as `checkLoginRateLimit`/`recordLoginSuccess` (no separate limiter
+// infra): key per-user (the caller is already authenticated, so there is no
+// anonymous IP to also gate — see rate-limit.test.ts for why this is
+// sufficient here), `hit()` BEFORE the password check so every attempt
+// (success or fail) counts and a concurrent-attempt race can't let more than
+// one extra request slip past the threshold, and the counter resets on a
+// successful change so a legit user is never penalized for attempts that
+// already succeeded. Threshold mirrors login's per-EMAIL posture (5 attempts
+// / 15 min) since both gate a bcrypt compare against one identity.
+const CHANGE_PASSWORD_MAX = Number(process.env.CHANGE_PASSWORD_MAX) || 5;
+const CHANGE_PASSWORD_WINDOW_SEC = Number(process.env.CHANGE_PASSWORD_WINDOW_SEC) || 900;
+
+function changePasswordKey(userId: string): string {
+  return `rl:changepw:user:${userId}`;
+}
+
+/**
+ * Decide whether a `changePassword` attempt may proceed. Called BEFORE the
+ * current-password bcrypt check (gate-first, same posture as
+ * `checkLoginRateLimit`). FAIL-OPEN: any store error returns `allowed: true`
+ * (never block a legitimate password change because the limiter is
+ * unhealthy).
+ */
+export async function checkChangePasswordRateLimit(
+  store: RateLimitStore,
+  userId: string,
+): Promise<{ allowed: boolean; retryAfterSec: number }> {
+  try {
+    const hit = await store.hit(changePasswordKey(userId), CHANGE_PASSWORD_WINDOW_SEC * 1000);
+    if (hit.count > CHANGE_PASSWORD_MAX) {
+      return { allowed: false, retryAfterSec: CHANGE_PASSWORD_WINDOW_SEC };
+    }
+    return { allowed: true, retryAfterSec: 0 };
+  } catch (err) {
+    console.warn('[rate-limit] checkChangePasswordRateLimit failed open:', err);
+    return { allowed: true, retryAfterSec: 0 };
+  }
+}
+
+/**
+ * Record a successful password change for `userId` — clears the counter
+ * `checkChangePasswordRateLimit` incremented on every attempt, mirroring
+ * `recordLoginSuccess`.
+ */
+export async function recordChangePasswordSuccess(
+  store: RateLimitStore,
+  userId: string,
+): Promise<void> {
+  try {
+    await store.reset(changePasswordKey(userId));
+  } catch (err) {
+    console.warn('[rate-limit] recordChangePasswordSuccess failed:', err);
+  }
+}

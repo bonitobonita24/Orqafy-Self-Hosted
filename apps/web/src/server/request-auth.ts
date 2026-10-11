@@ -10,9 +10,11 @@ import { resolveBearerIdentity } from './bearer-identity';
  * The authenticated user id for a Route Handler request: a valid mobile bearer
  * first, else the Auth.js cookie session. Null when neither authenticates.
  *
- * The cookie-session path is re-checked for `isActive` fresh from the DB
- * (H-2) — a deactivated user's existing cookie session must stop
- * authenticating immediately, same as the bearer path already does.
+ * The cookie-session path is re-checked fresh from the DB (H-2 + L-2) — a
+ * deactivated user's existing cookie session must stop authenticating
+ * immediately, same as the bearer path already does; so must a session whose
+ * immutable sign-in time predates the user's last password change. A missing
+ * `authTime` while `passwordChangedAt` is set is rejected fail-closed.
  */
 export async function resolveRequestUserId(
   req: Request,
@@ -25,5 +27,13 @@ export async function resolveRequestUserId(
   const id = session?.user?.id;
   if (typeof id !== 'string' || id.length === 0) return null;
 
-  return (await activeUserDeps.isUserActive(id)) ? id : null;
+  const state = await activeUserDeps.getUserAuthState(id);
+  if (state?.isActive !== true) return null;
+
+  const notRevoked =
+    state.passwordChangedAt == null ||
+    (typeof session?.authTime === 'number' &&
+      session.authTime >= Math.floor(state.passwordChangedAt.getTime() / 1000));
+
+  return notRevoked ? id : null;
 }
