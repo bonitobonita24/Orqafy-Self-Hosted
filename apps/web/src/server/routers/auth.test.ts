@@ -116,3 +116,66 @@ describe('auth.changePassword', () => {
     expect(updated.passwordChangedAt).toBeInstanceOf(Date);
   });
 });
+
+// W2b — rate-limit changePassword against brute-forcing the current-password
+// check. Reuses the SAME store/shape as the login limiter (rate-limit.ts):
+// `checkChangePasswordRateLimit` hits a per-user counter BEFORE the bcrypt
+// check (so every attempt counts, same as login's per-email counter), and
+// `recordChangePasswordSuccess` resets it on a successful change. Each test
+// below uses its own userId so it never shares a counter window with another
+// test in this file (the limiter is keyed per-user on the real process-wide
+// store — see rate-limit.ts `getRateLimitStore()`).
+describe('auth.changePassword — rate limit (ORQ-55 W2b)', () => {
+  const CHANGE_PASSWORD_MAX = 5; // module default in rate-limit.ts, no env override in tests
+
+  it('allows CHANGE_PASSWORD_MAX failed attempts, then blocks the next with TOO_MANY_REQUESTS', async () => {
+    const db = createDb();
+    const userId = 'rl-user-1';
+    addUser(db, { id: userId, passwordHash: 'hashed:correct-password' });
+    const c = caller(db, { asUserId: userId });
+
+    for (let i = 0; i < CHANGE_PASSWORD_MAX; i++) {
+      await expect(
+        c.changePassword({ currentPassword: 'wrong-password', newPassword: 'new-password-123' }),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    }
+
+    // The next attempt is blocked by the rate limiter BEFORE the password is
+    // ever checked — even with the CORRECT current password.
+    await expect(
+      c.changePassword({ currentPassword: 'correct-password', newPassword: 'new-password-123' }),
+    ).rejects.toMatchObject({ code: 'TOO_MANY_REQUESTS' });
+
+    expect(db.updateCalls).toHaveLength(0);
+  });
+
+  it('a successful change resets the counter so later failures start from zero', async () => {
+    const db = createDb();
+    const userId = 'rl-user-2';
+    addUser(db, { id: userId, passwordHash: 'hashed:correct-password' });
+    const c = caller(db, { asUserId: userId });
+
+    // A few failures, well under the limit.
+    for (let i = 0; i < CHANGE_PASSWORD_MAX - 1; i++) {
+      await expect(
+        c.changePassword({ currentPassword: 'wrong-password', newPassword: 'new-password-123' }),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    }
+
+    // A successful change resets the counter.
+    const result = await c.changePassword({
+      currentPassword: 'correct-password',
+      newPassword: 'new-password-123',
+    });
+    expect(result.ok).toBe(true);
+
+    // The user's password is now `new-password-123` — CHANGE_PASSWORD_MAX
+    // more failures (against the NEW password) are allowed again, proving
+    // the counter started from zero after the reset.
+    for (let i = 0; i < CHANGE_PASSWORD_MAX; i++) {
+      await expect(
+        c.changePassword({ currentPassword: 'still-wrong', newPassword: 'another-password-1' }),
+      ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    }
+  });
+});

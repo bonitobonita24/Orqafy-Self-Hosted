@@ -6,6 +6,11 @@ import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc';
 import { writeAudit } from '../audit';
 import { hashPassword, verifyPassword } from '../../lib/password';
+import {
+  checkChangePasswordRateLimit,
+  getRateLimitStore,
+  recordChangePasswordSuccess,
+} from '../rate-limit';
 
 export const authRouter = router({
   /** The current user (safe fields) + their effective permissions (D-17). */
@@ -28,6 +33,12 @@ export const authRouter = router({
    * Self-service password change (ORQ-55). Requires the caller's current
    * password; never reveals which field is wrong (generic UNAUTHORIZED).
    * passwordHash and passwordChangedAt are always set together (L-2).
+   *
+   * Rate-limited (W2b, defense-in-depth): the bcrypt `currentPassword` check
+   * below is the same online-guessing surface the login path already
+   * hardens — gated BEFORE the check via the SAME store/shape as
+   * `checkLoginRateLimit`, keyed per-user (see rate-limit.ts). A legit
+   * change resets the counter so success is never penalized.
    */
   changePassword: protectedProcedure
     .input(
@@ -37,6 +48,15 @@ export const authRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const store = getRateLimitStore();
+      const rl = await checkChangePasswordRateLimit(store, ctx.userId);
+      if (!rl.allowed) {
+        throw new TRPCError({
+          code: 'TOO_MANY_REQUESTS',
+          message: 'Too many attempts. Try again later.',
+        });
+      }
+
       const user = await ctx.prisma.user.findUnique({ where: { id: ctx.userId } });
       const ok = user !== null && (await verifyPassword(input.currentPassword, user.passwordHash));
       if (!ok) {
@@ -57,6 +77,8 @@ export const authRouter = router({
         targetType: 'user',
         targetId: ctx.userId,
       });
+
+      await recordChangePasswordSuccess(store, ctx.userId);
 
       return { ok: true as const };
     }),

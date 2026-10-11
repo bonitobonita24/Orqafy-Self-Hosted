@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  checkChangePasswordRateLimit,
   checkLoginRateLimit,
   checkPhotoUploadRateLimit,
   clientIp,
   createMemoryStore,
+  recordChangePasswordSuccess,
   recordLoginSuccess,
   resolveRateLimitBackendUrl,
   withMemoryFallback,
@@ -339,6 +341,68 @@ describe('checkPhotoUploadRateLimit', () => {
       reset: () => Promise.reject(new Error('store down')),
     };
     expect(await checkPhotoUploadRateLimit(throwingStore, 'u1')).toEqual({
+      allowed: true,
+      retryAfterSec: 0,
+    });
+  });
+});
+
+// checkChangePasswordRateLimit (ORQ-55 W2b) — same shape/thresholds as the
+// login email-counter tests above (CHANGE_PASSWORD_MAX defaults to EMAIL_MAX),
+// keyed per-user instead of per-email since the caller is already
+// authenticated.
+describe('checkChangePasswordRateLimit', () => {
+  const CHANGE_PASSWORD_MAX = 5; // module default, no env override in tests
+
+  it('allows CHANGE_PASSWORD_MAX attempts for one user and blocks the (MAX+1)th', async () => {
+    const store = frozenStore();
+    const userId = 'user-abc';
+
+    for (let i = 0; i < CHANGE_PASSWORD_MAX; i++) {
+      const rl = await checkChangePasswordRateLimit(store, userId);
+      expect(rl.allowed).toBe(true);
+    }
+
+    const blocked = await checkChangePasswordRateLimit(store, userId);
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.retryAfterSec).toBeGreaterThan(0);
+  });
+
+  it('a different user has an independent counter', async () => {
+    const store = frozenStore();
+
+    for (let i = 0; i < CHANGE_PASSWORD_MAX; i++) {
+      await checkChangePasswordRateLimit(store, 'user-a');
+    }
+    const blockedA = await checkChangePasswordRateLimit(store, 'user-a');
+    expect(blockedA.allowed).toBe(false);
+
+    const allowedB = await checkChangePasswordRateLimit(store, 'user-b');
+    expect(allowedB.allowed).toBe(true);
+  });
+
+  it('recordChangePasswordSuccess resets the counter → allowed again', async () => {
+    const store = frozenStore();
+    const userId = 'user-xyz';
+
+    for (let i = 0; i < CHANGE_PASSWORD_MAX; i++) {
+      await checkChangePasswordRateLimit(store, userId);
+    }
+    const blocked = await checkChangePasswordRateLimit(store, userId);
+    expect(blocked.allowed).toBe(false);
+
+    await recordChangePasswordSuccess(store, userId);
+    const afterReset = await checkChangePasswordRateLimit(store, userId);
+    expect(afterReset.allowed).toBe(true);
+  });
+
+  it('fails open on a store error', async () => {
+    const throwingStore: RateLimitStore = {
+      hit: () => Promise.reject(new Error('boom')),
+      peek: () => Promise.reject(new Error('boom')),
+      reset: () => Promise.reject(new Error('boom')),
+    };
+    expect(await checkChangePasswordRateLimit(throwingStore, 'user-1')).toEqual({
       allowed: true,
       retryAfterSec: 0,
     });
