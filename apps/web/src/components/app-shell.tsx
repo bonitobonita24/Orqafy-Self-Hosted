@@ -15,6 +15,7 @@ import {
   Bell,
   Users,
   ShieldCheck,
+  KeyRound,
   LogOut,
   Download,
   Loader2,
@@ -48,6 +49,8 @@ const NAV: NavItem[] = [
   // without the permission (no client-side permission probe exists yet to
   // conditionally hide nav items — see Users & Roles precedent).
   { href: '/settings/privacy', label: 'Privacy', icon: ShieldCheck },
+  // Every signed-in user owns their own credentials — no permission gate.
+  { href: '/settings/account', label: 'Account', icon: KeyRound },
 ];
 
 export function AppShell({ userName, children }: { userName: string; children: ReactNode }) {

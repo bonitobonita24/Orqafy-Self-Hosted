@@ -225,3 +225,29 @@ export function toDate(value: string | undefined): Date | undefined {
 export function blankToUndef(value: string | undefined): string | undefined {
   return value === undefined || value.trim() === '' ? undefined : value;
 }
+
+// ── Password forms (ORQ-55 W4/W5) ───────────────────────────────────────────
+// Both forms validate the match client-side only; the server (changePassword /
+// resetPassword) only ever sees newPassword, never the confirmation field.
+export const changePasswordFormSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Enter your current password'),
+    newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string().min(1, 'Confirm your new password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+export type ChangePasswordFormValues = z.infer<typeof changePasswordFormSchema>;
+
+export const resetPasswordFormSchema = z
+  .object({
+    newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string().min(1, 'Confirm the new password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>;

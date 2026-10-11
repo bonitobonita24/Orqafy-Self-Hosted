@@ -24,6 +24,7 @@ import {
 import { trpc } from '@/trpc/react';
 import { UserFormDialog } from '@/components/forms/user-form';
 import { UserOverridesDialog } from '@/components/forms/user-overrides-form';
+import { UserResetPasswordDialog } from '@/components/forms/user-reset-password-form';
 import { UserExportButton } from '@/components/forms/user-export-button';
 import { UserEraseDialog } from '@/components/forms/user-erase-dialog';
 
@@ -100,6 +101,19 @@ export default function UsersRolesPage() {
                               aria-label={`Permissions for ${u.name}`}
                             >
                               <SlidersHorizontal />
+                            </Button>
+                          }
+                        />
+                        <UserResetPasswordDialog
+                          userId={u.id}
+                          userName={u.name}
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Reset password for ${u.name}`}
+                            >
+                              <KeyRound />
                             </Button>
                           }
                         />
