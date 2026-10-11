@@ -1,15 +1,17 @@
 import { cn } from '@orqafy/ui';
+import { OrcaMark } from '@/components/branding/orca-mark';
 
 /**
- * Orqafy product wordmark (D-29). A cohesive typographic placeholder:
- * a rounded-square "O" monogram in the brand color + the "Orqafy" wordmark.
+ * Orqafy product wordmark (D-29, ORQ-37). The orca product mark (Concept A
+ * — "Rising Diagonal Leap", self-contained badge, reads on light + dark) +
+ * the "Orqafy" wordmark text. Used at the sidebar (app-shell.tsx) and the
+ * login screen — never near the "Developed by Powerbyte IT Solutions"
+ * footer credit, which stays text-only per D-29.
  *
- * This is a deliberate TEXT placeholder — swap the monogram/wordmark for a
- * finished logo asset later without touching the call sites. Client-safe (no
- * client hooks, no deps beyond `cn`), so it renders in Server and Client
- * components alike. All color comes from theme tokens (primary /
- * primary-foreground / foreground) — never a hardcoded hex — so it tracks the
- * light/dark palette in @orqafy/ui.
+ * Client-safe (no client hooks, no deps beyond `cn`/`OrcaMark`), so it
+ * renders in Server and Client components alike. The wordmark text still
+ * tracks the foreground theme token; the mark itself carries its own fixed
+ * brand colors (a logo is not re-themed light/dark).
  */
 type WordmarkSize = 'sm' | 'md' | 'lg';
 
@@ -35,25 +37,13 @@ export function OrqafyWordmark({
   const s = SIZES[size];
   return (
     <span className={cn('inline-flex items-center', s.root, className)}>
-      <svg
-        viewBox="0 0 32 32"
-        className={cn('shrink-0', s.mark)}
-        role="img"
+      <OrcaMark
+        className={s.mark}
         // When the wordmark text is hidden, the mark carries the accessible name;
         // when it is shown, the text label is authoritative and the mark is decorative.
         aria-label={showWordmark ? undefined : 'Orqafy'}
         aria-hidden={showWordmark ? true : undefined}
-      >
-        <rect width="32" height="32" rx="8" className="fill-primary" />
-        <circle
-          cx="16"
-          cy="16"
-          r="7"
-          fill="none"
-          strokeWidth={3.4}
-          className="stroke-primary-foreground"
-        />
-      </svg>
+      />
       {showWordmark ? (
         <span className={cn('font-sans font-semibold tracking-tight text-foreground', s.text)}>
           Orqafy
