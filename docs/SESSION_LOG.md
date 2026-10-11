@@ -4,6 +4,16 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-10-11 — Resolved the 4 open decisions, built password reset, added the orca logo
+
+**In your words:** resume session → answered the four pending calls (document download scope, password reset, DPA defaults, logo), then: build password change/reset, and make the logo "3 orcas moving forward" (Orqafy = orca). Also "also force web re-login" on a password change.
+
+✅ **4 decisions resolved + recorded** — D-36 non-SPI document downloads accepted as designed (org-shared, single-company); D-37 build password change/reset; D-38 confirm the DPA defaults as-built; D-37-logo generate an original orca mark. Back-ported to DECISIONS_LOG + PRODUCT.md drafts; all pending decisions cleared.
+✅ **Password change / reset (ORQ-55)** — every user can change their own password (current required, rate-limited); admins can reset any user's. Changing/resetting a password now logs that user out **everywhere** — mobile app AND browser — using an immutable sign-in time (not the rotatable token timestamp, which would've let active sessions slip through). This **closes audit L-2**. Built across 7 steps + 2 security-review fixes; verified live (old mobile token → rejected after a change; a browser session open before an admin reset → kicked to login). Merged to local main.
+✅ **Orca logo (ORQ-37)** — you picked Concept A (three orcas rising forward, amber leader). It's now the sidebar logo, the login mark, and the browser-tab favicon. Powerbyte stays a text credit in the footer. Merged to local main; verified live on /login.
+💬 **Decisions/notes** — self-changing your own password signs you out and asks you to log in again (consistent with "force web re-login"). A sub-1-second window on token revocation is accepted as an inherent JWT limitation (documented). Caught + fixed a cross-package typecheck gap the per-package checks missed — lesson logged.
+⏳ **Next** — optional: push the accumulated work as **v0.1.2** (needs your word; nothing pushed yet). Everything is local, HARD HOLD.
+
 ## 2026-10-10 (evening) — Follow-ups, audit LOW backlog, Phase 5/6, v1 data-privacy features
 
 **In your words:** "do all open follow-ups, then continue the remaining phases/stages to complete the development."

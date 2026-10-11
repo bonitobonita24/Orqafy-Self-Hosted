@@ -1,6 +1,29 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-10-10 evening (interactive session — follow-ups + audit LOW + Phase 5/6 + v1 DPA, all on LOCAL main)
+**Last updated:** 2026-10-11 (interactive resume — 4 open [WHAT]s resolved + ORQ-55 + orca logo, all on LOCAL main)
+
+## ⭐ NEWEST — 2026-10-11 (interactive resume) — supersedes the block below
+- **Owner resolved all 4 open `[WHAT]`s** (D-36 ORQ-54 L-3 accept-as-designed · D-37 ORQ-55 password reset incl.
+  "also force web re-login" · D-38 ORQ-56 DPA defaults confirmed · ORQ-37 logo = generate orca mark, Concept A).
+  Back-ported to DECISIONS_LOG (D-36/37/38) + PENDING_DECISIONS (all 🔴 cleared) + TASK_QUEUE. **0 open `[WHAT]`.**
+- **ORQ-55 password change/reset BUILT + merged to `main` (`dbfa0f6`).** Self-service change (rate-limited) + admin
+  reset; `passwordChangedAt` invalidates old mobile bearer tokens AND web cookie sessions (immutable `authTime`,
+  not rotatable `iat`) → **audit L-2 CLOSED** on both surfaces. 7-worker wave + 2 in-wave security-review fixes
+  (brute-force rate-limit, `iat`→`authTime`) + 1 cross-package typecheck fix (Session augmentation visible to
+  `@orqafy/api-client`). Full gate green (typecheck 10/10, lint 10/10, test 309 web/157 mobile/+rest); **live e2e
+  verified** `test-artifacts/orq55-verify-2026-10-11/` (mobile 200/200/401, web pre-change→401, both UIs).
+- **ORQ-37 orca logo wired + merged to `main` (`b003e06`).** Concept A (three orcas moving forward, amber leader)
+  → `OrcaMark` in sidebar + login + `app/icon.svg` favicon; Powerbyte footer text-only (D-29). Login live-verified
+  `screenshots/orca-login-2026-10-11.png`. Logo asset-source sub-gate closed.
+- **main tip `b003e06`** — still ahead of `origin/main` (v0.1.1 `2c86999`) by the 2026-10-10 evening wave + today;
+  **NOT pushed (HARD HOLD — owner's word needed; candidate v0.1.2).** Dev stack rebuilt off main (Rule-39 fresh),
+  running on `:56483`. Tree clean.
+- **NEXT un-gated:** none blocking. Optional: push accumulated work as **v0.1.2** (needs owner word). Low backlog
+  items remain in TASK_QUEUE (worker-image bundling, request-IP into writeAudit, uuid@14 native watch).
+- Lesson to log (global ledger): a type-only re-export (`export type {AppRouter}`) makes a downstream package's
+  tsc compile the upstream server graph, but ambient module augmentations in the upstream's `src/types/*.d.ts` are
+  NOT loaded by that program → a single-package typecheck passes while a consumer breaks. Gate = whole-workspace
+  `turbo typecheck`, never one package, for any change to a shared/exported type or augmentation.
 
 - **CURRENT:** local `main` @ `c7972d7`+docs — **ahead of `origin/main` (v0.1.1 `2c86999`) by the whole 2026-10-10
   evening wave, NOT pushed (HARD HOLD — interactive session, owner's word needed).** Combined `main`: turbo

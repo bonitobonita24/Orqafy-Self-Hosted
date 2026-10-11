@@ -71,16 +71,27 @@ the fix is in + a regression test where the fix is app code + gates green (typec
 ### Other open
 
 - 🟡 **Audit LOW backlog — L-2 + L-3 DECIDED 2026-10-11** — L-1, L-4…L-10 ✅ DONE 2026-10-10 (see Done).
-  - L-2 60-day mobile token not revoked on password change → **IN PROGRESS via ORQ-55** (owner approved D-37 opt a:
-    `passwordChangedAt` bump invalidates older mobile tokens). Closes when ORQ-55 lands. `gate: none`
+  - L-2 60-day mobile token not revoked on password change → ✅ **CLOSED 2026-10-11 by ORQ-55** — `passwordChangedAt`
+    bump invalidates older mobile bearer tokens AND web cookie sessions (immutable `authTime`). Live-verified:
+    mobile old-bearer `auth.me` → 401 after change; web pre-change session → 401. `gate: none`
   - L-3 any signed-in user can download non-SPI docs → ✅ **RESOLVED (accept-as-designed, D-36 / ORQ-54)** — owner
     confirmed non-SPI docs are org-shared in a single-company install; SPI flag stays the confidentiality boundary.
     Doc-only (DECISIONS_LOG + PRODUCT.md Files section). `gate: none`
-- 🟡 **ORQ-55 · Password change / reset (D-37)** — IN PROGRESS `feat/orq55-password-reset`: self-service change
-  (current-pw required) + admin reset (`manage_users`), both bump `passwordChangedAt` to invalidate old mobile
-  tokens (closes L-2). No email reset (LAN-first). `gate: none` `source: owner 2026-10-11`
-- 🟡 **ORQ-56 · DPA v1 defaults (D-38)** — ✅ CONFIRMED as built (breach-notif not built, retention dry-run,
-  SPI/payroll retained on erase, admin-only erase + self-export). Doc-only back-port. `gate: none` `source: owner 2026-10-11`
+- ✅ **ORQ-55 · Password change / reset (D-37)** — DONE 2026-10-11, merged to `main` (`dbfa0f6`, branch
+  `feat/orq55-password-reset` 9 commits). Self-service change (current-pw required, rate-limited) + admin reset
+  (`manage_users`); every password write bumps `passwordChangedAt` → invalidates older mobile bearer tokens
+  (`bearer-identity.ts`) AND web cookie sessions (immutable `authTime`, not rotatable `iat`) → **closes audit L-2**.
+  No email reset (LAN-first). Full gate green (typecheck 10/10, lint 10/10, test 309 web); live e2e verified
+  (`test-artifacts/orq55-verify-2026-10-11/`: mobile 200/200/401, web pre-change→401, both UIs). 2 security-review
+  findings fixed in-wave (brute-force rate-limit, `iat`→`authTime` bypass); same-second window accepted (documented).
+  `source: owner 2026-10-11`
+- ✅ **ORQ-56 · DPA v1 defaults (D-38)** — CONFIRMED as built (breach-notif not built, retention dry-run,
+  SPI/payroll retained on erase, admin-only erase + self-export). Doc-only back-port. `source: owner 2026-10-11`
+- ✅ **ORQ-37 · Orca product logo (D-29, Concept A)** — DONE 2026-10-11, merged to `main` (`b003e06`, branch
+  `feat/orq37-orca-logo` `7b60c9c`). Owner picked the orca motif ("three orcas moving forward", Concept A);
+  wired `OrcaMark` into sidebar + login (via `OrqafyWordmark`) + `app/icon.svg` favicon; Powerbyte footer
+  text-only (D-29). Typecheck+lint 20/20, build green, login live-verified (`screenshots/orca-login-2026-10-11.png`).
+  The logo asset-source sub-gate is now closed. `source: owner 2026-10-11`
 - 🔴 **[chore] Worker image build resolves the WHOLE workspace** — `pnpm deploy --legacy` (Dockerfile.worker) re-resolves
   every workspace package, so any future `trustPolicy`/`minimumReleaseAge` hit in web/ui/mobile deps blocks the worker
   build too (hit 2026-10-10: tailwind-merge@2.6.1, next-auth@5.0.0-beta.32 → narrow `trustPolicyExclude`). Option: a
