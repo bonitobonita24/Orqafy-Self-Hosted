@@ -14,9 +14,13 @@ function b64url(input: string): string {
 }
 
 describe('mobile-token', () => {
-  it('round-trips a signed token back to the userId', async () => {
+  it('round-trips a signed token back to the userId + issuedAt', async () => {
+    const before = Math.floor(Date.now() / 1000);
     const token = await signMobileToken('user-123');
-    expect(await verifyMobileToken(token)).toBe('user-123');
+    const verified = await verifyMobileToken(token);
+    expect(verified?.userId).toBe('user-123');
+    expect(typeof verified?.issuedAt).toBe('number');
+    expect(verified?.issuedAt).toBeGreaterThanOrEqual(before);
   });
 
   it('rejects a token signed with a DIFFERENT secret → null', async () => {

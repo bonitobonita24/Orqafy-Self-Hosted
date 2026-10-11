@@ -10,7 +10,7 @@
 import 'server-only';
 import type { Session } from 'next-auth';
 import { prisma } from '@orqafy/db';
-import { verifyMobileToken } from '../lib/mobile-token';
+import { verifyMobileToken, type VerifiedMobileToken } from '../lib/mobile-token';
 
 const BEARER_RE = /^Bearer (.+)$/;
 
@@ -22,15 +22,25 @@ export interface BearerIdentity {
 
 /** Injection seam for unit tests; production uses the real verifier + Prisma. */
 export interface BearerDeps {
-  verify: (token: string) => Promise<string | null>;
+  verify: (token: string) => Promise<VerifiedMobileToken | null>;
   findUser: (
     id: string,
-  ) => Promise<{ id: string; name: string; email: string; isActive: boolean } | null>;
+  ) => Promise<{
+    id: string;
+    name: string;
+    email: string;
+    isActive: boolean;
+    passwordChangedAt: Date | null;
+  } | null>;
 }
 
 const defaultDeps: BearerDeps = {
   verify: verifyMobileToken,
-  findUser: (id) => prisma.user.findUnique({ where: { id } }),
+  findUser: (id) =>
+    prisma.user.findUnique({
+      where: { id },
+      select: { id: true, name: true, email: true, isActive: true, passwordChangedAt: true },
+    }),
 };
 
 /**
@@ -46,11 +56,23 @@ export async function resolveBearerIdentity(
   const token = authz !== null ? (BEARER_RE.exec(authz)?.[1] ?? null) : null;
   if (token === null) return null;
 
-  const uid = await deps.verify(token);
-  if (uid === null) return null;
+  const verified = await deps.verify(token);
+  if (verified === null) return null;
+  const { userId: uid, issuedAt } = verified;
 
   const user = await deps.findUser(uid);
   if (user === null || !user.isActive) return null;
+
+  // Revocation for a stateless token: valid only if issued at/after the user's
+  // last password change. `passwordChangedAt === null` means no password
+  // change has ever bumped it, so behavior is unchanged (no gate). Issued in
+  // the SAME second as the change counts as valid (>=, not >).
+  if (
+    user.passwordChangedAt !== null &&
+    issuedAt < Math.floor(user.passwordChangedAt.getTime() / 1000)
+  ) {
+    return null;
+  }
 
   // The token's own exp is the real lifetime (enforced in verifyMobileToken);
   // this `expires` is a formality set 1 year ahead.
