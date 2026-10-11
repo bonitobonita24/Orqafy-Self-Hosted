@@ -4,6 +4,8 @@ import type { DefaultSession } from 'next-auth';
 declare module 'next-auth' {
   interface Session {
     user: { id: string } & DefaultSession['user'];
+    /** JWT issue time (unix seconds), copied from the token in the `session` callback (L-2 web). */
+    iat?: number;
   }
 }
 

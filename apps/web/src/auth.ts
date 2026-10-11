@@ -41,6 +41,11 @@ const nextAuth = NextAuth({
     },
     session({ session, token }) {
       if (typeof token.id === 'string') session.user.id = token.id;
+      // Expose the JWT's issue time so the cookie-session path (server/context.ts,
+      // server/request-auth.ts) can reject a session issued before the user's
+      // last password change (L-2 web) — mirrors the mobile bearer check
+      // (server/bearer-identity.ts) using the same `passwordChangedAt` column.
+      if (typeof token.iat === 'number') session.iat = token.iat;
       return session;
     },
   },
