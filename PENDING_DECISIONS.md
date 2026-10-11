@@ -41,10 +41,10 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
       Orqafy carries its OWN product logo + favicon (sidebar/login/favicon); the Powerbyte mark appears
       only in the "Developed by Powerbyte IT Solutions" footer (owner, 2026-09-27). Scopes the 2026-09-21
       official-Powerbyte-logo broadcast to the footer credit for this public AGPL product.
-      **⚠ Asset-source sub-gate still open** — the repo has no Orqafy logo/favicon asset yet, and the
-      commercial Orqafy logo is a separate product (read-only, not to be lifted). The UI wiring cannot
-      proceed until the owner settles where the Orqafy-Self-Hosted logo comes from (owner-supplied file /
-      generate a new mark / text wordmark placeholder). Tracked in `docs/TASK_QUEUE.md` (ORQ-37).
+      **Asset-source sub-gate ANSWERED (2026-10-11):** owner chose **generate a new (original) mark** — not
+      a supplied file, not the text placeholder, and never lifted from the commercial Orqafy product. 3 SVG
+      concepts in production this session; owner picks one, then it's wired into sidebar/login/favicon.
+      Tracked in `docs/TASK_QUEUE.md` (ORQ-37).
 
 ## ✅ Resolved (2026-09-27, resume session — continued)
 
@@ -54,30 +54,21 @@ Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.
 
 ## 🔴 Open
 
-- [ ] **[WHAT] Audit L-3 — non-SPI document download scope** (surfaced 2026-10-10, Wave B). Any signed-in
-      user can download any document NOT flagged SPI — this matches what `documents.list` already shows them.
-      Options: (a) accept as designed (single-company install; non-SPI docs are org-shared) and document it;
-      (b) restrict download to assignees of the document's project + oversight roles (`view_all_projects`).
-      **Recommendation: (a).** Back-port to PRODUCT.md (Files section) + DECISIONS_LOG once answered.
-- [ ] **[WHAT] Password change / admin reset — not in v1 spec** (surfaced 2026-10-10 while scoping audit
-      L-2). PRODUCT.md has no password change or reset flow; the only password write is at user creation
-      (`users.create`, first-run `setup`). A user who forgets their password has no recovery path, and audit
-      L-2 (revoke the 60-day mobile token on password change) has nothing to hook into. Deactivation already
-      revokes access (per-request `isActive` re-check). Options: (a) add self-service "change password" +
-      admin "reset password" (`manage_users`), each bumping a `passwordChangedAt` that invalidates older
-      mobile tokens (closes L-2); (b) admin reset only; (c) leave out of v1. **Recommendation: (a)** — a
-      shipped multi-user app needs a recovery path, and it closes L-2 for free. No email-based reset (no
-      SMTP assumption in a LAN-first install).
-- [ ] **[WHAT] DPA wave defaults (Phase 5 F-2 build, 2026-10-10)** — building now with the conservative,
-      reversible defaults below; confirm or change:
-      (1) **Breach-notification path** — NOT in PRODUCT.md/D-20 (only a framework gap-reminder). Default:
-      **not built** (Rule 10). Optional later: minimal `breach_incident` audit action + DPO checklist page.
-      (2) **Retention categories** — `audit_log, notification, photo, document, completed_project,
-      leave_request`; 0/absent = never auto-delete; SPI/payroll never a category. Retention job ships
-      **dry-run by default**.
-      (3) **Erasure vs SPI/payroll docs** — default **retain** (controller's legal records); uploader
-      reference is pseudonymized.
-      (4) **Who can erase** — default **admin-only** (`manage_users`); every user can self-export.
+_(none — ORQ-37 logo asset source answered 2026-10-11: owner chose "generate a new mark"; concepts in
+production, owner picks one before wiring — see the D-29 sub-gate note above.)_
+
+## ✅ Resolved (2026-10-11, resume session)
+
+- [x] **[WHAT] Audit L-3 — non-SPI document download scope** → **D-36**: option (a) accept as designed
+      (owner, 2026-10-11). Single-company install; non-SPI docs are org-shared and already listed to all
+      users; SPI flag stays the confidentiality boundary. Doc-only. Back-ported to DECISIONS_LOG + (draft)
+      PRODUCT.md Files section.
+- [x] **[WHAT] Password change / admin reset** → **D-37**: option (a) self-service change + admin reset
+      (owner, 2026-10-11). Each bumps `passwordChangedAt` to invalidate older mobile tokens (closes audit
+      L-2). No email reset (LAN-first). Built on `feat/orq55-password-reset` (ORQ-55).
+- [x] **[WHAT] DPA wave defaults** → **D-38**: confirm all four defaults as built (owner, 2026-10-11) —
+      breach-notif not built, retention dry-run, SPI/payroll retained on erase, admin-only erase +
+      self-export. Doc-only back-port.
 
 ## ✅ Resolved (2026-10-10, v0.1.1 release)
 

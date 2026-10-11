@@ -70,10 +70,17 @@ the fix is in + a regression test where the fix is app code + gates green (typec
 
 ### Other open
 
-- 🟡 **Audit LOW backlog — only L-2 + L-3 remain (owner decisions)** — L-1, L-4…L-10 ✅ DONE 2026-10-10 (see Done).
-  - L-2 60-day mobile token not revoked on password change → **blocked on [WHAT] ORQ-55** (no password-change/reset
-    flow exists in the spec; deactivation already revokes via per-request `isActive`). `gate: owner`
-  - L-3 any signed-in user can download non-SPI docs → **[WHAT] ORQ-54** (recommend accept-as-designed). `gate: owner`
+- 🟡 **Audit LOW backlog — L-2 + L-3 DECIDED 2026-10-11** — L-1, L-4…L-10 ✅ DONE 2026-10-10 (see Done).
+  - L-2 60-day mobile token not revoked on password change → **IN PROGRESS via ORQ-55** (owner approved D-37 opt a:
+    `passwordChangedAt` bump invalidates older mobile tokens). Closes when ORQ-55 lands. `gate: none`
+  - L-3 any signed-in user can download non-SPI docs → ✅ **RESOLVED (accept-as-designed, D-36 / ORQ-54)** — owner
+    confirmed non-SPI docs are org-shared in a single-company install; SPI flag stays the confidentiality boundary.
+    Doc-only (DECISIONS_LOG + PRODUCT.md Files section). `gate: none`
+- 🟡 **ORQ-55 · Password change / reset (D-37)** — IN PROGRESS `feat/orq55-password-reset`: self-service change
+  (current-pw required) + admin reset (`manage_users`), both bump `passwordChangedAt` to invalidate old mobile
+  tokens (closes L-2). No email reset (LAN-first). `gate: none` `source: owner 2026-10-11`
+- 🟡 **ORQ-56 · DPA v1 defaults (D-38)** — ✅ CONFIRMED as built (breach-notif not built, retention dry-run,
+  SPI/payroll retained on erase, admin-only erase + self-export). Doc-only back-port. `gate: none` `source: owner 2026-10-11`
 - 🔴 **[chore] Worker image build resolves the WHOLE workspace** — `pnpm deploy --legacy` (Dockerfile.worker) re-resolves
   every workspace package, so any future `trustPolicy`/`minimumReleaseAge` hit in web/ui/mobile deps blocks the worker
   build too (hit 2026-10-10: tailwind-merge@2.6.1, next-auth@5.0.0-beta.32 → narrow `trustPolicyExclude`). Option: a

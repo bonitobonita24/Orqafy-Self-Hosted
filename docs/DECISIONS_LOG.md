@@ -462,3 +462,45 @@ resolves from `NEXT_PUBLIC_APP_URL` → `AUTH_URL` → localhost; no hardcoded d
 **Consequence:** the Rule 35 Phase-5 hard gate (Lighthouse SEO ≥ 90) applies only to apps with a public-facing
 surface — this app has none, so the gate is **N/A** (Lighthouse will, correctly, report "blocked from indexing").
 If a public marketing/landing surface is ever added, it gets full Rule 35 SEO and the gate applies to it.
+
+### D-36 · Audit L-3 — non-SPI document download scope: accept as designed (owner, 2026-10-11)
+**Context:** Audit finding L-3 / ORQ-54. Any signed-in user can download any document NOT flagged SPI via
+`/api/media/[id]` — which matches exactly what `documents.list` already surfaces to them. Options were
+(a) accept as designed, (b) restrict download to the document's project assignees + oversight roles
+(`view_all_projects`).
+**Decision — option (a), accept as designed.** This is a **single-company install (D-5)**: non-SPI documents
+are org-shared by design, and the Files list already shows every non-SPI document to every signed-in user, so
+gating only the byte-download would be inconsistent, not more secure. SPI documents remain gated
+(`isSPI`/`view_finances`). No code change.
+**Consequence:** documented as intended behaviour; the SPI flag stays the single confidentiality boundary for
+documents in v1. If a future install needs per-project document confidentiality, that is a new feature
+([WHAT]), not a bug fix. Back-ported to `docs/PRODUCT.md` (Files section).
+
+### D-37 · Password change / reset — add self-service + admin reset in v1 (owner, 2026-10-11)
+**Context:** v1 (ORQ-55) had no password change or reset flow; the only password write was at user creation
+(`users.create` / first-run `setup`). A user who forgot their password had no recovery path, and audit
+finding **L-2** (revoke the 60-day mobile bearer token on password change) had nothing to hook into. Options:
+(a) self-service "change password" + admin "reset password"; (b) admin reset only; (c) leave out of v1.
+**Decision — option (a).** Add: (1) self-service **change password** for every signed-in user (requires current
+password); (2) admin **reset password** gated on `manage_users`. Each password write bumps a new
+`passwordChangedAt` timestamp that **invalidates older mobile bearer tokens** (bearer context rejects a token
+whose issued-at predates `passwordChangedAt`) — this closes audit **L-2**. **No email-based reset** (LAN-first
+install, no SMTP assumption); admin reset is the recovery path for a forgotten password. Deactivation continues
+to revoke access via the existing per-request `isActive` re-check — not duplicated here.
+**Consequence:** ORQ-55 unblocks and audit L-2 closes. Build on `feat/orq55-password-reset`, HARD HOLD.
+Back-ported to `docs/PRODUCT.md` (Roles & Permissions / Account section).
+
+### D-38 · DPA wave v1 defaults — confirmed as built (owner, 2026-10-11)
+**Context:** Phase 5 F-2 / ORQ-56. The v1 DPA mechanisms (ORQ-57) were built with conservative, reversible
+defaults pending owner confirmation.
+**Decision — confirm all four defaults as-is:**
+(1) **Breach-notification path** — NOT built (not in PRODUCT.md/D-20; Rule 10 — do not infer). Optional later:
+a minimal `breach_incident` audit action + DPO checklist page.
+(2) **Retention categories** — `audit_log, notification, photo, document, completed_project, leave_request`;
+0/absent = never auto-delete; SPI/payroll is never a retention category. The retention job ships **dry-run by
+default**.
+(3) **Erasure vs SPI/payroll documents** — **retain** (the controller's legal records); the uploader reference
+is pseudonymized rather than the document destroyed.
+(4) **Who can erase** — **admin-only** (`manage_users`); every user can self-export their own data.
+**Consequence:** the ORQ-57 DPA build is ratified unchanged. Back-ported to `docs/PRODUCT.md` (Compliance / Data
+Privacy section).
