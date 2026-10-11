@@ -28,6 +28,7 @@ interface UserRow {
   email: string;
   phone: string | null;
   passwordHash: string;
+  passwordChangedAt: Date | null;
   roleId: string;
   isActive: boolean;
   anonymizedAt: Date | null;
@@ -39,6 +40,7 @@ interface Db {
   notifications: Array<{ id: string; userId: string }>;
   leaveRequests: Array<{ id: string; userId: string; reason: string | null }>;
   auditRows: Array<Record<string, unknown>>;
+  updateCalls: Array<{ where: { id: string }; data: Record<string, unknown> }>;
 }
 
 function createDb(): Db {
@@ -62,6 +64,7 @@ function createDb(): Db {
     notifications: [],
     leaveRequests: [],
     auditRows: [],
+    updateCalls: [],
   };
 }
 
@@ -74,6 +77,7 @@ function addUser(
     email: `${overrides.id}@example.com`,
     phone: '555-0000',
     passwordHash: 'original-hash',
+    passwordChangedAt: null,
     isActive: true,
     anonymizedAt: null,
     ...overrides,
@@ -129,6 +133,7 @@ function makePrisma(db: Db): MockPrisma {
         return Promise.resolve(rows);
       },
       update: ({ where, data }: { where: { id: string }; data: Partial<UserRow> }) => {
+        db.updateCalls.push({ where, data });
         const user = db.users.find((u) => u.id === where.id);
         if (user === undefined) throw new Error('user not found');
         Object.assign(user, data);
@@ -287,6 +292,51 @@ describe('users.erase', () => {
       targetType: 'user',
       targetId: target.id,
       metadata: {},
+    });
+  });
+});
+
+describe('users.resetPassword', () => {
+  it('rejects without manage_users', async () => {
+    const db = createDb();
+    addUser(db, { id: 'admin-1', roleId: 'role-admin' });
+    const target = addUser(db, { id: 'staff-1', roleId: 'role-staff' });
+    const c = caller(db, { permissions: [] });
+    await expect(
+      c.resetPassword({ userId: target.id, newPassword: 'admin-set-password' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(db.updateCalls).toHaveLength(0);
+  });
+
+  it('with manage_users, updates passwordHash AND sets passwordChangedAt in the same update call', async () => {
+    const db = createDb();
+    addUser(db, { id: 'admin-1', roleId: 'role-admin' });
+    const target = addUser(db, {
+      id: 'staff-1',
+      roleId: 'role-staff',
+      passwordHash: 'original-hash',
+    });
+    const c = caller(db);
+
+    const result = await c.resetPassword({ userId: target.id, newPassword: 'admin-set-password' });
+    expect(result.ok).toBe(true);
+
+    expect(db.updateCalls).toHaveLength(1);
+    const call = db.updateCalls[0]!;
+    expect(call.where).toEqual({ id: target.id });
+    expect(call.data.passwordHash).toBe('hashed:admin-set-password');
+    expect(call.data.passwordChangedAt).toBeInstanceOf(Date);
+
+    const updated = db.users.find((u) => u.id === target.id)!;
+    expect(updated.passwordHash).toBe('hashed:admin-set-password');
+    expect(updated.passwordChangedAt).toBeInstanceOf(Date);
+
+    expect(db.auditRows).toHaveLength(1);
+    expect(db.auditRows[0]).toMatchObject({
+      userId: 'admin-1',
+      action: 'auth.password_reset',
+      targetType: 'user',
+      targetId: target.id,
     });
   });
 });
