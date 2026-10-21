@@ -32,9 +32,25 @@ scripts/dev-freshness-check.sh
 scripts/build-primer.sh
 scripts/review-scope.mjs
 scripts/audit-scope.mjs
+# ── V32.65 HAR harvest additions (2026-10-21 sync) — more framework-owned scripts/config ──
+scripts/verify-record.sh
+scripts/readiness-smoke.sh
+scripts/run-stages.mjs
+scripts/stages.json
+scripts/validate-findings.mjs
+scripts/report-schema.json
+# Framework deploy entrypoint, seeded at repo root by sync-to-project.sh
+deploy.sh
+# Capability-primer regenerator sources (build-primer.sh scaffolds/overwrites these)
+docs/primer.yml
+docs/CAPABILITY_PRIMER.md
 # Framework design-toolkit config seeded at repo root (bootstrap Step 20)
 sd.config.mjs
 design-fidelity.config.json
+# deploy.sh's overwrite_with_backup() leaves a *.<TIMESTAMP>.bak sibling next to every
+# framework-owned file it overwrites (root + scripts/ files not already dir-ignored above).
+# KEEP IN SYNC with the generic .bak regex check added to check-public-assets.sh.
+*.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9].bak
 
 # Secrets — canonical home is the Server-Setups repo (SOPS+age). Never here.
 .env
@@ -103,3 +119,7 @@ tests/visual/diff/
 
 # Playwright MCP scratch snapshots (verification runs)
 .playwright-mcp/
+
+# ─── V32.65 HAR harvest — validation records + stage-runner output (local artifacts, never committed) ───
+test-artifacts/validations/
+test-artifacts/stages/

@@ -49,6 +49,18 @@ FORBIDDEN=(
   "scripts/build-primer.sh"
   "scripts/review-scope.mjs"
   "scripts/audit-scope.mjs"
+  # ── V32.65 HAR harvest additions (2026-10-21 sync) — more framework-owned scripts/config ──
+  "scripts/verify-record.sh"
+  "scripts/readiness-smoke.sh"
+  "scripts/run-stages.mjs"
+  "scripts/stages.json"
+  "scripts/validate-findings.mjs"
+  "scripts/report-schema.json"
+  # Framework deploy entrypoint, seeded at repo root by sync-to-project.sh
+  "deploy.sh"
+  # Capability-primer regenerator sources (build-primer.sh scaffolds/overwrites these)
+  "docs/primer.yml"
+  "docs/capability_primer.md"
   # Framework design-toolkit config seeded at repo root (bootstrap Step 20)
   "sd.config.mjs"
   "design-fidelity.config.json"
@@ -82,6 +94,14 @@ for f in "${FILES[@]}"; do
       break
     fi
   done
+  # ── V32.65 HAR harvest additions (2026-10-21 sync) — deploy.sh's overwrite_with_backup()
+  # leaves a timestamped *.<TIMESTAMP>.bak sibling next to EVERY framework-owned file it
+  # overwrites (scripts/ + root files not caught by the .ai_prompt//.claude//AI/ directory
+  # ignores). Those backups carry the same framework IP as the original — catch any such
+  # backup generically so a future deliverable never needs its own enumerated .bak entry.
+  if [[ "$lf" =~ \.[0-9]{8}_[0-9]{6}\.bak$ ]]; then
+    HITS+=("$f")
+  fi
 done
 
 if (( ${#HITS[@]} > 0 )); then
