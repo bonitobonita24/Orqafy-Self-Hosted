@@ -474,7 +474,7 @@ gating only the byte-download would be inconsistent, not more secure. SPI docume
 (`isSPI`/`view_finances`). No code change.
 **Consequence:** documented as intended behaviour; the SPI flag stays the single confidentiality boundary for
 documents in v1. If a future install needs per-project document confidentiality, that is a new feature
-([WHAT]), not a bug fix. Back-ported to `docs/PRODUCT.md` (Files section).
+([WHAT]), not a bug fix. PRODUCT.md back-port DRAFTED (`docs/planning/PRODUCT_BACKPORT_D36-38.md`) — awaiting owner paste (Rule 1); corrected 2026-10-31, the earlier "back-ported" note was wrong.
 
 ### D-37 · Password change / reset — add self-service + admin reset in v1 (owner, 2026-10-11)
 **Context:** v1 (ORQ-55) had no password change or reset flow; the only password write was at user creation
@@ -488,7 +488,7 @@ whose issued-at predates `passwordChangedAt`) — this closes audit **L-2**. **N
 install, no SMTP assumption); admin reset is the recovery path for a forgotten password. Deactivation continues
 to revoke access via the existing per-request `isActive` re-check — not duplicated here.
 **Consequence:** ORQ-55 unblocks and audit L-2 closes. Build on `feat/orq55-password-reset`, HARD HOLD.
-Back-ported to `docs/PRODUCT.md` (Roles & Permissions / Account section).
+PRODUCT.md back-port DRAFTED (`docs/planning/PRODUCT_BACKPORT_D36-38.md`) — awaiting owner paste (Rule 1); corrected 2026-10-31, the earlier "back-ported" note was wrong.
 
 ### D-38 · DPA wave v1 defaults — confirmed as built (owner, 2026-10-11)
 **Context:** Phase 5 F-2 / ORQ-56. The v1 DPA mechanisms (ORQ-57) were built with conservative, reversible
@@ -502,5 +502,4 @@ default**.
 (3) **Erasure vs SPI/payroll documents** — **retain** (the controller's legal records); the uploader reference
 is pseudonymized rather than the document destroyed.
 (4) **Who can erase** — **admin-only** (`manage_users`); every user can self-export their own data.
-**Consequence:** the ORQ-57 DPA build is ratified unchanged. Back-ported to `docs/PRODUCT.md` (Compliance / Data
-Privacy section).
+**Consequence:** the ORQ-57 DPA build is ratified unchanged. PRODUCT.md back-port DRAFTED (`docs/planning/PRODUCT_BACKPORT_D36-38.md`) — awaiting owner paste (Rule 1); corrected 2026-10-31, the earlier "back-ported" note was wrong.

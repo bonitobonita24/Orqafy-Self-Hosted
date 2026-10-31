@@ -1,6 +1,28 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-10-11 (interactive resume — 4 open [WHAT]s resolved + ORQ-55 + orca logo, all on LOCAL main)
+**Last updated:** 2026-10-31 (Full Auto — v0.2.0 released + pushed)
+
+## ⭐ NEWEST — 2026-10-31 (Full Auto, owner "do it all") — supersedes everything below
+- **v0.2.0 RELEASED + PUSHED.** Tag `v0.2.0` on `a0dffb9`; `origin/main == main`; CI Verify SUCCESS.
+  SemVer minor, not the earlier-suggested v0.1.2, because the wave adds features. Consolidated CHANGELOG +
+  package versions synced to 0.2.0. No image-publish workflow in this repo, so nothing auto-deployed;
+  prod/demo untouched.
+- **ORQ-59 audit request IP** (merge `bd884be`): tRPC ctx `ip` via `clientIp`, `auditIp()` maps
+  `unknown`→null, 6 router + 2 route-handler call sites. Unit/route-tested; a live AuditLog.ip row has NOT
+  been eyeballed yet.
+- **ORQ-60 worker image bundle** (merge `0b1e651`): scoped install (4/11 projects) + esbuild
+  `dist/main.mjs`; runtime externals copied lockfile-exact from the store (supply-chain guards preserved).
+  881MB→401MB. Dev worker boots against real PG/Valkey, all 7 queues.
+- **Gates on merged main:** turbo typecheck 10/10, lint 10/10, test 8/8. Dev stack UP, app + worker
+  FRESH off `a0dffb9`, `:56483` login 200.
+- **Found:** the D-36/37/38 PRODUCT.md back-port was never pasted (DECISIONS_LOG wrongly said it was —
+  corrected). Paste-ready draft: `docs/planning/PRODUCT_BACKPORT_D36-38.md` → owner action (ORQ-61,
+  PENDING_DECISIONS).
+- **Remaining backlog = all gated:** device/tunnel tests (hardware), sync-engine cost check (needs
+  Nextcloud + Tauri wave), Tauri (owner), cloud-storage add-on (post-v1, owner), Document.size BigInt
+  (owner), watch items (uuid@14, Expo CVEs, jose warning).
+- **Board:** decision cards ORQ-52/54/55/56/58 commented with their answers; the Done lane is the
+  owner's to move.
 
 ## ⭐ NEWEST — 2026-10-11 (interactive resume) — supersedes the block below
 - **Owner resolved all 4 open `[WHAT]`s** (D-36 ORQ-54 L-3 accept-as-designed · D-37 ORQ-55 password reset incl.

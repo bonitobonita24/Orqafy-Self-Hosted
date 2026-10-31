@@ -3,6 +3,13 @@
 Owner-gated `[WHAT]` decisions. `[HOW]`/technical items are resolved by the agent, never parked here.
 Answered decisions get back-ported into `docs/PRODUCT.md` + `docs/DECISIONS_LOG.md` before any build.
 
+## 🔴 Open — owner action (2026-10-31)
+
+- [ ] **Paste the D-36/37/38 back-port into `docs/PRODUCT.md`** — not a new decision, just Rule 1 (only
+  the owner edits PRODUCT.md). Paste-ready blocks: `docs/planning/PRODUCT_BACKPORT_D36-38.md`. The
+  behaviour is already built and shipped in v0.2.0; until it's pasted, PRODUCT.md under-describes it
+  (spec drift). Say "pasted" and the agent will delete the draft file and tick this.
+
 ## ✅ Resolved (2026-09-06, founding session)
 
 - [x] **D-1 Kaneo usage** → AIEF locked stack; Kaneo as UI/UX + domain reference only.

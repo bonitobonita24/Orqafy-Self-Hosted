@@ -4,6 +4,17 @@ Human-readable accomplishment report, one section per working session, **newest 
 
 **Legend:** ✅ done & verified · 🔨 partial / in progress · ⏳ not yet / next · 💬 decision / note · ⛔ blocked
 
+## 2026-10-31 — v0.2.0 release + two backlog chores (Full Auto)
+
+**In your words:** "yes do it all and do all other pending tasks in squirlnote in full auto mode"
+
+✅ **Audit rows now record the request IP** (ORQ-59). Router audit rows used to have no IP. Tests green.
+✅ **Worker Docker image builds from its own packages only** (ORQ-60). Web/mobile dependency problems can no longer block it; the image is 881MB → 401MB, and it is verified booting on the dev stack.
+✅ **Released v0.2.0** — tagged, pushed, CI green. It's v0.2.0, not v0.1.2, because the release adds new features. The dev stack is rebuilt and fresh.
+✅ **Board cleaned up** — each answered decision card got a comment saying how it was settled; they're ready for you to move to Done.
+💬 **PRODUCT.md is missing the 2026-10-11 decisions** (password reset, document sharing, DPA defaults). The paste-ready text is in `docs/planning/PRODUCT_BACKPORT_D36-38.md` (ORQ-61).
+⛔ **Everything else on the board is blocked** — real phones, a live tunnel, the Tauri desktop wave, or your call (post-v1 cloud storage, large-file BigInt).
+
 ## 2026-10-12 — Board sync wrap + session saved, reboot loop stopped
 
 **In your words:** "save session for now, make sure that those recommendations are handed off properly to the next session. stop reboot loop."
