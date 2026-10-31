@@ -4,6 +4,77 @@ All notable changes per release. A version is assigned at each push/merge to `ma
 entries are auto-derived from Conventional-Commit types. See
 `~/.claude/rules/release-changelog-discipline.md`.
 
+## v0.2.0 — 2026-10-31
+
+### [FEATURE]
+- orca product mark (Concept A) in sidebar, login, favicon (`7b60c9c`)
+- self-service change-password page + admin reset-password dialog (`a1ae768`)
+- invalidate web cookie sessions issued before passwordChangedAt (L-2 web) (`b713cf0`)
+- invalidate mobile bearer tokens issued before passwordChangedAt (L-2 mobile) (`4c37b71`)
+- changePassword + admin resetPassword, bump passwordChangedAt (`48b8df8`)
+- add User.passwordChangedAt column + migration (`c6dadc2`)
+- admin export/erase actions on Users page (DPA W8) (`4489084`)
+- access audit log on document/photo downloads + SPI views (DPA W10) (`1a0d959`)
+- Settings → Privacy page (DPO + retention) (DPA W7) (`dc4910c`)
+- self-service "Download my data" (DPA W9) (`478be4f`)
+- DPA retention sweep job, dry-run by default (DPA W6) (`a024b0b`)
+- controller-operated user erasure, pseudonymize-in-place (DPA W5) (`ae1807a`)
+- export-my-data (self + admin) (DPA W4) (`d2a6f88`)
+- writeAudit helper + org DPO/retention settings router (DPA W3) (`04f7f61`)
+- AuditLog.userId nullable for system actor (`fd2f4f6`)
+- DPA privacy contracts (retention, org settings, export, erase) (`2704630`)
+- User.anonymizedAt for DPA erasure (`1d74f55`)
+- Rule 35 adaptive SEO baseline (robots, sitemap, metadata, noindex) (`4035f8f`)
+- atomic Valkey-backed rate-limit store (`9dc8ffb`)
+
+### [FIXED]
+- record request IP on router and route-handler audit rows (`4fc6210`)
+- make Session augmentation visible to api-client typecheck (`2894368`)
+- use immutable authTime (not rotatable iat) for web session revocation (`5a17dcf`)
+- rate-limit changePassword against password brute-force (`3d0ba8e`)
+- reuse seeded system roles on first-run (no duplicate PermissionGroup) (`0db98c9`)
+- enforce single Organization row (setup/seed reuse, deterministic lookup, dedupe migration) (`2f607d0`)
+- export SPI gate parity + manage_users for on-behalf export (`ea0db24`)
+- keep AuditLog actor FK ON DELETE RESTRICT (`1c9a454`)
+- exclude verified-legitimate trust downgrades blocking worker build (`87e83ab`)
+- rate-limit store honours REDIS_URL fallback like the job queue (`2004015`)
+- dev-only CSP allowance for Next Fast Refresh (prod CSP unchanged) (`41ca850`)
+- pass VALKEY_URL to the dev app so the rate limiter uses Valkey (`d324eff`)
+- worker runtime ships prod deps only (audit L-10) (`2df91c6`)
+- enforce upload cap while streaming (audit L-1) (`04d099b`)
+- consume per-email limit atomically (close TOCTOU) (`0ef1c40`)
+- constant-time auth compare + own input caps on the OCR sidecar (`25ec369`)
+
+### [REFACTOR]
+- single permission resolver for erase guard (`ef6e33f`)
+
+### [DOCS]
+- mark worker-bundle task done (ORQ-60) (`cccaf51`)
+- mark audit request-IP task done (`6cd7517`)
+- 2026-10-12 save — board sync wrap, loop stopped by owner (`6c95e39`)
+- 2026-10-11 — ORQ-55 password reset (L-2 closed) + orca logo; 4 [WHAT]s resolved (`32e8c48`)
+- back-port D-36/D-37/D-38 (ORQ-54 L-3 accept, ORQ-55 pw reset, ORQ-56 DPA confirm) (`b4749c3`)
+- 2026-10-10 evening — follow-ups, audit LOW, Phase 5/6, v1 DPA (`a6e4af3`)
+- close setup.ts PermissionGroup risk + Organization dedup (`b423343`)
+- log agent-found setup.ts duplicate-PermissionGroup risk (`cf561ff`)
+- reconcile 2026-10-10 follow-up + audit + DPA waves (`a803898`)
+- record DPA wave default [WHAT]s (ORQ-56) (`159f0c0`)
+- D-35 SEO posture — noindex everywhere, Lighthouse gate N/A (`cb3dde2`)
+- D-34 accept 2 no-fix Expo dev-tooling CVEs (node-forge, braces) (`ef19136`)
+- open L-3 doc-download scope + password change/reset [WHAT]s (`db6fd01`)
+- queue 2 post-push review findings (OCR input cap, limiter TOCTOU); v0.1.1 CI green (`cb024f8`)
+
+### [CHORE]
+- keep supply-chain guards on runtime externals install (`b4661c9`)
+- bundle worker image so its build resolves only the jobs dependency graph (`9cdfb42`)
+- sync V32.54 → v32.67.6 + public-asset guard for new framework files (`e2c677d`)
+- bump postcss override to latest patched 8.5.29 (L-8) (`7988e9c`)
+- override decode-uri-component to patched 0.5.0 (L-6) (`03b6588`)
+- harden pnpm-workspace.yaml against supply-chain attacks (L-5) (`4c1d6e1`)
+- pin GitHub Actions to commit SHAs, add least-privilege permissions (L-4) (`6a18da6`)
+- upgrade vite 5→8 / vitest 2→5 across all workspaces (ORQ-51, closes audit L-7/L-9) (`1166766`)
+
+
 ## v0.1.1 — 2026-10-10
 
 ### [FIXED]
