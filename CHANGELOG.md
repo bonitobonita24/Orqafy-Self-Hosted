@@ -4,6 +4,15 @@ All notable changes per release. A version is assigned at each push/merge to `ma
 entries are auto-derived from Conventional-Commit types. See
 `~/.claude/rules/release-changelog-discipline.md`.
 
+## v0.2.1 — 2026-10-31
+
+### [FIXED]
+- bump next to 15.5.28 (CRITICAL image-optimizer RCE) + override patched tooling deps (`2ee0697`)
+
+### [DOCS]
+- 2026-10-31 — v0.2.0 release, ORQ-59/60, PRODUCT back-port draft (`9261e8b`)
+
+
 ## v0.2.0 — 2026-10-31
 
 ### [FEATURE]
