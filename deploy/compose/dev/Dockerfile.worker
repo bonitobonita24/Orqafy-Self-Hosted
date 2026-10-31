@@ -15,9 +15,10 @@
 # hits cannot block the worker build. `--filter @orqafy/db` is named
 # separately on purpose: pnpm only installs devDependencies (the `prisma` CLI
 # needed for `prisma generate`) for projects NAMED by a selector, not ones
-# reached only through `...`. The runtime node_modules is a separate, tiny
-# standalone install (--ignore-workspace) of just the two externals, pinned to
-# the exact versions the lockfile resolved in the build stage.
+# reached only through `...`. The runtime node_modules is copied from the
+# build stage's virtual store (just the two externals' subtree), so it is
+# lockfile-exact and carries the workspace's minimumReleaseAge / trustPolicy
+# vetting — there is no second, unguarded install.
 #
 # Hardening kept: no devDependencies at runtime (audit L-10), npm removed
 # (audit H-5), `apk upgrade`, and no pnpm/corepack in the runtime image — the
@@ -43,24 +44,14 @@ RUN CI=true pnpm install --frozen-lockfile \
   && pnpm --filter @orqafy/db exec prisma generate \
   && pnpm --filter @orqafy/jobs build
 
-# Pin the two externals to the versions the lockfile resolved above.
-RUN mkdir -p /rt && node -e '\
-const v=(p)=>require(p+"/package.json").version;\
-const pm=require("/app/package.json").packageManager;\
-const j="/app/packages/jobs/node_modules/bullmq", d="/app/packages/db/node_modules/@prisma/client";\
-require("fs").writeFileSync("/rt/package.json", JSON.stringify({name:"orqafy-worker-rt",private:true,type:"module",packageManager:pm,\
-dependencies:{bullmq:v(j),"@prisma/client":v(d)}}));'
-
-# ---- rt: runtime node_modules for the externals only (prod, flat, no scripts) ----
-FROM build AS rt
-WORKDIR /rt
-# --ignore-scripts: @prisma/client's postinstall would try to generate; we copy
-# the already-generated client from the build stage instead.
-RUN pnpm install --prod --ignore-workspace --ignore-scripts --node-linker=hoisted
-RUN set -eu; \
-  src="$(find /app/node_modules/.pnpm -maxdepth 1 -type d -name '@prisma+client@*')/node_modules/.prisma"; \
-  test -d "$src"; \
-  cp -r "$src" /rt/node_modules/.prisma
+# Runtime externals, LOCKFILE-EXACT: copy bullmq + @prisma/client and their
+# resolved dependency subtree out of the virtual store that the frozen-lockfile
+# install above populated (so pnpm-workspace.yaml's minimumReleaseAge /
+# trustPolicy already vetted every one of them). The generated `.prisma/client`
+# sits in the @prisma/client slot already. `prisma` CLI / `typescript` peers are
+# skipped.
+RUN node packages/jobs/scripts/collect-externals.mjs /rt \
+    packages/jobs/node_modules/bullmq packages/db/node_modules/@prisma/client
 
 # ---- runtime: lean alpine, no build tooling, no devDependencies anywhere ----
 FROM node:22-alpine
@@ -69,7 +60,7 @@ RUN apk add --no-cache libc6-compat openssl \
   && apk upgrade --no-cache
 
 WORKDIR /app
-COPY --from=rt /rt/node_modules ./node_modules
+COPY --from=build /rt/node_modules ./node_modules
 COPY --from=build /app/packages/jobs/dist/main.mjs ./dist/main.mjs
 
 # Drop npm's bundled tree (audit H-5) — carries CRITICAL tar/pacote/sigstore/
