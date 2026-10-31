@@ -30,7 +30,7 @@ import {
 } from '@orqafy/ui';
 import type { Permission } from '@orqafy/shared';
 import { trpc } from '@/trpc/react';
-import { groupFormSchema, type GroupFormValues } from './schema';
+import { groupFormSchema, type GroupFormValues, type GroupFormInput } from './schema';
 import { permissionLabel } from './permission-labels';
 
 interface GroupLike {
@@ -54,7 +54,7 @@ export function GroupFormDialog({ group, trigger }: { group?: GroupLike; trigger
   const utils = trpc.useUtils();
   const permissions = trpc.roles.permissions.useQuery(undefined, { enabled: open });
 
-  const form = useForm<GroupFormValues>({
+  const form = useForm<GroupFormInput, unknown, GroupFormValues>({
     resolver: zodResolver(groupFormSchema),
     defaultValues: toDefaults(group),
   });

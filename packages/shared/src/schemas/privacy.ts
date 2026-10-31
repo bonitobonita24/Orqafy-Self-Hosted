@@ -19,12 +19,13 @@ export const retentionCategoryEnum = z.enum([
 export type RetentionCategory = z.infer<typeof retentionCategoryEnum>;
 
 /**
- * { category: retainDays }. Zod's `z.record` with an enum key schema already
- * validates a PARTIAL object — only the keys present are checked against the
+ * { category: retainDays }. Zod 4's `z.record` with an enum key schema is
+ * exhaustive (all keys required), so `z.partialRecord` is used to keep the
+ * PARTIAL-object behaviour — only the keys present are checked against the
  * enum + value schema, absent keys are not required. 0 or an absent key both
  * mean "no auto-deletion for that category".
  */
-export const retentionSettingsSchema = z.record(
+export const retentionSettingsSchema = z.partialRecord(
   retentionCategoryEnum,
   z.number().int().min(0),
 );
