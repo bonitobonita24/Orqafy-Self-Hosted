@@ -4,6 +4,12 @@ All notable changes per release. A version is assigned at each push/merge to `ma
 entries are auto-derived from Conventional-Commit types. See
 `~/.claude/rules/release-changelog-discipline.md`.
 
+## v0.2.2 — 2026-11-01
+
+### [FIXED]
+- migrate zod 3 → 4.6.6 (HIGH memory-exhaustion advisory) (`07523b9`)
+
+
 ## v0.2.1 — 2026-10-31
 
 ### [FIXED]
