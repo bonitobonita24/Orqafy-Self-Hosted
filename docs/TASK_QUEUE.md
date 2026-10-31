@@ -92,10 +92,7 @@ the fix is in + a regression test where the fix is app code + gates green (typec
   wired `OrcaMark` into sidebar + login (via `OrqafyWordmark`) + `app/icon.svg` favicon; Powerbyte footer
   text-only (D-29). Typecheck+lint 20/20, build green, login live-verified (`screenshots/orca-login-2026-10-11.png`).
   The logo asset-source sub-gate is now closed. `source: owner 2026-10-11`
-- 🔴 **[chore] Worker image build resolves the WHOLE workspace** — `pnpm deploy --legacy` (Dockerfile.worker) re-resolves
-  every workspace package, so any future `trustPolicy`/`minimumReleaseAge` hit in web/ui/mobile deps blocks the worker
-  build too (hit 2026-10-10: tailwind-merge@2.6.1, next-auth@5.0.0-beta.32 → narrow `trustPolicyExclude`). Option: a
-  bundled (esbuild/tsup) worker so the runtime image needs only its own deps. `gate: none (low)` `source: agent-found 2026-10-10`
+- ✅ **[chore] Worker image build resolves the WHOLE workspace** — DONE 2026-10-31 (ORQ-60, merge `0b1e651`): scoped install (`--filter "@orqafy/jobs..." --filter @orqafy/db`, 4 of 11 projects) + esbuild bundle `dist/main.mjs`; runtime externals (bullmq, @prisma/client) copied lockfile-exact from the store via `packages/jobs/scripts/collect-externals.mjs`. Image 881MB→401MB. `source: agent-found 2026-10-10`
 - 🟡 **[watch] `uuid@14` (ESM-only) forced onto Expo's `xcode` via root override** — works on Node 24 (`require(esm)`),
   verified; an EAS/native build host on Node <20.19 would fail. Revisit at first real native build. `source: agent-found 2026-10-10 (ORQ-51)`
 - ✅ **[chore][LOW] Thread request IP into `writeAudit`** — DONE 2026-10-31 on branch `fix/audit-request-ip` (`4fc6210`, not merged): tRPC ctx `ip` via `clientIp`, `auditIp()` maps `unknown`→null, 6 router + 2 route-handler call sites. turbo typecheck/lint/test green (web 314). `source: agent-found 2026-10-10 (DPA W3)`
