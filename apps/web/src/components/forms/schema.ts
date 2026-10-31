@@ -154,6 +154,8 @@ export const groupFormSchema = z.object({
   permissions: z.array(z.string()).default([]),
 });
 export type GroupFormValues = z.infer<typeof groupFormSchema>;
+/** Pre-parse shape (defaults optional) — the react-hook-form field-values type under zod 4. */
+export type GroupFormInput = z.input<typeof groupFormSchema>;
 
 // ── Document (D-13) ───────────────────────────────────────────────────────
 // METADATA-only shape: the /api/media upload response supplies storageKey/size/
@@ -166,6 +168,8 @@ export const documentFormSchema = documentSchema
     clientId: z.string().optional(),
   });
 export type DocumentFormValues = z.infer<typeof documentFormSchema>;
+/** Pre-parse shape (defaults optional) — the react-hook-form field-values type under zod 4. */
+export type DocumentFormInput = z.input<typeof documentFormSchema>;
 
 // ── Privacy / DPA settings (Settings → Privacy, Rule 33 / `.ai_prompt/privacy.md`) ──
 // `retention` carries one string-per-category day count (native <input type="number">

@@ -28,7 +28,7 @@ import {
   Select,
 } from '@orqafy/ui';
 import { trpc } from '@/trpc/react';
-import { documentFormSchema, type DocumentFormValues, blankToUndef } from './schema';
+import { documentFormSchema, type DocumentFormValues, type DocumentFormInput, blankToUndef } from './schema';
 import { conflictMessage, isConflictError } from './conflict-error';
 
 // Human labels for the 9 document categories (documentCategoryEnum). Keyed by
@@ -97,7 +97,7 @@ export function DocumentFormDialog({
   const projects = trpc.projects.list.useQuery(undefined, { enabled: open });
   const clients = trpc.clients.list.useQuery(undefined, { enabled: open });
 
-  const form = useForm<DocumentFormValues>({
+  const form = useForm<DocumentFormInput, unknown, DocumentFormValues>({
     resolver: zodResolver(documentFormSchema),
     defaultValues: toDefaults(document),
   });
