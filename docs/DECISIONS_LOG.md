@@ -450,6 +450,11 @@ risks breaking the Expo CLI with no security gain.
 **Mitigation:** re-run `pnpm audit` on every dependency bump; when Expo ships a release pulling patched versions,
 upgrade and drop this acceptance. Revisit at the next Expo SDK upgrade at the latest.
 
+**Update 2026-10-31:** fixes now exist and are applied via root `pnpm.overrides` (`node-forge@<1.4.1` -> `^1.4.1`,
+resolves 1.4.2, which also clears the formerly unpatched node-forge advisory; `undici@<6.29.1` -> `^6.29.1`;
+`decode-uri-component@<0.5.1` -> `^0.5.1`). Same change bumps `next` to 15.5.28 (CRITICAL image-optimizer RCE).
+The node-forge acceptance above is withdrawn; the `braces` item is not re-evaluated here. Remaining HIGH: zod (needs v4).
+
 ### D-35 · SEO posture — noindex everywhere; Lighthouse SEO gate N/A (agent [HOW], 2026-10-10)
 **Context:** Phase 5 finding F-3 (Rule 35 SEO Foundation missing). Rule 35's adaptive baseline gives public
 routes full SEO and private routes `noindex`. Orqafy-Self-Hosted is a single-org internal tool (D-5) installed
