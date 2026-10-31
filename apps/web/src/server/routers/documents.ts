@@ -64,6 +64,7 @@ export const documentsRouter = router({
         try {
           await writeAudit(ctx.prisma, {
             userId: ctx.userId,
+            ip: ctx.ip,
             action: 'document.view_spi',
             targetType: 'document',
             targetId: doc.id,

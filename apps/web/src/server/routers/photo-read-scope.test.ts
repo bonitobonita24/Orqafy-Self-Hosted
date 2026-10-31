@@ -57,6 +57,7 @@ function makeCtx(userId: string, permissions: Permission[]) {
     session: { user: { id: userId }, expires: '2099-01-01T00:00:00.000Z' } as Session,
     userId,
     permissions: new Set<Permission>(permissions),
+    ip: null,
   } satisfies TRPCContext;
   return { ctx, photoQueries };
 }

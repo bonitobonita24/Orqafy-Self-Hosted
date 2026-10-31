@@ -21,12 +21,15 @@ import { auth } from '../auth';
 import { defaultActiveUserDeps, type ActiveUserDeps } from './active-user';
 import { resolveBearerIdentity } from './bearer-identity';
 import { resolveUserPermissions } from './permissions';
+import { auditIp } from './audit';
 
 export interface TRPCContext {
   prisma: typeof prisma;
   session: Session | null;
   userId: string | null;
   permissions: Set<Permission>;
+  /** Client IP (trusted-proxy-aware) for audit rows; null when unknown. */
+  ip: string | null;
 }
 
 /** Build the per-request context (bearer token first, then cookie session). */
@@ -74,5 +77,5 @@ export async function createTRPCContext(
   const permissions =
     userId !== null ? await resolveUserPermissions(userId) : new Set<Permission>();
 
-  return { prisma, session, userId, permissions };
+  return { prisma, session, userId, permissions, ip: req !== undefined ? auditIp(req) : null };
 }

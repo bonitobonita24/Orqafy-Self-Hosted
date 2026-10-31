@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { writeAudit } from './audit';
+import { auditIp, writeAudit } from './audit';
 
 function makePrisma() {
   const rows: Array<Record<string, unknown>> = [];
@@ -58,5 +58,31 @@ describe('writeAudit', () => {
       ip: '203.0.113.7',
     });
     expect(rows[0]).toMatchObject({ ip: '203.0.113.7' });
+  });
+});
+
+describe('auditIp', () => {
+  it('returns the client IP from the request headers', () => {
+    const req = new Request('http://x/', { headers: { 'x-forwarded-for': '198.51.100.9' } });
+    expect(auditIp(req)).toBe('198.51.100.9');
+  });
+
+  it('returns null when the IP is unknown', () => {
+    expect(auditIp(new Request('http://x/'))).toBeNull();
+  });
+});
+
+describe('writeAudit ip null', () => {
+  it('omits ip when null', async () => {
+    const { prisma, rows } = makePrisma();
+    await writeAudit(prisma as never, {
+      userId: 'u1',
+      action: 'a',
+      targetType: 'user',
+      ip: null,
+    });
+    const row = rows[0];
+    if (row === undefined) throw new Error('expected a row');
+    expect('ip' in row).toBe(false);
   });
 });

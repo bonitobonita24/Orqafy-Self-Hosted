@@ -100,6 +100,7 @@ export const usersRouter = router({
 
       await writeAudit(ctx.prisma, {
         userId: ctx.userId,
+        ip: ctx.ip,
         action: 'auth.password_reset',
         targetType: 'user',
         targetId: input.userId,
@@ -208,6 +209,7 @@ export const usersRouter = router({
 
       await writeAudit(ctx.prisma, {
         userId: ctx.userId,
+        ip: ctx.ip,
         action: 'data_subject.erase',
         targetType: 'user',
         targetId: target.id,

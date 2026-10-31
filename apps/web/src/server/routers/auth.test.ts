@@ -77,6 +77,7 @@ function caller(db: Db, opts: { asUserId?: string } = {}) {
     session: { user: { id: userId }, expires: '2099-01-01T00:00:00.000Z' } as Session,
     userId,
     permissions: new Set<Permission>(),
+    ip: null,
   } satisfies TRPCContext;
   return createCallerFactory(authRouter)(ctx);
 }
