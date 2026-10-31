@@ -98,9 +98,7 @@ the fix is in + a regression test where the fix is app code + gates green (typec
   bundled (esbuild/tsup) worker so the runtime image needs only its own deps. `gate: none (low)` `source: agent-found 2026-10-10`
 - 🟡 **[watch] `uuid@14` (ESM-only) forced onto Expo's `xcode` via root override** — works on Node 24 (`require(esm)`),
   verified; an EAS/native build host on Node <20.19 would fail. Revisit at first real native build. `source: agent-found 2026-10-10 (ORQ-51)`
-- 🔴 **[chore][LOW] Thread request IP into `writeAudit`** — `apps/web/src/server/audit.ts` accepts `ip` but tRPC
-  `context.ts` carries no request IP, so audit rows from routers have `ip=null` (route handlers could pass it).
-  `source: agent-found 2026-10-10 (DPA W3)`
+- ✅ **[chore][LOW] Thread request IP into `writeAudit`** — DONE 2026-10-31 on branch `fix/audit-request-ip` (`4fc6210`, not merged): tRPC ctx `ip` via `clientIp`, `auditIp()` maps `unknown`→null, 6 router + 2 route-handler call sites. turbo typecheck/lint/test green (web 314). `source: agent-found 2026-10-10 (DPA W3)`
 - 🟡 **[watch] Expo dev-tooling CVEs with no upstream fix** — `node-forge`, `braces` (HIGH) via `expo` CLI/Metro;
   risk accepted D-34; re-check `pnpm audit` on next Expo SDK bump. `source: Phase 5 2026-10-10`
 - 🔴 **AIEF tooling defects found during the audit/release (cross-scope — fix in the Powerbyte-AIEF seat, NOT here)** — `gate: external (AIEF seat)` `source: agent-found 2026-09-27`

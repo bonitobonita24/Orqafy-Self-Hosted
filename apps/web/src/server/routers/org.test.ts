@@ -58,6 +58,7 @@ function caller(opts: { org?: OrgRow | null; permissions?: Permission[] } = {}) 
     session: { user: { id: 'u1' }, expires: '2099-01-01T00:00:00.000Z' } as Session,
     userId: 'u1',
     permissions: new Set<Permission>(opts.permissions ?? ['configure_server']),
+    ip: null,
   } satisfies TRPCContext;
 
   return {

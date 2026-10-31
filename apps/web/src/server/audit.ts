@@ -5,14 +5,26 @@
 // consistent fleet-wide.
 import 'server-only';
 import type { AuditTargetType, Prisma, PrismaClient } from '@orqafy/db';
+import { clientIp } from './rate-limit';
 
 export interface WriteAuditInput {
   userId: string;
   action: string;
   targetType: AuditTargetType;
   targetId?: string;
-  ip?: string;
+  /** Request IP (see `auditIp`); null/undefined = unknown, column stays NULL. */
+  ip?: string | null;
   metadata?: Prisma.InputJsonValue;
+}
+
+/**
+ * Request IP for an audit row, via the trusted-proxy-aware `clientIp`.
+ * `clientIp` returns the literal 'unknown' when no header is present; that is
+ * not an address, so it maps to null (column stays NULL).
+ */
+export function auditIp(req: Request): string | null {
+  const ip = clientIp(req);
+  return ip === 'unknown' ? null : ip;
 }
 
 /** Narrow Prisma-client slice `writeAudit` needs — keeps callers test-mockable. */
@@ -26,7 +38,7 @@ export async function writeAudit(prisma: AuditPrisma, input: WriteAuditInput): P
       action,
       targetType,
       ...(targetId !== undefined ? { targetId } : {}),
-      ...(ip !== undefined ? { ip } : {}),
+      ...(ip !== undefined && ip !== null ? { ip } : {}),
       ...(metadata !== undefined ? { metadata } : {}),
     },
   });

@@ -62,6 +62,7 @@ export const orgRouter = router({
 
       await writeAudit(ctx.prisma, {
         userId: ctx.userId,
+        ip: ctx.ip,
         action: 'org.settings.update',
         targetType: 'organization',
         targetId: org.id,

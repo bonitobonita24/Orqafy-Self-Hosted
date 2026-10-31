@@ -143,6 +143,7 @@ function caller(db: SharedDb) {
     session: null,
     userId: null,
     permissions: new Set(),
+    ip: null,
   } satisfies TRPCContext;
   return createCallerFactory(setupRouter)(ctx);
 }

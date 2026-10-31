@@ -73,6 +73,7 @@ export const authRouter = router({
 
       await writeAudit(ctx.prisma, {
         userId: ctx.userId,
+        ip: ctx.ip,
         action: 'auth.password_change',
         targetType: 'user',
         targetId: ctx.userId,

@@ -20,7 +20,7 @@ import { ObjectNotFoundError } from '@orqafy/storage';
 import { resolveRequestUserId } from '@/server/request-auth';
 import { resolveUserPermissions } from '@/server/permissions';
 import { getStorageAdapter } from '@/server/storage';
-import { writeAudit } from '@/server/audit';
+import { auditIp, writeAudit } from '@/server/audit';
 
 // Streaming a Buffer/Uint8Array body needs the Node.js runtime.
 export const runtime = 'nodejs';
@@ -102,6 +102,7 @@ export async function GET(
   try {
     await writeAudit(prisma, {
       userId,
+      ip: auditIp(req),
       action: 'document.download',
       targetType: 'document',
       targetId: doc.id,

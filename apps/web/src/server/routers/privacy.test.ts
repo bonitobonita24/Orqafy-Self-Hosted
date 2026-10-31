@@ -106,6 +106,7 @@ function caller(opts: {
     session: { user: { id: callerId }, expires: '2099-01-01T00:00:00.000Z' } as Session,
     userId: callerId,
     permissions: new Set<Permission>(opts.permissions ?? []),
+    ip: null,
   } satisfies TRPCContext;
 
   return { c: createCallerFactory(privacyRouter)(ctx), auditRows };

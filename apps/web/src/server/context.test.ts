@@ -117,3 +117,25 @@ describe('createTRPCContext — cookie-session passwordChangedAt re-check (L-2 w
     expect(ctx.session).toBeNull();
   });
 });
+
+describe('createTRPCContext — request IP (audit)', () => {
+  const deps = {
+    getUserAuthState: () => Promise.resolve({ isActive: true, passwordChangedAt: null }),
+  };
+
+  it('carries the trusted-proxy-aware client IP from the request', async () => {
+    authMock.mockResolvedValue(session('u1'));
+    const req = new Request('http://localhost/api/trpc', {
+      headers: { 'x-forwarded-for': '203.0.113.7' },
+    });
+    const ctx = await createTRPCContext(req, deps);
+    expect(ctx.ip).toBe('203.0.113.7');
+  });
+
+  it('is null when no request is passed or no IP header is present', async () => {
+    authMock.mockResolvedValue(session('u1'));
+    expect((await createTRPCContext(undefined, deps)).ip).toBeNull();
+    const bare = new Request('http://localhost/api/trpc');
+    expect((await createTRPCContext(bare, deps)).ip).toBeNull();
+  });
+});

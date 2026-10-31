@@ -87,6 +87,7 @@ function caller(opts: {
     session: { user: { id: 'u1' }, expires: '2099-01-01T00:00:00.000Z' } as Session,
     userId: 'u1',
     permissions: new Set<Permission>(opts.permissions),
+    ip: '203.0.113.7',
   } satisfies TRPCContext;
   return {
     c: createCallerFactory(documentsRouter)(ctx),
@@ -210,6 +211,7 @@ describe('documents.byId SPI-view access audit (DPA W10)', () => {
       action: 'document.view_spi',
       targetType: 'document',
       targetId: 'spi-1',
+      ip: '203.0.113.7',
     });
   });
 

@@ -180,6 +180,7 @@ function caller(db: Db, opts: { asUserId?: string; permissions?: Permission[] } 
     session: { user: { id: userId }, expires: '2099-01-01T00:00:00.000Z' } as Session,
     userId,
     permissions: new Set<Permission>(opts.permissions ?? ['manage_users']),
+    ip: null,
   } satisfies TRPCContext;
   return createCallerFactory(usersRouter)(ctx);
 }

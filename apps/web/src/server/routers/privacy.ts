@@ -143,6 +143,7 @@ export const privacyRouter = router({
 
     await writeAudit(ctx.prisma, {
       userId: ctx.userId,
+      ip: ctx.ip,
       action: 'data_subject.export',
       targetType: 'user',
       targetId,

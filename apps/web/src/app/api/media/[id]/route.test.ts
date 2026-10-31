@@ -26,6 +26,8 @@ vi.mock('@orqafy/db', () => ({
 // with the right shape, on the right branch, and never lets its failure
 // break the download.
 vi.mock('@/server/audit', () => ({
+  // Mirrors the real helper's contract for the header the test sends.
+  auditIp: (req: Request): string | null => req.headers.get('x-forwarded-for'),
   writeAudit: (
     _prisma: unknown,
     input: Record<string, unknown>,
@@ -108,9 +110,10 @@ describe('GET /api/media/[id] — access audit log (DPA W10)', () => {
 
   it('writes one document.download row on a successful download', async () => {
     doc.row = { id: 'd3', name: 'contract.pdf', mimeType: 'application/pdf', isSPI: false };
-    const res = await GET(new Request('http://localhost/api/media/d3'), {
-      params: Promise.resolve({ id: 'd3' }),
-    });
+    const res = await GET(
+      new Request('http://localhost/api/media/d3', { headers: { 'x-forwarded-for': '203.0.113.7' } }),
+      { params: Promise.resolve({ id: 'd3' }) },
+    );
     expect(res.status).toBe(200);
     expect(audit.writes).toHaveLength(1);
     expect(audit.writes[0]).toMatchObject({
@@ -118,6 +121,7 @@ describe('GET /api/media/[id] — access audit log (DPA W10)', () => {
       action: 'document.download',
       targetType: 'document',
       targetId: 'd3',
+      ip: '203.0.113.7',
       metadata: { isSPI: false },
     });
   });
