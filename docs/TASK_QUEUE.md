@@ -70,7 +70,7 @@ the fix is in + a regression test where the fix is app code + gates green (typec
 
 ### Other open
 
-- 🟡 **Audit LOW backlog — L-2 + L-3 DECIDED 2026-10-11** — L-1, L-4…L-10 ✅ DONE 2026-10-10 (see Done).
+- ✅ **Audit LOW backlog — ALL CLOSED (L-2 by ORQ-55, L-3 D-36)** — L-1, L-4…L-10 ✅ DONE 2026-10-10 (see Done).
   - L-2 60-day mobile token not revoked on password change → ✅ **CLOSED 2026-10-11 by ORQ-55** — `passwordChangedAt`
     bump invalidates older mobile bearer tokens AND web cookie sessions (immutable `authTime`). Live-verified:
     mobile old-bearer `auth.me` → 401 after change; web pre-change session → 401. `gate: none`
@@ -96,8 +96,7 @@ the fix is in + a regression test where the fix is app code + gates green (typec
 - 🟡 **[watch] `uuid@14` (ESM-only) forced onto Expo's `xcode` via root override** — works on Node 24 (`require(esm)`),
   verified; an EAS/native build host on Node <20.19 would fail. Revisit at first real native build. `source: agent-found 2026-10-10 (ORQ-51)`
 - ✅ **[chore][LOW] Thread request IP into `writeAudit`** — DONE 2026-10-31 on branch `fix/audit-request-ip` (`4fc6210`, not merged): tRPC ctx `ip` via `clientIp`, `auditIp()` maps `unknown`→null, 6 router + 2 route-handler call sites. turbo typecheck/lint/test green (web 314). `source: agent-found 2026-10-10 (DPA W3)`
-- 🟡 **[watch] Expo dev-tooling CVEs with no upstream fix** — `node-forge`, `braces` (HIGH) via `expo` CLI/Metro;
-  risk accepted D-34; re-check `pnpm audit` on next Expo SDK bump. `source: Phase 5 2026-10-10`
+- ✅ **[watch] Expo dev-tooling CVEs** — fixes appeared; v0.2.1 overrides node-forge 1.4.2, undici 6.29.1, decode-uri-component 0.5.1 (D-34 note). `pnpm audit` 2026-11-01: 0 critical / 0 high. `source: agent-found 2026-10-10`
 - 🔴 **AIEF tooling defects found during the audit/release (cross-scope — fix in the Powerbyte-AIEF seat, NOT here)** — `gate: external (AIEF seat)` `source: agent-found 2026-09-27`
   (a) `scripts/audit-app.sh:284` ESLint detection misses `eslint.base.mjs` (only looks for `eslint.config.*` /
   `.eslintrc*`); (b) `audit-app.sh` reports a Trivy DB download failure as a CVE finding; (c)
@@ -199,7 +198,15 @@ exist yet. They are NOT actionable now; they gate a later phase._
   BUILD is owner-gated (D-3 later track). **D-30 (2026-09-27):** stays deferred post-v1; Q2 = reuse `apps/web`
   in the WebView, Q3 = Auth.js cookie same-origin; Q4–Q7 parked in R7a §7. `<source: plan 2026-09-08>`
 
+- 🟡 **[watch] apps/mobile react 19.1.0 vs react-dom 19.2.8 peer warning** — `pnpm install` warns; predates the
+  2026-10-31 changes. Align on the next Expo SDK bump. `gate: external (Expo SDK)` `source: agent-found 2026-11-01`
+- 🔴 **[owner] Dev admin password isn't vaulted** — `admin@orqafy.local` was seeded from DEV_ADMIN_* env that no
+  longer exists anywhere, so agents can't log in for live verification (2026-11-01 used a temp user instead).
+  Owner: `pb-cred put` it for this project, or say "reseed dev admin". `gate: owner` `source: agent-found 2026-11-01`
+
 ## ✅ Done recently
+- ✅ **ORQ-62 CRITICAL next RCE** — next 15.5.28 + tooling overrides, released v0.2.1 (`771fc44`, CI green, 2026-10-31)
+- ✅ **ORQ-63 zod 3→4.6.7** — HIGH memory-exhaustion advisory; resolvers 5; live-verified on dev; released v0.2.2 (`e81a326`, 2026-11-01)
 
 - ✅ **setup.ts duplicate-PermissionGroup risk** — `createFirstAdmin` now `tx.permissionGroup.upsert()`s by
   `systemKey` (mirrors `seed.ts` `seedSystemRoles()`) instead of blind `create`, so a pre-seeded DB no longer

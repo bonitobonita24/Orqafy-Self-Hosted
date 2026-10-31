@@ -1,6 +1,19 @@
 # STATE — Orqafy-Self-Hosted
 
-**Last updated:** 2026-10-31 (Full Auto — v0.2.0 released + pushed)
+**Last updated:** 2026-11-01 (Full Auto — v0.2.0 → v0.2.1 → v0.2.2 released)
+
+## ⭐ NEWEST — 2026-11-01 (Full Auto, continued) — supersedes the 2026-10-31 block's "remaining" list
+- **Security releases after v0.2.0:** a fresh `pnpm audit` found a CRITICAL **next ≤15.5.27 unauthenticated
+  RCE (Image Optimization)**. **v0.2.1** (`771fc44`) = next 15.5.28 + overrides node-forge 1.4.2 /
+  undici 6.29.1 / decode-uri-component 0.5.1 (ORQ-62). **v0.2.2** (`e81a326`) = zod 3→4.6.7 for a HIGH
+  memory-exhaustion advisory + @hookform/resolvers 5 (ORQ-63). Both pushed, CI success.
+- **Audit now:** 0 critical / 0 high (1 low, 5 moderate).
+- **Live-verified on dev** with a temporary verifier user (cleaned up): zod 4 tRPC validation, partial
+  retention settings, Privacy + group form resolvers, and AuditLog.ip populated (ORQ-59). Evidence:
+  `test-artifacts/zod4-verify-2026-11-01/` (gitignored).
+- **New owner items:** ORQ-64 the dev admin password isn't vaulted (agents can't log in). ORQ-61 still open
+  (PRODUCT.md paste).
+- Dev stack UP + FRESH off `e81a326`, `:56483`.
 
 ## ⭐ NEWEST — 2026-10-31 (Full Auto, owner "do it all") — supersedes everything below
 - **v0.2.0 RELEASED + PUSHED.** Tag `v0.2.0` on `a0dffb9`; `origin/main == main`; CI Verify SUCCESS.
