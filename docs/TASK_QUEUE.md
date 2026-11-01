@@ -200,9 +200,10 @@ exist yet. They are NOT actionable now; they gate a later phase._
 
 - 🟡 **[watch] apps/mobile react 19.1.0 vs react-dom 19.2.8 peer warning** — `pnpm install` warns; predates the
   2026-10-31 changes. Align on the next Expo SDK bump. `gate: external (Expo SDK)` `source: agent-found 2026-11-01`
-- 🔴 **[owner] Dev admin password isn't vaulted** — `admin@orqafy.local` was seeded from DEV_ADMIN_* env that no
-  longer exists anywhere, so agents can't log in for live verification (2026-11-01 used a temp user instead).
-  Owner: `pb-cred put` it for this project, or say "reseed dev admin". `gate: owner` `source: agent-found 2026-11-01`
+- 🟡 **Dev admin login — reset + stored (ORQ-64)** — 2026-11-01: `admin@orqafy.local` reset to a new random pw,
+  stored as DEV_ADMIN_EMAIL/DEV_ADMIN_PASSWORD in gitignored `.env.dev` (mode 600, read by seed.ts); login verified.
+  Remaining: copy into the pb-cred vault once the AIEF steward maps this folder in projects.map (slug clash with
+  `orqafy`; request sent to the AIEF seat). `gate: cross-seat (AIEF projects.map)` `source: agent-found 2026-11-01`
 
 ## ✅ Done recently
 - ✅ **ORQ-62 CRITICAL next RCE** — next 15.5.28 + tooling overrides, released v0.2.1 (`771fc44`, CI green, 2026-10-31)
