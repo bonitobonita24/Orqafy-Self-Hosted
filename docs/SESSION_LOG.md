@@ -16,6 +16,8 @@ Human-readable accomplishment report, one section per working session, **newest 
 ✅ **Urgent security fix, v0.2.1:** a new audit found a **critical remote-code-execution bug in Next.js**. Patched to 15.5.28, along with three mobile-tooling fixes that now exist.
 ✅ **Security fix v0.2.2:** moved validation to zod 4 to fix a high-severity memory-exhaustion issue. Live-tested the forms and server validation on dev. The audit now shows 0 critical and 0 high.
 💬 **Your dev admin password isn't stored anywhere I can reach** (ORQ-64), so I tested with a temporary user and deleted it afterwards. Add the password with `pb-cred put`, or tell me to reseed the admin.
+✅ **Dev admin login reset and stored in the vault** (ORQ-64). The Powerbyte-AIEF seat fixed the name clash; agents can now log in for live tests without seeing the password.
+💬 **Session saved and reboot loop stopped at your request** (2026-11-01). The next session starts with ORQ-61 (PRODUCT.md paste).
 ⛔ **Everything else on the board is blocked** — real phones, a live tunnel, the Tauri desktop wave, or your call (post-v1 cloud storage, large-file BigInt).
 
 ## 2026-10-12 — Board sync wrap + session saved, reboot loop stopped
